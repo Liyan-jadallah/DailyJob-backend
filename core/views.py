@@ -584,10 +584,26 @@ class AdViewSet(viewsets.ModelViewSet):
             queryset = queryset.filter(user_id=user_filter)
 
         if category_filter and category_filter != 'all':
-            queryset = queryset.filter(category=category_filter)
+            if category_filter == 'services':
+                service_subs = ['services', 'construction', 'delivery', 'cleaning', 'moving', 'plumbing', 'electrical', 'hospitality', 'caregiving']
+                queryset = queryset.filter(category__in=service_subs)
+            elif category_filter == 'used':
+                used_subs = ['used', 'electronics', 'furniture']
+                queryset = queryset.filter(category__in=used_subs)
+            elif category_filter in ('rentals', 'rental'):
+                queryset = queryset.filter(category__in=['rentals', 'rental'])
+            else:
+                queryset = queryset.filter(category=category_filter)
 
         if ad_type_filter and ad_type_filter != 'all':
-            queryset = queryset.filter(ad_type=ad_type_filter)
+            if ad_type_filter == 'cars':
+                queryset = queryset.filter(Q(ad_type='cars') | Q(category='cars'))
+            elif ad_type_filter == 'real_estate':
+                queryset = queryset.filter(Q(ad_type='real_estate') | Q(category='real_estate'))
+            elif ad_type_filter == 'rent':
+                queryset = queryset.filter(Q(ad_type='rent') | Q(category__in=['rentals', 'rental']))
+            else:
+                queryset = queryset.filter(Q(ad_type=ad_type_filter) | Q(category=ad_type_filter))
 
         if governorate_filter and governorate_filter != 'all':
             queryset = queryset.filter(governorate=governorate_filter)
