@@ -303,11 +303,19 @@ def notify_admins_of_transaction(sender, instance, created, **kwargs):
         admin_users = User.objects.filter(role='admin') # Assuming role='admin'
 
         # 2. Create in-app notifications
+        title = "إيصال دفع جديد" if instance.receipt_image else "إعلان جديد للمراجعة"
+        receipt_url = instance.receipt_image.url if instance.receipt_image else ''
+        message = (
+            f"تم استلام إيصال دفع جديد من المستخدم {instance.user.email}." + (f" الرابط: {receipt_url}" if receipt_url else "")
+            if instance.receipt_image
+            else f"قام المستخدم {instance.user.email} بنشر إعلان جديد بانتظار المراجعة."
+        )
         notifications = [
             Notification(
                 user=admin,
-                title="إيصال دفع جديد",
-                message=f"تم استلام إيصال دفع جديد من المستخدم {instance.user.email}. الرابط: {instance.receipt_image.url if instance.receipt_image else 'No image'}"
+                title=title,
+                message=message,
+                ad_id=instance.ad_id
             ) for admin in admin_users
         ]
         Notification.objects.bulk_create(notifications)

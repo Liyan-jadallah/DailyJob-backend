@@ -537,6 +537,15 @@ class AdViewSet(viewsets.ModelViewSet):
 
         # ── Visibility rules ────────────────────────────────────────────────
         is_admin = self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'admin'
+
+        if self.action == 'retrieve':
+            from django.db.models import Q
+            if is_admin:
+                return queryset
+            if self.request.user.is_authenticated:
+                return queryset.filter(Q(status='approved') | Q(user=self.request.user))
+            return queryset.filter(status='approved')
+
         admin_all = self.request.query_params.get('admin_all') == 'true'
 
         if is_admin and admin_all:
@@ -692,6 +701,17 @@ class AdViewSet(viewsets.ModelViewSet):
                 receipt_image=receipt_image,
                 amount=2.00 if ad.ad_duration == '1_week' else 1.00
             )
+
+        # 4.5 إشعار لصاحب الإعلان بأنه قيد المراجعة
+        try:
+            Notification.objects.create(
+                user=self.request.user,
+                title="⏳ إعلانك قيد المراجعة",
+                message=f"تم استلام إعلانك '{ad.title}' بنجاح، وهو الآن قيد المراجعة وسيتم نشره قريباً.",
+                ad_id=ad.id
+            )
+        except Exception:
+            pass
             
         # 5. إرسال إيميل للأدمن في خلفية النظام (Non-blocking daemon thread)
         # لمنع بطء أو تعليق طلب النشر (Worker Timeout)

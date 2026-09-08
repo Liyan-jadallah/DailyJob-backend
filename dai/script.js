@@ -1440,6 +1440,24 @@
   }
   // ===== نهاية Lightbox =====
 
+  function showDetailsLoading() {
+    const titleEl = document.getElementById("detailsTitle");
+    if (titleEl) titleEl.textContent = state.lang === 'ar' ? "جاري تحميل تفاصيل الإعلان..." : "Loading ad details...";
+    const descEl = document.getElementById("descText");
+    if (descEl) descEl.textContent = "";
+    const tagsContainer = document.getElementById("detailsTags");
+    if (tagsContainer) tagsContainer.innerHTML = "";
+    const priceBig = document.getElementById("priceBig");
+    if (priceBig) priceBig.textContent = "—";
+    const phoneVal = document.getElementById("phoneValue");
+    if (phoneVal) phoneVal.textContent = "—";
+    const detailsCard = document.querySelector(".details-card");
+    if (detailsCard) {
+      const oldImg = detailsCard.querySelector(".ad-details-image-wrapper");
+      if (oldImg) oldImg.remove();
+    }
+  }
+
   async function openDetails(adId) {
     if (!state.isAuthenticated) {
       state.pendingAction = () => {
@@ -1451,48 +1469,35 @@
     }
 
     state.currentAdId = adId;
-    renderDetails(adId);
-    goToScreen("details");
+    let existingAd = ads.find(a => String(a.id) === String(adId));
+    if (existingAd) {
+      renderDetails(adId);
+      goToScreen("details");
+    } else {
+      showDetailsLoading();
+      goToScreen("details");
+    }
 
     // جلب الإعلان من السيرفر لتسجيل المشاهدة وتحديث العداد في الوقت الفعلي
     try {
       const dbAd = await Api.getAd(adId);
       if (dbAd) {
-        let existingAd = ads.find(a => String(a.id) === String(adId));
-        if (existingAd) {
-          existingAd.views = dbAd.views || 0;
+        const mapped = mapDbAd(dbAd);
+        const idx = ads.findIndex(a => String(a.id) === String(adId));
+        if (idx >= 0) {
+          ads[idx] = mapped;
         } else {
-          const newAd = {
-            id: dbAd.id,
-            type: dbAd.category,
-            category: dbAd.category,
-            governorate: dbAd.governorate,
-            area: { ar: dbAd.governorate, en: dbAd.governorate },
-            title: { ar: dbAd.title, en: dbAd.title },
-            desc: { ar: dbAd.description, en: dbAd.description },
-            price: parseFloat(dbAd.price) || 0,
-            currency: "JOD",
-            wageType: "fixed",
-            phone: dbAd.contact_phone,
-            contactMethod: dbAd.contact_method || "both",
-            createdAt: new Date(dbAd.created_at),
-            user_email: dbAd.user_details?.email,
-            mine: state.user && (dbAd.user === state.user.id || dbAd.user_details?.username === state.user.username),
-            image: dbAd.image ? dbAd.image : 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job',
-            extra_images: dbAd.extra_images || [],
-            status: dbAd.status || 'approved',
-            views: dbAd.views || 0
-          };
-          ads.push(newAd);
-          existingAd = newAd;
+          ads.push(mapped);
         }
-        const metaViews = document.getElementById("metaViews");
-        if (metaViews) {
-          metaViews.textContent = `${dbAd.views || 0} ${state.lang === 'ar' ? 'مشاهدة' : 'views'}`;
-        }
+        renderDetails(adId);
       }
     } catch (err) {
       console.warn("Could not refresh ad details", err);
+      if (!existingAd) {
+        showToast(state.lang === 'ar' ? "الإعلان غير متوفر أو تم حذفه" : "Ad is no longer available or deleted", "error");
+        const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
+        goToScreen(lastScreen !== "details" ? lastScreen : "home");
+      }
     }
   }
 
@@ -1633,9 +1638,16 @@
 
     const tagsContainer = document.getElementById("detailsTags");
     if (tagsContainer) {
+      let statusPill = "";
+      if (ad.status === 'pending') {
+        statusPill = `<span class="pill" style="background:#f59e0b; color:#fff;">${state.lang === 'ar' ? '⏳ قيد المراجعة' : '⏳ Pending Review'}</span>`;
+      } else if (ad.status === 'rejected') {
+        statusPill = `<span class="pill" style="background:#ef4444; color:#fff;">${state.lang === 'ar' ? '❌ مرفوض' : '❌ Rejected'}</span>`;
+      }
       tagsContainer.innerHTML = `
         <span class="pill pill-orange">${catName}</span>
         <span class="pill pill-outline">${govName}</span>
+        ${statusPill}
       `;
     }
 
@@ -1656,6 +1668,20 @@
   if (contactBtnEl) {
     contactBtnEl.addEventListener("click", () => {
       handleContact(state.currentAdId);
+    });
+  }
+
+  const detailsBackBtn = document.getElementById("detailsBackBtn");
+  if (detailsBackBtn) {
+    detailsBackBtn.addEventListener("click", () => {
+      const lastScreen = sessionStorage.getItem("dj_lastScreen");
+      if (lastScreen && lastScreen !== "details") {
+        goToScreen(lastScreen);
+      } else if (window.history.length > 1) {
+        window.history.back();
+      } else {
+        goToScreen("home");
+      }
     });
   }
 
@@ -1804,9 +1830,9 @@
     if (deleteAllBtn) deleteAllBtn.style.display = "flex";
     if (emptyState) emptyState.classList.add("hidden");
     list.innerHTML = state.notifications.map((n) => `
-      <div class="notif-item ${n.is_read ? "" : "unread"}" data-notif-id="${n.id}">
+      <div class="notif-item ${n.is_read ? "" : "unread"}" data-notif-id="${n.id}" data-ad-id="${n.ad_id || ''}" style="cursor:pointer;">
         <div class="notif-icon"><i class="fa-solid fa-bell"></i></div>
-        <div class="notif-body" data-ad-id="${n.ad_id || ''}">
+        <div class="notif-body">
           <div class="notif-title">${escapeHtml(n.title)}</div>
           <div class="notif-text">${escapeHtml(n.message)}</div>
           <div class="notif-time">${formatRelative(new Date(n.created_at))}</div>
@@ -1820,17 +1846,7 @@
       item.addEventListener("click", (e) => {
         if (e.target.closest(".notif-delete-btn")) return;
 
-        const bodyEl = item.querySelector(".notif-body");
-        const adId = bodyEl ? bodyEl.getAttribute("data-ad-id") : item.getAttribute("data-ad-id");
-        if (adId) {
-          openDetails(adId);
-        } else {
-          const text = item.textContent || '';
-          if (text.includes('قسيمة') || text.includes('كوبون') || text.includes('هدية') || text.includes('كود') || text.includes('Coupon')) {
-            goToScreen('coupons');
-          }
-        }
-
+        // وضع علامة مقروء فوراً
         const notifId = item.dataset.notifId;
         const notif = state.notifications.find(n => String(n.id) === String(notifId));
         if (notif && !notif.is_read) {
@@ -1839,6 +1855,23 @@
           updateNotificationDot();
           const token = localStorage.getItem("dj_token");
           if (token) Api.markNotificationRead(notifId, token);
+        }
+
+        const adId = (item.getAttribute("data-ad-id") || '').trim();
+        const fullText = (item.textContent || '').toLowerCase();
+
+        if (adId && adId !== '' && adId !== 'null' && adId !== 'undefined') {
+          openDetails(adId);
+        } else if (state.user && state.user.role === 'admin' && (fullText.includes('إيصال') || fullText.includes('دفع') || fullText.includes('مراجعة') || fullText.includes('receipt'))) {
+          goToScreen('admin');
+        } else if (fullText.includes('قسيمة') || fullText.includes('كوبون') || fullText.includes('هدية') || fullText.includes('كود') || fullText.includes('coupon')) {
+          goToScreen('coupons');
+        } else if (fullText.includes('إعلان') || fullText.includes('ad')) {
+          if (state.user && state.user.role === 'admin') {
+            goToScreen('admin');
+          } else {
+            goToScreen('mylistings');
+          }
         }
       });
     });
