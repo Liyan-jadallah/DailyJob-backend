@@ -2183,8 +2183,6 @@
     };
 
     setCheck("togglePush", state.settings.pushNotifications);
-    setCheck("toggleMessages", state.settings.messageNotifications);
-    setCheck("toggleMarketing", state.settings.marketingNotifications);
 
     const govSelect = document.getElementById("settingsGov");
     if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
@@ -2218,8 +2216,6 @@
   };
 
   bindCheckSetting("togglePush", "pushNotifications");
-  bindCheckSetting("toggleMessages", "messageNotifications");
-  bindCheckSetting("toggleMarketing", "marketingNotifications");
 
   const settingsGov = document.getElementById("settingsGov");
   if (settingsGov) {
