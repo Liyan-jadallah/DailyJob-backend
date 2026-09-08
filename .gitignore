@@ -1,0 +1,37 @@
+# Virtual Environment
+venv/
+.venv/
+env/
+
+# Environment Variables
+.env
+.env.*
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Database
+db.sqlite3
+*.sqlite3
+*.sqlite3-journal
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Credentials & Secrets
+firebase-adminsdk.json
+
+# Static & Media
+staticfiles/
+media/
+
+# Temporary & Test
+scratch/
+test_ads.json
+*.log
+.DS_Store

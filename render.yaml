@@ -1,0 +1,30 @@
+services:
+  - type: web
+    name: dailyjob-backend
+    runtime: python
+    plan: free
+    buildCommand: "./build.sh"
+    startCommand: "gunicorn backend.wsgi:application"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DEBUG
+        value: "False"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: dailyjob-db
+          property: connectionString
+      - key: ALLOWED_HOSTS
+        value: "*"
+      - key: CORS_ALLOW_ALL_ORIGINS
+        value: "True"
+      - key: CELERY_EAGER
+        value: "True"
+
+databases:
+  - name: dailyjob-db
+    plan: free
+    databaseName: dailyjob
+    user: dailyjob_user
