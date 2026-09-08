@@ -2034,13 +2034,45 @@
         'Authorization': 'Token ' + token 
       };
 
+      const parseError = async (res, defaultMsg) => {
+        if (res.status === 401) {
+          localStorage.removeItem("dj_token");
+          localStorage.removeItem("dj_user");
+          showToast("انتهت الجلسة، يرجى تسجيل الدخول مجدداً", "error");
+          openAuth("login");
+          return "انتهت الجلسة، يرجى تسجيل الدخول مجدداً";
+        }
+        try {
+          const errData = await res.json();
+          if (errData && typeof errData === "object") {
+            const msgs = [];
+            for (const [k, v] of Object.entries(errData)) {
+              const valStr = Array.isArray(v) ? v.join(", ") : String(v);
+              msgs.push(valStr);
+            }
+            if (msgs.length > 0) return msgs.join(" | ");
+          } else if (typeof errData === "string") {
+            return errData;
+          }
+        } catch (_) {
+          try {
+            const text = await res.text();
+            if (text && text.length < 150) return text;
+          } catch (_) {}
+        }
+        return defaultMsg;
+      };
+
       if (state.currentEditAdId) {
         const res = await fetch(`${BASE_URL}/ads/${state.currentEditAdId}/`, {
           method: 'PATCH',
           headers: headers,
           body: formData
         });
-        if (!res.ok) throw new Error("حدث خطأ أثناء تعديل الإعلان.");
+        if (!res.ok) {
+          const msg = await parseError(res, "حدث خطأ أثناء تعديل الإعلان.");
+          throw new Error(msg);
+        }
         showToast("تم تعديل الإعلان بنجاح", "success");
         state.currentEditAdId = null;
       } else {
@@ -2049,7 +2081,10 @@
           headers: headers,
           body: formData
         });
-        if (!res.ok) throw new Error("حدث خطأ أثناء النشر.");
+        if (!res.ok) {
+          const msg = await parseError(res, "حدث خطأ أثناء النشر.");
+          throw new Error(msg);
+        }
         showToast(t("adPublished"), "success");
       }
 
@@ -2141,6 +2176,8 @@
       if (!details) { showFormError(errorEl, t("fillAllFields")); return; }
       
       if (state.currentEditAdId) {
+        await performSave();
+      } else if (category === "free" || category === "ads") {
         await performSave();
       } else {
         if (elements.cliqModalOverlay) elements.cliqModalOverlay.classList.add("open");

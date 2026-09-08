@@ -621,6 +621,7 @@ class AdViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
+        import threading
         from .models import AdImage, Coupon, Transaction
 
         # 0. Validate all uploaded images
@@ -638,6 +639,23 @@ class AdViewSet(viewsets.ModelViewSet):
         
         # 1. Save the Ad instance (status defaults to 'pending')
         ad = serializer.save(user=self.request.user)
+
+        # 1.1 Explicitly save main_image (since image is a SerializerMethodField in AdSerializer)
+        if main_image:
+            ad.image = main_image
+            ad.save(update_fields=['image'])
+
+        # 1.2 Automatically set ad_type if not provided
+        if not ad.ad_type:
+            if ad.category == 'cars':
+                ad.ad_type = 'cars'
+            elif ad.category == 'real_estate':
+                ad.ad_type = 'real_estate'
+            elif ad.category in ('rentals', 'rental'):
+                ad.ad_type = 'rent'
+            else:
+                ad.ad_type = 'other'
+            ad.save(update_fields=['ad_type'])
         
         # 2. Save all uploaded images (multiple images support)
         for img in images:
@@ -667,7 +685,7 @@ class AdViewSet(viewsets.ModelViewSet):
                     raise serializers.ValidationError({"coupon_id": "هذه القسيمة منتهية الصلاحية."})
             except Coupon.DoesNotExist:
                 raise serializers.ValidationError({"coupon_id": "القسيمة المحددة غير صالحة."})
-        elif receipt_image:
+        elif receipt_image and hasattr(receipt_image, 'read'):
             Transaction.objects.create(
                 ad=ad,
                 user=self.request.user,
@@ -675,19 +693,31 @@ class AdViewSet(viewsets.ModelViewSet):
                 amount=2.00 if ad.ad_duration == '1_week' else 1.00
             )
             
-        # 5. إرسال إيميل للأدمن بأن هناك إعلان جديد
-        from django.core.mail import send_mail
-        from .models import User
-        admin_emails = [admin.email for admin in User.objects.filter(role='admin') if admin.email]
-        if admin_emails:
-            payment_method_str = f"باستخدام القسيمة (كود: {coupon.code})" if coupon else "بواسطة وصل الدفع"
-            send_mail(
-                subject='إعلان جديد بانتظار المراجعة',
-                message=f'قام المستخدم {self.request.user.email} بنشر إعلان جديد بعنوان "{ad.title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
-                from_email=settings.EMAIL_HOST_USER,
-                recipient_list=admin_emails,
-                fail_silently=True,
-            )
+        # 5. إرسال إيميل للأدمن في خلفية النظام (Non-blocking daemon thread)
+        # لمنع بطء أو تعليق طلب النشر (Worker Timeout)
+        user_email = getattr(self.request.user, 'email', '')
+        ad_title = ad.title
+        coupon_code = coupon.code if coupon else None
+        has_receipt = bool(receipt_image)
+        
+        def _send_admin_email_async():
+            try:
+                from django.core.mail import send_mail
+                from .models import User
+                admin_emails = [admin.email for admin in User.objects.filter(role='admin') if admin.email]
+                if admin_emails:
+                    payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
+                    send_mail(
+                        subject='إعلان جديد بانتظار المراجعة',
+                        message=f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
+                        from_email=settings.EMAIL_HOST_USER,
+                        recipient_list=admin_emails,
+                        fail_silently=True,
+                    )
+            except Exception:
+                pass
+        
+        threading.Thread(target=_send_admin_email_async, daemon=True).start()
 
     def perform_update(self, serializer):
         from .models import AdImage
