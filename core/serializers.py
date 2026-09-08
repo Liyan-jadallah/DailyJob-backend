@@ -1,6 +1,36 @@
+import os
+from django.conf import settings
 from rest_framework import serializers
 from .models import User, PaymentMethod, Ad, AdCategory, AdImage, Transaction, Notification, Coupon, Referral, ContactMessage
 from .minimal_user_serializer import MinimalUserSerializer
+
+def _resolve_media_url(file_field, request=None):
+    if not file_field:
+        return None
+    name = getattr(file_field, 'name', str(file_field))
+    if not name:
+        return None
+    if name.startswith('http://') or name.startswith('https://'):
+        return name
+
+    # Check if local file exists on disk (seed image committed in git)
+    normalized = name.replace('\\', '/').lstrip('/')
+    if normalized.startswith('media/'):
+        normalized = normalized[6:]
+
+    local_path = os.path.join(settings.MEDIA_ROOT, *normalized.split('/'))
+    if os.path.exists(local_path):
+        url = f"{settings.MEDIA_URL.rstrip('/')}/{normalized}"
+        return request.build_absolute_uri(url) if request else url
+
+    # Otherwise, use storage URL (Cloudinary for newly uploaded images)
+    try:
+        url = file_field.url
+        if request and not url.startswith('http'):
+            return request.build_absolute_uri(url)
+        return url
+    except Exception:
+        return None
 
 class AdCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -54,11 +84,7 @@ class AdImageSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image:
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
-        return None
+        return _resolve_media_url(obj.image, request)
 
     class Meta:
         model = AdImage
@@ -82,17 +108,14 @@ class AdSerializer(serializers.ModelSerializer):
 
     def get_image(self, obj):
         request = self.context.get('request')
-        if obj.image:
-            if request:
-                return request.build_absolute_uri(obj.image.url)
-            return obj.image.url
+        url = _resolve_media_url(obj.image, request)
+        if url:
+            return url
         
         # Fallback to the first extra image if main image is not set
         first_extra = obj.extra_images.first()
         if first_extra and first_extra.image:
-            if request:
-                return request.build_absolute_uri(first_extra.image.url)
-            return first_extra.image.url
+            return _resolve_media_url(first_extra.image, request)
             
         return None
 
@@ -108,9 +131,7 @@ class AdSerializer(serializers.ModelSerializer):
         tx = obj.transactions.order_by('-submitted_at').first()
         if tx and tx.receipt_image:
             request = self.context.get('request')
-            if request:
-                return request.build_absolute_uri(tx.receipt_image.url)
-            return tx.receipt_image.url
+            return _resolve_media_url(tx.receipt_image, request)
         return None
 
     class Meta:
@@ -132,6 +153,12 @@ class TransactionSerializer(serializers.ModelSerializer):
         model = Transaction
         fields = '__all__'
         read_only_fields = ['id', 'submitted_at', 'status', 'user']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        ret['receipt_image'] = _resolve_media_url(instance.receipt_image, request)
+        return ret
 
 class NotificationSerializer(serializers.ModelSerializer):
     class Meta:

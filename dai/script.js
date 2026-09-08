@@ -1114,7 +1114,7 @@
     return `
       <article class="ad-card ${ad.mine ? 'mine' : ''}" data-ad-id="${ad.id}">
         <div class="ad-image-wrapper">
-          <img src="${ad.image || 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job'}" alt="Ad Cover">
+          <img src="${ad.image || 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job'}" alt="Ad Cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/e9ecef/495057?text=Daily+Job';">
         </div>
         ${ad.mine ? `<span class="ad-mine-tag" style="${ad.status === 'pending' ? 'background:orange;' : (ad.status === 'rejected' ? 'background:red;' : '')}">${ad.status === 'pending' ? (state.lang === 'ar' ? 'قيد المراجعة' : 'Pending') : (ad.status === 'rejected' ? (state.lang === 'ar' ? 'مرفوض' : 'Rejected') : t("myAd"))}</span>` : ''}
         <div class="ad-card-top">
@@ -1211,11 +1211,11 @@
            if (allImages.length > 1) {
              imagesHtml = `
                <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
-                 ${allImages.map(src => `<a href="${src}" target="_blank"><img src="${src}" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
+                 ${allImages.map(src => `<a href="${src}" target="_blank"><img src="${src}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
                </div>
              `;
            } else if (allImages.length === 1) {
-             imagesHtml = `<a href="${allImages[0]}" target="_blank"><img src="${allImages[0]}" style="width:100%; height:180px; object-fit:cover;"></a>`;
+             imagesHtml = `<a href="${allImages[0]}" target="_blank"><img src="${allImages[0]}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
            }
 
            return `
@@ -1231,7 +1231,7 @@
                   <div style="margin-right: 10px; flex-shrink:0;">
                     <p style="margin:0 0 4px 0; font-size:11px; color:#888; text-align:center;">وصل الدفع</p>
                     <a href="${ad.receipt_image}" target="_blank">
-                      <img src="${ad.receipt_image}" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid #e9ecef;">
+                      <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid #e9ecef;">
                     </a>
                   </div>` : '<p style="color:#f59e0b; font-size:12px; margin:0;">⚠️ لا يوجد وصل</p>'}
               </div>
@@ -1529,6 +1529,7 @@
           <img id="adMainImage"
             src="${mainSrc}"
             alt="الصورة الرئيسية"
+            onerror="this.onerror=null; this.src='https://placehold.co/800x400/e9ecef/495057?text=Daily+Job';"
             data-lightbox-src="${mainSrc}"
             data-lightbox-idx="0"
             style="width:100%; height:280px; object-fit:cover; cursor:zoom-in; display:block; border-radius:12px 12px 0 0;">
@@ -1544,6 +1545,7 @@
               <img
                 src="${src}"
                 alt="صورة ${i+1}"
+                onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';"
                 class="ad-thumb ${i === 0 ? 'thumb-active' : ''}"
                 data-idx="${i}"
                 style="
