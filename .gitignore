@@ -26,9 +26,8 @@ db.sqlite3
 # Credentials & Secrets
 firebase-adminsdk.json
 
-# Static & Media
+# Static Files
 staticfiles/
-media/
 
 # Temporary & Test
 scratch/

@@ -398,12 +398,12 @@
       both: "Call or WhatsApp"
     },
     ar: {
-      contactUs: "???? ???",
-      contactName: "?????",
-      contactEmail: "?????? ??????????",
-      contactSubject: "???????",
-      contactMessage: "???????",
-      send: "?????",
+      contactUs: "اتصل بنا",
+      contactName: "الاسم",
+      contactEmail: "البريد الإلكتروني",
+      contactSubject: "الموضوع",
+      contactMessage: "الرسالة",
+      send: "إرسال",
 
       forgotPassword: "نسيت كلمة المرور؟",
       cliqAccount: "حساب كليك - محفظة دينارك (اسم مستعار: DAILYJOB1)",
