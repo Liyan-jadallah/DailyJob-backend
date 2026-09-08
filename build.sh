@@ -8,3 +8,4 @@ pip install -r requirements.txt
 python manage.py collectstatic --no-input
 python manage.py migrate
 python manage.py createcachetable || true
+python manage.py delete_expired_ads || true

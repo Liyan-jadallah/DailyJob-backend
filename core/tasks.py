@@ -42,13 +42,19 @@ def auto_approve_pending_ads():
 
 @shared_task
 def delete_expired_content():
-    from .models import Ad
+    from django.db.models import Q
     now = timezone.now()
     day_cutoff = now - timedelta(hours=24)
     week_cutoff = now - timedelta(days=7)
 
-    deleted_day_ads, _ = Ad.objects.filter(status='approved', ad_duration='1_day', approved_at__lt=day_cutoff).delete()
-    deleted_week_ads, _ = Ad.objects.filter(status='approved', ad_duration='1_week', approved_at__lt=week_cutoff).delete()
+    deleted_day_ads, _ = Ad.objects.filter(
+        Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
+        Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
+    ).delete()
+    deleted_week_ads, _ = Ad.objects.filter(
+        Q(ad_duration='1_week'),
+        Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+    ).delete()
 
     notif_cutoff = now - timedelta(days=7)
     deleted_notifs, _ = Notification.objects.filter(created_at__lt=notif_cutoff).delete()

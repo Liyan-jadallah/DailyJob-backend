@@ -502,7 +502,36 @@ class AdViewSet(viewsets.ModelViewSet):
         context.update({"request": self.request})
         return context
 
+    @staticmethod
+    def _cleanup_expired_ads():
+        from django.core.cache import cache
+        if cache.get('last_expired_ads_cleanup'):
+            return
+        cache.set('last_expired_ads_cleanup', True, timeout=60)
+        try:
+            from datetime import timedelta
+            from django.utils import timezone as tz
+            from django.db.models import Q
+            now = tz.now()
+            day_cutoff = now - timedelta(hours=24)
+            week_cutoff = now - timedelta(days=7)
+
+            Ad.objects.filter(
+                Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
+                Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
+            ).delete()
+
+            Ad.objects.filter(
+                Q(ad_duration='1_week'),
+                Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+            ).delete()
+        except Exception:
+            pass
+
     def get_queryset(self):
+        # Automatically purge expired ads every 60 seconds
+        self._cleanup_expired_ads()
+
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
@@ -521,6 +550,24 @@ class AdViewSet(viewsets.ModelViewSet):
             else:
                 # Public feed, other users, or no user_filter: only show approved ads
                 queryset = queryset.filter(status='approved')
+
+            # Exclude expired ads in real time (24h for 1_day, 7 days for 1_week)
+            from datetime import timedelta
+            from django.utils import timezone as tz
+            from django.db.models import Q
+            now = tz.now()
+            day_cutoff = now - timedelta(hours=24)
+            week_cutoff = now - timedelta(days=7)
+
+            valid_day = (
+                (Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')) &
+                (Q(approved_at__gte=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__gte=day_cutoff)))
+            )
+            valid_week = (
+                Q(ad_duration='1_week') &
+                (Q(approved_at__gte=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__gte=week_cutoff)))
+            )
+            queryset = queryset.filter(valid_day | valid_week)
 
         # ── Filters ─────────────────────────────────────────────────────────
         status_filter = self.request.query_params.get('status')
