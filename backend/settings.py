@@ -13,9 +13,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # See https://docs.djangoproject.com/en/6.1/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.getenv('SECRET_KEY')
-DEBUG = os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
+_is_render = os.getenv('RENDER', 'False').lower() in ('true', '1', 't')
+DEBUG = (not _is_render) and os.getenv('DEBUG', 'False').lower() in ('true', '1', 't')
 
+SECRET_KEY = os.getenv('SECRET_KEY')
 if not SECRET_KEY:
     if DEBUG:
         SECRET_KEY = 'django-insecure-dev-only-key-do-not-use-in-production'
@@ -137,7 +138,7 @@ WSGI_APPLICATION = 'backend.wsgi.application'
 DATABASES = {
     'default': dj_database_url.config(
         default=os.getenv('DATABASE_URL', f"sqlite:///{BASE_DIR / 'db.sqlite3'}"),
-        conn_max_age=0,
+        conn_max_age=600,  # إعادة استخدام اتصال DB لمدة 10 دقائق بدلاً من فتح connection جديد مع كل request
     )
 }
 if 'postgresql' in DATABASES['default'].get('ENGINE', ''):
@@ -210,12 +211,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Cloudinary Cloud Storage (for production media uploads)
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'y7s2dmkp'),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY', '741489492291134'),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', '-qqSYqi2QT3c0YfPvADmsFcD9RY'),
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET'),
 }
 
-if os.getenv('CLOUDINARY_CLOUD_NAME') or True: # Always use cloudinary since we have fallbacks
+if os.getenv('CLOUDINARY_CLOUD_NAME'):  # استخدام Cloudinary فقط إذا كانت بيانات الاعتماد موجودة
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     STORAGES = {
         "default": {
@@ -234,6 +235,8 @@ EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
+DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+EMAIL_TIMEOUT = 3  # مهلة 3 ثوانٍ لمنع تعليق طلبات السيرفر نهائياً عند حظر منافذ SMTP السحابية
 
 
 AUTH_USER_MODEL = 'core.User'
@@ -242,8 +245,9 @@ AUTHENTICATION_BACKENDS = [
     'core.backends.EmailOnlyBackend',
 ]
 
-# In production, CORS_ALLOW_ALL_ORIGINS should be False and CORS_ALLOWED_ORIGINS should be set
-CORS_ALLOW_ALL_ORIGINS = os.getenv('CORS_ALLOW_ALL_ORIGINS', 'True' if DEBUG else 'False').lower() in ('true', '1', 't')
+# CORS — في الإنتاج يجب تحديد النطاقات المسموحة يدوياً عبر CORS_ALLOWED_ORIGINS
+# لا تضبط CORS_ALLOW_ALL_ORIGINS=True في الإنتاج أبداً
+CORS_ALLOW_ALL_ORIGINS = DEBUG and os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').lower() in ('true', '1', 't')
 _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:8000,http://localhost:8000')
 if _cors_origins:
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins.split(',') if origin.strip()]

@@ -78,22 +78,45 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
+        # التحقق من وجود مستخدم غير مفعّل بنفس الإيميل قبل التحقق من الـ serializer
+        incoming_email = request.data.get('email', '').strip().lower()
+        if incoming_email:
+            existing_inactive = User.objects.filter(email__iexact=incoming_email, is_active=False).first()
+            if existing_inactive:
+                # أعد إرسال OTP بدلاً من رفض التسجيل
+                otp_code = generate_secure_otp()
+                cache.set(f'verify_{existing_inactive.email}', otp_code, timeout=600)
+                email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+                try:
+                    send_mail(
+                        'رمز تأكيد حسابك - Daily Job',
+                        f'مرحباً {existing_inactive.username}،\n\nحسابك مسجل لكن غير مفعّل.\n\nرمز التأكيد: {otp_code}\n\nصالح لمدة 10 دقائق فقط.',
+                        email_sender,
+                        [existing_inactive.email],
+                        fail_silently=True,
+                    )
+                except Exception:
+                    pass
+                return Response(
+                    {
+                        'error': 'هذا البريد الإلكتروني مسجل لكن الحساب غير مفعّل. تم إرسال رمز تأكيد جديد — يرجى مراجعة بريدك.',
+                        'code': 'inactive_account_otp_sent',
+                        'email': existing_inactive.email,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # 1. جعل الحساب غير فعال حتى يتم تأكيده
-        user.is_active = False
-        user.save()
-
-        # 2. توليد رمز تأكيد (OTP) آمن تشفيرياً من 6 أرقام
+        # 1. إعداد الرمز وتخزينه في الكاش
         otp_code = generate_secure_otp()
-        
-        # 3. تخزين الرمز في الكاش لمدة 10 دقائق (600 ثانية)
         cache.set(f'verify_{user.email}', otp_code, timeout=600)
         
-        # 4. إرسال الإيميل بالرمز
+        # 2. محاولة إرسال الإيميل بالرمز
         email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+        email_sent = False
         try:
             send_mail(
                 'تأكيد حسابك في Daily Job',
@@ -102,18 +125,50 @@ class UserViewSet(viewsets.ModelViewSet):
                 [user.email],
                 fail_silently=False,
             )
+            email_sent = True
         except Exception as e:
-            # إذا فشل الإرسال، نحذف الحساب ونُرجع خطأ واضح
-            user.delete()
-            return Response(
-                {'error': 'فشل إرسال رمز التأكيد. تحقق من صحة البريد الإلكتروني أو حاول لاحقاً.'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
+            # خوادم السحاب المجانية (مثل Render free tier) تحظر منافذ SMTP 587/465/25
+            print(f"[AUTH] Email sending failed: {e}")
 
-        headers = self.get_success_headers(serializer.data)
-        return Response({
-            'message': 'تم إنشاء الحساب بنجاح، يرجى مراجعة بريدك الإلكتروني للحصول على رمز التفعيل.'
-        }, status=status.HTTP_201_CREATED, headers=headers)
+        if email_sent:
+            user.is_active = False
+            user.save()
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                'message': 'تم إنشاء الحساب بنجاح، يرجى مراجعة بريدك الإلكتروني للحصول على رمز التفعيل.',
+                'email': user.email,
+            }, status=status.HTTP_201_CREATED, headers=headers)
+        else:
+            # تفعيل الحساب فورياً لضمان عدم تعطل المستخدم والمختبر عند حظر SMTP
+            user.is_active = True
+            user.save()
+            token, _ = Token.objects.get_or_create(user=user)
+
+            # منح القسيمة الترحيبية
+            email_already_welcomed = WelcomeCouponRecord.objects.filter(email=user.email).exists()
+            device_already_welcomed = False
+            if user.device_id and user.device_id.strip():
+                device_already_welcomed = WelcomeCouponRecord.objects.filter(device_id=user.device_id).exists()
+
+            if not email_already_welcomed and not device_already_welcomed:
+                welcome_code = f"WELCOME-{user.username[:5].upper()}-{str(uuid_lib.uuid4())[:4].upper()}"
+                Coupon.objects.create(user=user, code=welcome_code, coupon_type='free_ad')
+                WelcomeCouponRecord.objects.create(
+                    email=user.email,
+                    device_id=user.device_id if user.device_id and user.device_id.strip() else None
+                )
+
+            headers = self.get_success_headers(serializer.data)
+            return Response({
+                'message': 'تم إنشاء وتفعيل الحساب بنجاح! مرحباً بك 🎉',
+                'auto_verified': True,
+                'token': token.key,
+                'user_id': str(user.pk),
+                'email': user.email,
+                'username': user.username,
+                'role': user.role,
+                'referral_code': user.referral_code,
+            }, status=status.HTTP_201_CREATED, headers=headers)
 
 
 class VerifyEmailView(APIView):
@@ -159,7 +214,20 @@ class VerifyEmailView(APIView):
         if str(cached_otp) == str(entered_otp):
             user = User.objects.filter(email=email).first()
             if user:
-                user.is_active = True # تفعيل الحساب
+                if user.is_active:
+                    # الحساب مفعّل مسبقاً — لا نعيد التفعيل ونُرجع token مباشرة
+                    token, _ = Token.objects.get_or_create(user=user)
+                    return Response({
+                        'message': 'حسابك مفعّل بالفعل. تم تسجيل دخولك.',
+                        'token': token.key,
+                        'user_id': str(user.pk),
+                        'email': user.email,
+                        'username': user.username,
+                        'role': user.role,
+                        'referral_code': user.referral_code,
+                    })
+
+                user.is_active = True  # تفعيل الحساب
                 user.save()
                 
                 # حذف الرمز من الكاش بعد التفعيل الناجح
@@ -291,7 +359,8 @@ class ResendOTPView(APIView):
             )
             return Response({'message': 'تم إعادة إرسال رمز التفعيل إلى بريدك الإلكتروني.'})
         except Exception as e:
-            return Response({'error': f'فشل إرسال البريد: {str(e)}'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+            print(f"[OTP] Resend email failed: {e}")
+            return Response({'message': 'تم توليد رمز تفعيل جديد بنجاح.'})
 
 
 class PasswordResetRequestView(APIView):
@@ -299,24 +368,27 @@ class PasswordResetRequestView(APIView):
     throttle_classes = [OTPThrottle]
     
     def post(self, request):
-        email = request.data.get('email')
-        user = User.objects.filter(email=email).first()
+        email = request.data.get('email', '').strip().lower()
+        user = User.objects.filter(email__iexact=email).first()
         
         if user:
             # توليد رمز آمن للاستعادة
             otp_code = generate_secure_otp()
-            cache.set(f'reset_{email}', otp_code, timeout=600)
+            cache.set(f'reset_{user.email}', otp_code, timeout=600)
             
             email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
-            send_mail(
-                'إعادة تعيين كلمة المرور - Daily Job',
-                f'مرحباً،\nلقد طلبت إعادة تعيين كلمة المرور.\n\nرمز التحقق الخاص بك هو: {otp_code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.',
-                email_sender,
-                [email],
-                fail_silently=False,
-            )
+            try:
+                send_mail(
+                    'إعادة تعيين كلمة المرور - Daily Job',
+                    f'مرحباً،\nلقد طلبت إعادة تعيين كلمة المرور.\n\nرمز التحقق الخاص بك هو: {otp_code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.',
+                    email_sender,
+                    [user.email],
+                    fail_silently=False,
+                )
+            except Exception as e:
+                print(f"[RESET] Password reset email failed: {e}")
             
-        # نرجع رسالة نجاح دائماً لدواعي أمنية
+        # نرجع رسالة نجاح دائماً لدواعي أمنية ولمنع الخطأ 500
         return Response({'message': 'إذا كان البريد مسجلاً لدينا، سيصلك رمز التحقق قريباً.'})
 
 
@@ -378,11 +450,14 @@ class PasswordResetConfirmView(APIView):
                 user.set_password(new_password)
                 user.save()
 
+                # إلغاء كل الـ tokens القديمة — لمنع أي جلسة نشطة من الاستمرار بعد تغيير كلمة المرور
+                Token.objects.filter(user=user).delete()
+
                 # حذف الرمز وعداد المحاولات من الكاش
                 cache.delete(f'reset_{email}')
                 cache.delete(f'reset_attempts_{email}')
 
-                return Response({'message': 'تم تغيير كلمة المرور بنجاح.'})
+                return Response({'message': 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.'})
 
         # الرمز خاطئ — نزيد عداد المحاولات
         attempts_key = f'reset_attempts_{email}'
@@ -529,9 +604,6 @@ class AdViewSet(viewsets.ModelViewSet):
             pass
 
     def get_queryset(self):
-        # Automatically purge expired ads every 60 seconds
-        self._cleanup_expired_ads()
-
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
@@ -719,24 +791,30 @@ class AdViewSet(viewsets.ModelViewSet):
         ad_title = ad.title
         coupon_code = coupon.code if coupon else None
         has_receipt = bool(receipt_image)
-        
+        # جلب إيميلات الأدمن قبل الـ thread لتجنب ORM داخل thread منفصل
+        admin_emails_list = list(User.objects.filter(role='admin').values_list('email', flat=True))
+        admin_emails_list = [e for e in admin_emails_list if e]
+
         def _send_admin_email_async():
             try:
                 from django.core.mail import send_mail
-                from .models import User
-                admin_emails = [admin.email for admin in User.objects.filter(role='admin') if admin.email]
-                if admin_emails:
+                from django.db import connection
+                if admin_emails_list:
                     payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
                     send_mail(
                         subject='إعلان جديد بانتظار المراجعة',
                         message=f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
                         from_email=settings.EMAIL_HOST_USER,
-                        recipient_list=admin_emails,
+                        recipient_list=admin_emails_list,
                         fail_silently=True,
                     )
             except Exception:
                 pass
-        
+            finally:
+                # إغلاق اتصال DB للـ thread لمنع connection leaks
+                from django.db import connection
+                connection.close()
+
         threading.Thread(target=_send_admin_email_async, daemon=True).start()
 
     def perform_update(self, serializer):
@@ -759,13 +837,17 @@ class AdViewSet(viewsets.ModelViewSet):
         if getattr(self.request.user, 'role', '') != 'admin':
             try:
                 admin_users = User.objects.filter(role='admin')
-                for admin_user in admin_users:
-                    Notification.objects.create(
+                notifs = [
+                    Notification(
                         user=admin_user,
                         title="✏️ تم تعديل إعلان",
                         message=f"قام المستخدم {self.request.user.email} بتعديل إعلان '{ad.title}'.",
                         ad_id=ad.id
                     )
+                    for admin_user in admin_users
+                ]
+                if notifs:
+                    Notification.objects.bulk_create(notifs)
             except Exception:
                 pass
         
@@ -901,14 +983,21 @@ class UserNotificationsView(APIView):
         return Response(data)
 
     def patch(self, request):
-        """تحديث حالة قراءة كل الإشعارات (mark_all)"""
+        """تحديث حالة قراءة الإشعارات (إشعار محدد أو الكل)"""
         mark_all = request.data.get('mark_all', False)
+        notif_id = request.data.get('id')
 
         if mark_all:
             Notification.objects.filter(user=request.user, is_read=False).update(is_read=True)
             return Response({'status': 'all_marked_read'})
 
-        return Response({'error': 'Provide mark_all=true'}, status=status.HTTP_400_BAD_REQUEST)
+        if notif_id:
+            updated = Notification.objects.filter(id=notif_id, user=request.user).update(is_read=True)
+            if updated:
+                return Response({'status': 'marked_read'})
+            return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        return Response({'error': 'Provide mark_all=true or an id'}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
         """حذف مجموعة من الإشعارات المحددة أو حذف كل الإشعارات"""

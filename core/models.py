@@ -320,22 +320,40 @@ def notify_admins_of_transaction(sender, instance, created, **kwargs):
         ]
         Notification.objects.bulk_create(notifications)
 
-        # 3. Send email alert
+        # 3. Send email alert asynchronously in daemon thread (non-blocking)
         admin_emails = [admin.email for admin in admin_users if admin.email]
         if admin_emails:
-            from django.core.mail import EmailMessage
-            email = EmailMessage(
-                subject="إيصال دفع جديد للمراجعة",
-                body=f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}.\nتجد الإيصال مرفقاً بهذه الرسالة.",
-                from_email=settings.EMAIL_HOST_USER,
-                to=admin_emails,
-            )
+            receipt_name = instance.receipt_image.name if instance.receipt_image else None
+            receipt_content = None
             if instance.receipt_image:
                 try:
-                    email.attach(instance.receipt_image.name, instance.receipt_image.read(), 'image/jpeg')
+                    receipt_content = instance.receipt_image.read()
                 except Exception:
                     pass
-            email.send(fail_silently=True)
+
+            def _send_receipt_email_async():
+                try:
+                    from django.core.mail import EmailMessage
+                    email = EmailMessage(
+                        subject="إيصال دفع جديد للمراجعة",
+                        body=f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}.\nتجد الإيصال مرفقاً بهذه الرسالة.",
+                        from_email=settings.EMAIL_HOST_USER,
+                        to=admin_emails,
+                    )
+                    if receipt_name and receipt_content:
+                        try:
+                            email.attach(receipt_name, receipt_content, 'image/jpeg')
+                        except Exception:
+                            pass
+                    email.send(fail_silently=True)
+                except Exception:
+                    pass
+                finally:
+                    from django.db import connection
+                    connection.close()
+
+            import threading
+            threading.Thread(target=_send_receipt_email_async, daemon=True).start()
 
 
 @receiver(post_save, sender=Notification)

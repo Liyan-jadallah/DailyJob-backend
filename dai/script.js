@@ -29,7 +29,12 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email })
       });
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        throw new Error("تعذر الاتصال بخدمة استعادة كلمة المرور، يرجى المحاولة لاحقاً.");
+      }
       if (!res.ok) throw new Error(data.error || "حدث خطأ أثناء الإرسال");
       return data;
     },
@@ -77,7 +82,12 @@
         body: JSON.stringify(payload)
       });
       
-      const data = await res.json();
+      let data = {};
+      try {
+        data = await res.json();
+      } catch (_) {
+        throw new Error("حدث خطأ في استجابة الخادم، يرجى المحاولة لاحقاً.");
+      }
       
       if (!res.ok) {
         let errorMsg = data.email?.[0] || data.username?.[0] || data.error || data.detail || "فشل في إنشاء الحساب، تحقق من البيانات.";
@@ -919,8 +929,26 @@
         registerSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري الإنشاء...</span>';
         registerSubmitBtn.disabled = true;
 
-        await Api.register(email, username, password, referralCode);
+        const regRes = await Api.register(email, username, password, referralCode);
         
+        if (regRes && regRes.auto_verified && regRes.token) {
+          state.isAuthenticated = true;
+          state.user = {
+            id: regRes.user_id,
+            email: regRes.email || email,
+            username: regRes.username || username,
+            role: regRes.role || 'user',
+            referral_code: regRes.referral_code
+          };
+          localStorage.setItem("dj_user", JSON.stringify(state.user));
+          localStorage.setItem("dj_token", regRes.token);
+          closeAuth();
+          updateDrawerUser();
+          showToast(regRes.message || "تم إنشاء الحساب بنجاح! مرحباً بك 🎉", "success");
+          fetchNotifications();
+          return;
+        }
+
         state.tempEmail = email;
         state.tempPassword = password;
         sessionStorage.setItem('dj_tempEmail', email);

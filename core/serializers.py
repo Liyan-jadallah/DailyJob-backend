@@ -127,6 +127,14 @@ class AdSerializer(serializers.ModelSerializer):
                 logging.getLogger(__name__).warning(f"Category '{value}' not found in AdCategory table")
         return value
 
+    def validate_contact_phone(self, value):
+        import re
+        if value:
+            phone = re.sub(r'[\s\-\(\)]', '', str(value))
+            if not re.match(r'^\+?[0-9]{7,15}$', phone):
+                raise serializers.ValidationError("رقم الهاتف غير صالح. يرجى إدخال رقم صحيح (مثال: 0791234567).")
+        return value
+
     def get_receipt_image(self, obj):
         tx = obj.transactions.order_by('-submitted_at').first()
         if tx and tx.receipt_image:
