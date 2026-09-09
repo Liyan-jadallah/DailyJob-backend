@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=32">
+  <link rel="stylesheet" href="style.css?v=33">
 </head>
 
 <body>
@@ -490,16 +490,22 @@
         </div>
 
         <!-- Danger Zone Section (Logout & Delete Account) -->
-        <div class="settings-actions-group">
-          <button class="settings-btn-logout" id="logoutBtn">
-            <i class="fa-solid fa-right-from-bracket"></i>
-            <span data-i18n="logout">Log Out</span>
-          </button>
-          
-          <button class="settings-btn-delete" id="deleteAccountBtn">
-            <i class="fa-solid fa-user-xmark"></i>
-            <span data-i18n="deleteAccount">Delete Account Permanently</span>
-          </button>
+        <div class="settings-section" style="margin-bottom: 20px;">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
+            <span data-i18n="accountActions">Account Actions</span>
+          </div>
+          <div class="settings-card settings-actions-group" style="margin-top: 0;">
+            <button class="settings-btn-logout" id="logoutBtn">
+              <i class="fa-solid fa-right-from-bracket"></i>
+              <span data-i18n="logout">Log Out</span>
+            </button>
+            
+            <button class="settings-btn-delete" id="deleteAccountBtn">
+              <i class="fa-solid fa-user-xmark"></i>
+              <span data-i18n="deleteAccount">Delete Account Permanently</span>
+            </button>
+          </div>
         </div>
       </div>
     </main>

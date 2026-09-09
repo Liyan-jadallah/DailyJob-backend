@@ -2127,22 +2127,19 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   width: 100%;
   padding: 13px 20px;
   background: #ffffff;
-  color: #e63946;
-  border: 1.5px solid #fecaca;
+  color: var(--ink-700);
+  border: 1.5px solid var(--line);
   border-radius: 12px;
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
   transition: all 0.2s ease;
-  box-shadow: 0 2px 6px rgba(230, 57, 70, 0.04);
 }
 
 .settings-btn-logout:hover {
-  background: #fff5f5;
-  border-color: #e63946;
-  color: #dc2626;
+  background: var(--gray-tint);
+  border-color: var(--ink-300);
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12);
 }
 
 .settings-btn-logout:active {
@@ -2157,24 +2154,22 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   width: 100%;
-  padding: 12px 20px;
-  background: transparent;
-  color: var(--ink-500);
-  border: 1.5px dashed var(--line);
+  padding: 13px 20px;
+  background: #ffffff;
+  color: #e63946;
+  border: 1.5px solid #fecaca;
   border-radius: 12px;
-  font-weight: 600;
-  font-size: 13px;
+  font-weight: 700;
+  font-size: 13.5px;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .settings-btn-delete:hover {
-  background: rgba(239, 68, 68, 0.05);
-  color: #ef4444;
-  border-color: #fca5a5;
-  border-style: solid;
+  background: #fff5f5;
+  border-color: #f87171;
 }
 
 .settings-btn-delete:active {
@@ -2447,21 +2442,34 @@ input[type="password"]::-ms-clear {
   }
 
   .details-card {
-    max-width: 900px;
-    margin: 24px auto;
-    padding: 32px;
+    max-width: 100%;
+    margin: 0;
+    padding: 32px 28px;
+    border: none;
+    border-radius: 0;
+    box-shadow: none;
   }
 
   .add-form-wrap,
   .admin-wrap,
   .account-wrap,
-  .notifs-wrap {
-    max-width: 800px;
-    margin: 0 auto;
+  .notifs-wrap,
+  .settings-container {
+    max-width: 100%;
+    margin: 0;
+    padding: 24px 28px;
   }
 
-  .settings-container {
-    max-width: 600px;
-    margin: 24px auto 60px;
+  .settings-save-btn,
+  .settings-btn-logout,
+  .settings-btn-delete {
+    max-width: 400px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  .lang-options {
+    max-width: 400px;
+    margin: 0 auto;
   }
 }
