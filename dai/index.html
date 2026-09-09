@@ -17,8 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="icon" type="image/png" href="favicon.png">
-  <link rel="stylesheet" href="style.css?v=6">
+  <link rel="stylesheet" href="style.css?v=7">
 </head>
 
 <body>
@@ -360,32 +359,87 @@
     </main>
     <!-- ============ SCREEN: ADMIN PANEL ============ -->
     <main class="screen" id="screen-admin">
-      <div class="details-topbar">
-        <button class="back-btn" data-nav="home"><i class="fa-solid fa-arrow-left"></i></button>
-        <span data-i18n="adminPanel">Admin Panel</span>
-        <span class="topbar-spacer"></span>
+      <div class="details-topbar admin-header" style="background: #0B0F1E; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <button class="back-btn" data-nav="home" style="color: #fff;"><i class="fa-solid fa-arrow-left"></i></button>
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <i class="fa-solid fa-shield-halved" style="color: #FF6A00; font-size: 18px;"></i>
+          <span data-i18n="adminPanel" style="color: #fff; font-weight: bold; font-size: 17px;">لوحة الأدمن</span>
+        </div>
+        <button class="icon-btn" id="adminRefreshBtn" style="color: #fff;" title="تحديث"><i class="fa-solid fa-rotate-right"></i></button>
       </div>
-      <div class="ads-list" id="adminAdsList"></div>
-      <div class="empty-state hidden" id="adminEmptyState">
-        <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 3rem; margin-bottom: 12px;"></i>
-        <h3 data-i18n="noPendingAds">No pending ads</h3>
-        <p data-i18n="allCaughtUp">You're all caught up!</p>
+
+      <!-- Admin 3 Tabs Bar -->
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" id="adminTabBtnPending" data-tab="pending">
+          <span data-i18n="pendingAds">طلبات النشر</span>
+          <span class="admin-tab-badge" id="adminPendingCount">0</span>
+        </button>
+        <button class="admin-tab-btn" id="adminTabBtnPublished" data-tab="published">
+          <span data-i18n="allAds">كل الإعلانات</span>
+          <span class="admin-tab-badge" id="adminPublishedCount">0</span>
+        </button>
+        <button class="admin-tab-btn" id="adminTabBtnUsers" data-tab="users">
+          <span data-i18n="users">المستخدمون</span>
+          <span class="admin-tab-badge" id="adminUsersCount">0</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Pending Ads (طلبات النشر) -->
+      <div class="admin-tab-content active" id="adminTabPending">
+        <div class="admin-cards-list" id="adminAdsList"></div>
+        <div class="empty-state hidden" id="adminEmptyState">
+          <i class="fa-solid fa-check-circle" style="color: #2E9E5B; font-size: 3.5rem; margin-bottom: 14px;"></i>
+          <h3 data-i18n="noPendingAds">لا توجد إعلانات معلقة!</h3>
+          <p data-i18n="allCaughtUp" style="color: #7A8099; margin-top: 6px;">تمت مراجعة جميع الإعلانات بنجاح</p>
+        </div>
+      </div>
+
+      <!-- Tab 2: All Published Ads (كل الإعلانات) -->
+      <div class="admin-tab-content hidden" id="adminTabPublished">
+        <div class="admin-table-wrapper" id="adminPublishedWrapper">
+          <table class="admin-table" id="adminPublishedTable">
+            <thead>
+              <tr>
+                <th data-i18n="adTitle">عنوان الإعلان</th>
+                <th data-i18n="category">القسم</th>
+                <th data-i18n="dailyWage">السعر</th>
+                <th data-i18n="user">المستخدم</th>
+                <th data-i18n="action">إجراء</th>
+              </tr>
+            </thead>
+            <tbody id="adminPublishedBody"></tbody>
+          </table>
+        </div>
+        <div class="empty-state hidden" id="adminPublishedEmpty">
+          <i class="fa-regular fa-folder-open" style="font-size: 3rem; color: #7A8099; margin-bottom: 12px;"></i>
+          <h3 data-i18n="noPublishedAds">لا توجد إعلانات منشورة!</h3>
+        </div>
+      </div>
+
+      <!-- Tab 3: Users (المستخدمون) -->
+      <div class="admin-tab-content hidden" id="adminTabUsers">
+        <div class="admin-users-list" id="adminUsersList"></div>
+        <div class="empty-state hidden" id="adminUsersEmpty">
+          <i class="fa-regular fa-user" style="font-size: 3rem; color: #7A8099; margin-bottom: 12px;"></i>
+          <h3 data-i18n="noUsers">لا يوجد مستخدمون</h3>
+        </div>
       </div>
     </main>
+
     <!-- ============ SCREEN: MY LISTINGS ============ -->
     <main class="screen" id="screen-mylistings">
       <div class="details-topbar">
         <button class="back-btn" data-nav="home"><i class="fa-solid fa-arrow-left"></i></button>
-        <span data-i18n="myAds">My Listings</span>
-        <span class="topbar-spacer"></span>
+        <span data-i18n="myAds">إعلاناتي</span>
+        <button class="icon-btn" id="myListingsRefreshBtn" title="تحديث"><i class="fa-solid fa-rotate-right"></i></button>
       </div>
       <div class="ads-list" id="mineList"></div>
       <div class="empty-state hidden" id="mineEmptyState">
         <i class="fa-regular fa-folder-open"></i>
-        <p data-i18n="noAdsYet">You haven't posted any ads yet</p>
+        <p data-i18n="noAdsYet">لم تنشر أي إعلان بعد</p>
         <button class="btn-primary btn-block" data-nav="add" data-auth-required style="margin-top:16px;">
           <i class="fa-solid fa-plus"></i>
-          <span data-i18n="postFirstAd">Post Your First Ad</span>
+          <span data-i18n="postFirstAd">انشر أول إعلان</span>
         </button>
       </div>
     </main>
@@ -409,98 +463,161 @@
       </div>
     </main>
 
-    <!-- ============ SCREEN: SETTINGS ============ -->
+    <!-- ============ SCREEN: SETTINGS (ACCOUNT HUB) ============ -->
     <main class="screen" id="screen-settings">
-      <div class="details-topbar">
-        <button class="back-btn" data-nav="home"><i class="fa-solid fa-arrow-left"></i></button>
-        <span data-i18n="settings">Settings</span>
-        <span class="topbar-spacer"></span>
+      <div class="details-topbar" style="background: #0B0F1E; border-bottom: 1px solid rgba(255,255,255,0.08);">
+        <button class="back-btn" data-nav="home" style="color:#fff;"><i class="fa-solid fa-arrow-left"></i></button>
+        <span data-i18n="account" style="color:#fff; font-weight:bold;">حسابي</span>
+        <button class="icon-btn" id="accountRefreshBtn" style="color:#fff;" title="تحديث"><i class="fa-solid fa-rotate-right"></i></button>
       </div>
 
-      <!-- Account Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-user"></i>
-          <span data-i18n="accountInfo">Account Information</span>
+      <!-- Guest View (Not Logged In) -->
+      <div class="account-guest-card hidden" id="settingsGuestView">
+        <div class="account-guest-icon">
+          <i class="fa-solid fa-circle-user"></i>
         </div>
-        <div class="settings-card">
-          <label class="form-label" data-i18n="email">Email Address</label>
-          <input class="form-input" id="settingsEmail" type="email" disabled>
+        <h3 data-i18n="pleaseLogin">يرجى تسجيل الدخول</h3>
+        <p data-i18n="loginPromptDesc">قم بتسجيل الدخول لتتمكن من رؤية إعلاناتك وإدارة حسابك</p>
+        <button class="btn-primary" id="settingsLoginPromptBtn" style="margin-top:16px; width:auto; padding:12px 28px; border-radius:10px;">
+          <span data-i18n="loginOrRegister">تسجيل الدخول / إنشاء حساب</span>
+        </button>
+      </div>
 
-          <label class="form-label" style="margin-top:12px;" data-i18n="username">Username</label>
-          <input class="form-input" id="settingsUsername" type="text">
+      <!-- Logged-in User View -->
+      <div class="account-user-view" id="settingsUserView">
+        <!-- Dark Header -->
+        <div class="account-dark-header">
+          <div class="account-avatar-wrapper">
+            <div class="account-avatar" id="accountAvatar">
+              <i class="fa-solid fa-shield-halved"></i>
+            </div>
+          </div>
+          <h2 class="account-username" id="accountUsername">User</h2>
+          <div class="account-email" id="accountEmail">user@example.com</div>
 
-          <button class="btn-primary btn-block" id="saveAccountBtn" style="margin-top:12px;">
+          <!-- Referral Code Box -->
+          <div class="account-referral-row" id="accountReferralBox">
+            <span class="account-referral-label" data-i18n="referralCodePrefix">كود الإحالة:</span>
+            <span class="account-referral-code" id="accountReferralCode">---</span>
+            <button class="account-copy-btn" id="accountCopyReferralBtn" type="button" title="نسخ كود الإحالة">
+              <i class="fa-regular fa-copy"></i>
+            </button>
+          </div>
+
+          <!-- Verified Member Badge -->
+          <div class="account-verified-badge">
             <i class="fa-solid fa-check"></i>
-            <span data-i18n="saveChanges">Save Changes</span>
-          </button>
+            <span data-i18n="verifiedMember">عضو موثق</span>
+          </div>
         </div>
-      </div>
 
-      <!-- Notifications Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-bell"></i>
-          <span data-i18n="notificationPrefs">Notification Preferences</span>
-        </div>
-        <div class="settings-card">
-          <div class="toggle-row">
-            <div class="toggle-text">
-              <strong data-i18n="generalNotifs">General Notifications</strong>
+        <!-- Body Menu List -->
+        <div class="account-menu-list">
+          <!-- Phone Info Row (if available) -->
+          <div class="account-menu-item hidden" id="accountPhoneRow">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-solid fa-phone"></i></div>
+              <span class="account-item-title" data-i18n="phoneNumber">رقم الهاتف</span>
+            </div>
+            <span class="account-item-val" id="accountPhoneVal"></span>
+          </div>
+
+          <!-- My Listings -->
+          <div class="account-menu-item" data-nav="mylistings" data-auth-required>
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-regular fa-folder-open"></i></div>
+              <span class="account-item-title" data-i18n="myAds">إعلاناتي</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow"></i>
+          </div>
+
+          <!-- Favorites -->
+          <div class="account-menu-item" data-nav="favorites">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-regular fa-heart"></i></div>
+              <span class="account-item-title" data-i18n="favorites">الإعلانات المفضلة</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow"></i>
+          </div>
+
+          <!-- Notifications -->
+          <div class="account-menu-item" data-nav="notifications" data-auth-required>
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-regular fa-bell"></i></div>
+              <span class="account-item-title" data-i18n="notifications">الإشعارات</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow"></i>
+          </div>
+
+          <!-- Coupons & Offers -->
+          <div class="account-menu-item" data-nav="coupons">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-solid fa-gift"></i></div>
+              <span class="account-item-title" data-i18n="couponsOffers">القسائم والعروض</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow"></i>
+          </div>
+
+          <!-- Contact Us -->
+          <div class="account-menu-item" data-nav="contact">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-solid fa-headset"></i></div>
+              <span class="account-item-title" data-i18n="contactUs">اتصل بنا</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow"></i>
+          </div>
+
+          <!-- Language Switcher -->
+          <div class="account-menu-item">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-solid fa-globe"></i></div>
+              <span class="account-item-title" data-i18n="changeLanguage">تغيير اللغة</span>
+            </div>
+            <select class="account-lang-select" id="accountLangSelect">
+              <option value="ar">العربية 🇯🇴</option>
+              <option value="en">English 🇬🇧</option>
+            </select>
+          </div>
+
+          <!-- Notification Push Toggle -->
+          <div class="account-menu-item">
+            <div class="account-item-left">
+              <div class="account-item-icon"><i class="fa-solid fa-bell-concierge"></i></div>
+              <span class="account-item-title" data-i18n="enableNotifications">تفعيل الإشعارات</span>
             </div>
             <label class="switch">
-              <input type="checkbox" id="togglePush">
+              <input type="checkbox" id="accountTogglePush">
               <span class="slider"></span>
             </label>
           </div>
-        </div>
-      </div>
 
-      <!-- Governorate Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-location-dot"></i>
-          <span data-i18n="preferredGov">Preferred Governorate</span>
-        </div>
-        <div class="settings-card">
-          <select class="form-select" id="settingsGov"></select>
-        </div>
-      </div>
+          <!-- Admin Dashboard (Admin Only) -->
+          <div class="account-menu-item admin-item hidden" id="accountAdminItem" data-nav="admin">
+            <div class="account-item-left">
+              <div class="account-item-icon" style="background:#FFF0E4; color:#FF6A00;"><i class="fa-solid fa-shield-halved"></i></div>
+              <span class="account-item-title" style="color:#FF6A00; font-weight:bold;" data-i18n="adminPanel">لوحة التحكم (أدمن)</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow" style="color:#FF6A00;"></i>
+          </div>
 
-      <!-- Language Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-language"></i>
-          <span data-i18n="language">Language</span>
-        </div>
-        <div class="settings-card">
-          <div class="lang-options">
-            <button type="button" class="lang-option active" data-lang="en" id="langOptionEn">
-              <span class="lang-flag">🇬🇧</span>
-              <span>English</span>
-              <i class="fa-solid fa-check lang-check"></i>
-            </button>
-            <button type="button" class="lang-option" data-lang="ar" id="langOptionAr">
-              <span class="lang-flag">🇯🇴</span>
-              <span>العربية</span>
-              <i class="fa-solid fa-check lang-check"></i>
-            </button>
+          <!-- Logout -->
+          <div class="account-menu-item danger-item" id="accountLogoutBtn">
+            <div class="account-item-left">
+              <div class="account-item-icon" style="background:#FFEAEA; color:#E63946;"><i class="fa-solid fa-arrow-right-from-bracket"></i></div>
+              <span class="account-item-title" style="color:#E63946;" data-i18n="logout">تسجيل الخروج</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow" style="color:#E63946;"></i>
+          </div>
+
+          <!-- Delete Account -->
+          <div class="account-menu-item delete-item" id="accountDeleteBtn">
+            <div class="account-item-left">
+              <div class="account-item-icon" style="background:#FFF3E0; color:#FF6A00;"><i class="fa-solid fa-user-xmark"></i></div>
+              <span class="account-item-title" style="color:#FF6A00;" data-i18n="deleteAccount">حذف الحساب</span>
+            </div>
+            <i class="fa-solid fa-chevron-left account-item-arrow" style="color:#FF6A00;"></i>
           </div>
         </div>
-      </div>
-
-      <!-- Danger Zone Section (Logout & Delete Account) -->
-      <div class="settings-section" style="margin-top: 30px;">
-        <button class="btn-outline btn-block danger" id="logoutBtn" style="margin-bottom: 12px;">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          <span data-i18n="logout">Log Out</span>
-        </button>
-        
-        <!-- زر حذف الحساب نهائياً -->
-        <button class="btn-outline btn-block" id="deleteAccountBtn" style="color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, 0.05);">
-          <i class="fa-solid fa-user-xmark"></i>
-          <span data-i18n="deleteAccount">Delete Account Permanently</span>
-        </button>
       </div>
     </main>
 
@@ -581,6 +698,28 @@
         </button>
       </form>
     </main>
+
+    <!-- ============ MOBILE BOTTOM NAVIGATION BAR ============ -->
+    <nav class="mobile-bottom-nav" id="mobileBottomNav">
+      <button class="bnav-item active" data-nav="home" id="bnav-home">
+        <i class="fa-solid fa-house"></i>
+        <span data-i18n="home">الرئيسية</span>
+      </button>
+      <button class="bnav-item bnav-post-ad" data-nav="add" data-auth-required id="bnav-add">
+        <div class="bnav-circle">
+          <i class="fa-solid fa-plus"></i>
+        </div>
+        <span data-i18n="postAd">أضف إعلان</span>
+      </button>
+      <button class="bnav-item" data-nav="mylistings" data-auth-required id="bnav-mylistings">
+        <i class="fa-regular fa-folder-open"></i>
+        <span data-i18n="myAds">إعلاناتي</span>
+      </button>
+      <button class="bnav-item" data-nav="settings" id="bnav-settings">
+        <i class="fa-regular fa-user"></i>
+        <span data-i18n="account">حسابي</span>
+      </button>
+    </nav>
 
   </div>
 
@@ -865,10 +1004,23 @@
     </div>
   </div>
 
+  <!-- ============ RECEIPT LIGHTBOX MODAL ============ -->
+  <div class="modal-overlay" id="receiptLightboxOverlay">
+    <div class="receipt-lightbox-content">
+      <div class="receipt-lightbox-header">
+        <span data-i18n="paymentReceipt">إيصال الدفع</span>
+        <button class="receipt-lightbox-close" id="receiptLightboxClose"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <div class="receipt-lightbox-body">
+        <img id="receiptLightboxImg" src="" alt="Receipt">
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="/script.js?v=29"></script>
+  <script src="/script.js?v=30"></script>
 
 </body>
 

@@ -395,7 +395,37 @@
       signInToSeeMore: "Sign in to see more",
       whatsapp: "WhatsApp",
       call: "Phone Call",
-      both: "Call or WhatsApp"
+      both: "Call or WhatsApp",
+      verifiedMember: "Verified Member",
+      referralCodePrefix: "Referral Code:",
+      pendingAds: "Pending Ads",
+      allAds: "All Ads",
+      users: "Users",
+      adminRole: "Admin",
+      userRole: "User",
+      noPendingAds: "No pending ads!",
+      noPublishedAds: "No published ads!",
+      noUsers: "No users found",
+      approveAndPublish: "Approve & Publish",
+      reject: "Reject",
+      deletePermanently: "Delete",
+      paymentReceipt: "Payment Receipt",
+      noReceipt: "No payment receipt attached",
+      confirmReject: "Are you sure you want to reject this ad?",
+      confirmDeleteAd: "Are you sure you want to delete this ad permanently? This cannot be undone.",
+      changeLanguage: "Change Language",
+      enableNotifications: "Enable Notifications",
+      referralCodeCopied: "Referral code copied!",
+      pleaseLogin: "Please Log In",
+      loginPromptDesc: "Sign in to see your listings and manage your account",
+      loginOrRegister: "Sign In / Register",
+      account: "My Account",
+      action: "Action",
+      price: "Price",
+      user: "User",
+      underReview: "Under Review",
+      approved: "Approved",
+      rejected: "Rejected"
     },
     ar: {
       contactUs: "اتصل بنا",
@@ -534,7 +564,37 @@
       both: "اتصال أو واتساب",
       showAllAds: "عرض كل الإعلانات",
       loadMoreAds: "تحميل المزيد من الإعلانات",
-      loading: "جاري التحميل..."
+      loading: "جاري التحميل...",
+      verifiedMember: "عضو موثق",
+      referralCodePrefix: "كود الإحالة:",
+      pendingAds: "طلبات النشر",
+      allAds: "كل الإعلانات",
+      users: "المستخدمون",
+      adminRole: "أدمن",
+      userRole: "مستخدم",
+      noPendingAds: "لا توجد إعلانات معلقة!",
+      noPublishedAds: "لا توجد إعلانات منشورة!",
+      noUsers: "لا يوجد مستخدمون",
+      approveAndPublish: "قبول ونشر",
+      reject: "رفض",
+      deletePermanently: "حذف نهائياً",
+      paymentReceipt: "إيصال الدفع",
+      noReceipt: "لا يوجد إيصال دفع مرفق",
+      confirmReject: "هل تريد رفض هذا الإعلان؟",
+      confirmDeleteAd: "هل تريد حذف هذا الإعلان نهائياً؟ لا يمكن التراجع.",
+      changeLanguage: "تغيير اللغة",
+      enableNotifications: "تفعيل الإشعارات",
+      referralCodeCopied: "تم نسخ كود الإحالة!",
+      pleaseLogin: "يرجى تسجيل الدخول",
+      loginPromptDesc: "قم بتسجيل الدخول لتتمكن من رؤية إعلاناتك وإدارة حسابك",
+      loginOrRegister: "تسجيل الدخول / إنشاء حساب",
+      account: "حسابي",
+      action: "إجراء",
+      price: "السعر",
+      user: "المستخدم",
+      underReview: "قيد المراجعة",
+      approved: "معتمد",
+      rejected: "مرفوض"
     }
   };
 
@@ -989,6 +1049,8 @@
       history.pushState(stateObj, "", window.location.pathname + hash);
     }
 
+    if (typeof updateBottomNav === 'function') updateBottomNav(name);
+
     switch (name) {
       case "home": renderAds(); break;
       case "notifications": renderNotifications(); break;
@@ -996,10 +1058,10 @@
         renderAdList("favList", "favEmptyState", ads.filter((a) => state.favorites.has(a.id)));
         break;
       case "mylistings":
-        renderAdList("mineList", "mineEmptyState", ads.filter((a) => a.mine));
+        loadMyListings();
         break;
       case "admin":
-        renderAdminAds();
+        renderAdminScreen();
         break;
       case "settings": updateSettingsPage(); break;
       case "coupons": loadCouponsScreen(); break;
@@ -1175,80 +1237,243 @@
     });
   }
 
-  async function renderAdminAds() {
-    const list = document.getElementById("adminAdsList");
-    const empty = document.getElementById("adminEmptyState");
+  // ============================================
+  // MY LISTINGS (إعلاناتي) - Direct API fetch
+  // ============================================
+  async function loadMyListings() {
+    const list = document.getElementById("mineList");
+    const empty = document.getElementById("mineEmptyState");
     if (!list) return;
-    
-    list.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
-    
-    try {
-       const token = localStorage.getItem("dj_token");
-       const res = await fetch(`${BASE_URL}/ads/?status=pending`, { 
-         headers: { 'Authorization': 'Token ' + token } 
-       });
-       const data = await res.json();
-       const pendingAds = data.results || data || [];
-       
-       if (!pendingAds.length) { 
-         list.innerHTML = ""; 
-         if (empty) empty.classList.remove("hidden"); 
-       } else { 
-         if (empty) empty.classList.add("hidden"); 
-         list.innerHTML = pendingAds.map(ad => {
-           const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : ad.title;
-           const adDesc = typeof ad.description === 'object' ? (ad.description.ar || ad.description.en) : ad.description;
-           
-           // Build images for admin panel
-           const allImages = [];
-           if (ad.image) allImages.push(ad.image);
-           if (ad.extra_images && ad.extra_images.length > 0) {
-             ad.extra_images.forEach(img => {
-               if (img.image && !allImages.includes(img.image)) allImages.push(img.image);
-             });
-           }
-           let imagesHtml = '';
-           if (allImages.length > 1) {
-             imagesHtml = `
-               <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
-                 ${allImages.map(src => `<a href="${src}" target="_blank"><img src="${src}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
-               </div>
-             `;
-           } else if (allImages.length === 1) {
-             imagesHtml = `<a href="${allImages[0]}" target="_blank"><img src="${allImages[0]}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
-           }
 
-           return `
-            <div class="ad-card" style="margin-bottom:15px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
-              ${imagesHtml}
-              <div class="ad-card-top" style="padding:15px; display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                  <h3 style="margin:0 0 5px 0; font-size:15px;">${escapeHtml(adTitle)}</h3>
-                  <p style="margin:0 0 8px 0; color:#666; font-size:13px;">${escapeHtml(adDesc).substring(0,80)}...</p>
-                  <p style="margin:0; font-size:13px;"><strong>📞</strong> ${ad.contact_phone}</p>
+    if (!state.user) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      return;
+    }
+
+    list.innerHTML = '<div style="text-align:center; padding:40px; grid-column: 1/-1;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-600);"></i></div>';
+
+    try {
+      const token = localStorage.getItem("dj_token");
+      const headers = token ? { 'Authorization': 'Token ' + token } : {};
+      const res = await fetch(`${BASE_URL}/ads/?user_id=${state.user.id}`, { headers });
+      if (!res.ok) throw new Error("فشل جلب الإعلانات");
+      const data = await res.json();
+      const rawAds = data.results || (Array.isArray(data) ? data : []);
+      const userAds = rawAds.map(mapDbAd);
+
+      if (!userAds.length) {
+        list.innerHTML = "";
+        if (empty) empty.classList.remove("hidden");
+      } else {
+        if (empty) empty.classList.add("hidden");
+        renderAdList("mineList", "mineEmptyState", userAds);
+      }
+    } catch (err) {
+      console.error("loadMyListings error:", err);
+      const localMine = ads.filter(a => a.mine);
+      renderAdList("mineList", "mineEmptyState", localMine);
+    }
+  }
+
+  const myListingsRefreshBtn = document.getElementById("myListingsRefreshBtn");
+  if (myListingsRefreshBtn) {
+    myListingsRefreshBtn.addEventListener("click", loadMyListings);
+  }
+
+  // ============================================
+  // ADMIN DASHBOARD (لوحة الأدمن - 3 تبويبات)
+  // ============================================
+  let currentAdminTab = "pending";
+  let adminPendingAds = [];
+  let adminPublishedAds = [];
+  let adminUsers = [];
+  let adminTabsInitialized = false;
+
+  function initAdminTabs() {
+    if (adminTabsInitialized) return;
+    adminTabsInitialized = true;
+
+    const btnPending = document.getElementById("adminTabBtnPending");
+    const btnPublished = document.getElementById("adminTabBtnPublished");
+    const btnUsers = document.getElementById("adminTabBtnUsers");
+
+    const panelPending = document.getElementById("adminTabPending");
+    const panelPublished = document.getElementById("adminTabPublished");
+    const panelUsers = document.getElementById("adminTabUsers");
+
+    const switchAdminTab = (tab) => {
+      currentAdminTab = tab;
+      [btnPending, btnPublished, btnUsers].forEach(b => b && b.classList.remove("active"));
+      [panelPending, panelPublished, panelUsers].forEach(p => p && p.classList.add("hidden"));
+
+      if (tab === "pending") {
+        if (btnPending) btnPending.classList.add("active");
+        if (panelPending) panelPending.classList.remove("hidden");
+      } else if (tab === "published") {
+        if (btnPublished) btnPublished.classList.add("active");
+        if (panelPublished) panelPublished.classList.remove("hidden");
+      } else if (tab === "users") {
+        if (btnUsers) btnUsers.classList.add("active");
+        if (panelUsers) panelUsers.classList.remove("hidden");
+      }
+    };
+
+    if (btnPending) btnPending.addEventListener("click", () => switchAdminTab("pending"));
+    if (btnPublished) btnPublished.addEventListener("click", () => switchAdminTab("published"));
+    if (btnUsers) btnUsers.addEventListener("click", () => switchAdminTab("users"));
+
+    const refreshBtn = document.getElementById("adminRefreshBtn");
+    if (refreshBtn) refreshBtn.addEventListener("click", renderAdminScreen);
+
+    // Lightbox modal close
+    const receiptClose = document.getElementById("receiptLightboxClose");
+    const receiptOverlay = document.getElementById("receiptLightboxOverlay");
+    if (receiptClose) receiptClose.addEventListener("click", () => receiptOverlay.classList.remove("open"));
+    if (receiptOverlay) {
+      receiptOverlay.addEventListener("click", (e) => {
+        if (e.target === receiptOverlay) receiptOverlay.classList.remove("open");
+      });
+    }
+  }
+
+  function openReceiptLightbox(url) {
+    const overlay = document.getElementById("receiptLightboxOverlay");
+    const img = document.getElementById("receiptLightboxImg");
+    if (overlay && img) {
+      img.src = url;
+      overlay.classList.add("open");
+    }
+  }
+
+  async function renderAdminScreen() {
+    initAdminTabs();
+
+    const pendingList = document.getElementById("adminAdsList");
+    const pendingEmpty = document.getElementById("adminEmptyState");
+    const publishedBody = document.getElementById("adminPublishedBody");
+    const publishedWrapper = document.getElementById("adminPublishedWrapper");
+    const publishedEmpty = document.getElementById("adminPublishedEmpty");
+    const usersList = document.getElementById("adminUsersList");
+    const usersEmpty = document.getElementById("adminUsersEmpty");
+
+    const pendingCount = document.getElementById("adminPendingCount");
+    const publishedCount = document.getElementById("adminPublishedCount");
+    const usersCount = document.getElementById("adminUsersCount");
+
+    if (pendingList) pendingList.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-600);"></i></div>';
+    if (publishedBody) publishedBody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:30px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-600);"></i></td></tr>';
+    if (usersList) usersList.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-600);"></i></div>';
+
+    const token = localStorage.getItem("dj_token");
+    if (!token) {
+      showToast("يجب تسجيل الدخول كأدمن", "error");
+      goToScreen("home");
+      return;
+    }
+
+    try {
+      // 1. Fetch all ads for admin (pending + approved)
+      const adsRes = await fetch(`${BASE_URL}/ads/?admin_all=true`, {
+        headers: { 'Authorization': 'Token ' + token }
+      });
+      const adsData = await adsRes.json();
+      const allAds = adsData.results || (Array.isArray(adsData) ? adsData : []);
+
+      adminPendingAds = allAds.filter(a => a.status === "pending");
+      adminPublishedAds = allAds.filter(a => a.status === "approved");
+
+      if (pendingCount) pendingCount.textContent = adminPendingAds.length;
+      if (publishedCount) publishedCount.textContent = adminPublishedAds.length;
+
+      // ── Render Pending Ads ──
+      if (!adminPendingAds.length) {
+        if (pendingList) pendingList.innerHTML = "";
+        if (pendingEmpty) pendingEmpty.classList.remove("hidden");
+      } else {
+        if (pendingEmpty) pendingEmpty.classList.add("hidden");
+        if (pendingList) {
+          pendingList.innerHTML = adminPendingAds.map(ad => {
+            const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || "");
+            const adDesc = typeof ad.description === 'object' ? (ad.description.ar || ad.description.en) : (ad.description || "");
+            const catName = getCategoryName(ad.category, state.lang);
+            const govName = GOV_MAP[ad.governorate] ? GOV_MAP[ad.governorate][state.lang] : ad.governorate;
+
+            const allImages = [];
+            if (ad.image) allImages.push(ad.image);
+            if (ad.extra_images && ad.extra_images.length > 0) {
+              ad.extra_images.forEach(img => {
+                const src = img.image || img;
+                if (src && !allImages.includes(src)) allImages.push(src);
+              });
+            }
+
+            let imagesHtml = '';
+            if (allImages.length > 1) {
+              imagesHtml = `
+                <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
+                  ${allImages.map(src => `<img src="${src}" class="admin-zoomable-img" data-img="${src}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6; cursor:pointer;">`).join('')}
+                </div>`;
+            } else if (allImages.length === 1) {
+              imagesHtml = `<img src="${allImages[0]}" class="admin-zoomable-img" data-img="${allImages[0]}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover; cursor:pointer;">`;
+            }
+
+            return `
+              <div class="ad-card admin-pending-card" data-ad-id="${ad.id}" style="margin-bottom:16px; border-radius:14px; overflow:hidden; background:#fff; border:1px solid #ECEDF3; box-shadow: 0 4px 14px rgba(17,23,49,0.06);">
+                ${imagesHtml}
+                <div style="padding:16px;">
+                  <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+                    <div style="flex:1; min-width:0;">
+                      <h3 style="margin:0 0 6px 0; font-size:16px; font-weight:bold; color:#151A2E;">${escapeHtml(adTitle)}</h3>
+                      <div style="display:flex; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+                        <span style="background:#E9F0FF; color:#1565C0; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${escapeHtml(catName)}</span>
+                        <span style="background:#EEF0F4; color:#3A4058; padding:3px 8px; border-radius:6px; font-size:12px;"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(govName)}</span>
+                        <span style="background:#FFF0E4; color:#FF6A00; padding:3px 8px; border-radius:6px; font-size:12px; font-weight:bold;">${ad.price || 0} JOD</span>
+                      </div>
+                      <p style="margin:0 0 8px 0; color:#555; font-size:13px; line-height:1.5;">${escapeHtml(adDesc).substring(0, 120)}...</p>
+                      <div style="font-size:13px; color:#151A2E; margin-bottom:4px;"><strong>📞</strong> ${ad.contact_phone}</div>
+                      ${ad.user_details?.email ? `<div style="font-size:12px; color:#7A8099;"><strong>👤</strong> ${escapeHtml(ad.user_details.email)}</div>` : ''}
+                    </div>
+                    
+                    ${ad.receipt_image ? `
+                      <div class="admin-receipt-box" data-receipt="${ad.receipt_image}" style="flex-shrink:0; text-align:center; cursor:pointer; background:#FAFBFD; padding:8px; border-radius:10px; border:1px dashed #FF6A00;">
+                        <div style="font-size:11px; font-weight:bold; color:#FF6A00; margin-bottom:4px;"><i class="fa-solid fa-receipt"></i> إيصال الدفع</div>
+                        <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/80x80/e9ecef/495057?text=Receipt';" style="width:75px; height:75px; object-fit:cover; border-radius:6px; border:1px solid #ECEDF3;">
+                        <div style="font-size:10px; color:#7A8099; margin-top:2px;">اضغط للتكبير</div>
+                      </div>
+                    ` : `
+                      <div style="background:#FFF3CD; color:#856404; padding:8px 10px; border-radius:8px; font-size:11px; text-align:center; max-width:110px;">
+                        <i class="fa-solid fa-triangle-exclamation" style="font-size:16px; margin-bottom:4px; display:block;"></i>
+                        لا يوجد إيصال
+                      </div>
+                    `}
+                  </div>
+
+                  <div style="display:flex; gap:10px; margin-top:16px; padding-top:14px; border-top:1px solid #ECEDF3;">
+                    <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#2E9E5B; border:none; flex:1; padding:10px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                      <i class="fa-solid fa-check"></i> قبول ونشر
+                    </button>
+                    <button class="btn-outline admin-reject-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}" style="color:#E63946; border-color:#E63946; flex:1; padding:10px; border-radius:8px; font-weight:bold; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px;">
+                      <i class="fa-solid fa-xmark"></i> رفض
+                    </button>
+                  </div>
                 </div>
-                ${ad.receipt_image ? `
-                  <div style="margin-right: 10px; flex-shrink:0;">
-                    <p style="margin:0 0 4px 0; font-size:11px; color:#888; text-align:center;">وصل الدفع</p>
-                    <a href="${ad.receipt_image}" target="_blank">
-                      <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid #e9ecef;">
-                    </a>
-                  </div>` : '<p style="color:#f59e0b; font-size:12px; margin:0;">⚠️ لا يوجد وصل</p>'}
-              </div>
-              <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid #f1f3f5;">
-                <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#10b981;border:none;flex:1; padding:10px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-check"></i> قبول</button>
-                <button class="btn-primary admin-reject-btn" data-id="${ad.id}" style="background:#ef4444;border:none;flex:1; padding:10px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-xmark"></i> رفض</button>
-              </div>
-            </div>`;
-         }).join(""); 
-         
-          // Attach events
-          list.querySelectorAll(".admin-approve-btn").forEach(btn => {
+              </div>`;
+          }).join("");
+
+          // Receipt click listeners
+          pendingList.querySelectorAll(".admin-receipt-box").forEach(box => {
+            box.addEventListener("click", () => openReceiptLightbox(box.dataset.receipt));
+          });
+          pendingList.querySelectorAll(".admin-zoomable-img").forEach(img => {
+            img.addEventListener("click", () => openReceiptLightbox(img.dataset.img));
+          });
+
+          // Approve listeners
+          pendingList.querySelectorAll(".admin-approve-btn").forEach(btn => {
             btn.addEventListener("click", async () => {
-              const card = btn.closest(".ad-card");
-              const siblingBtn = card ? card.querySelector(".admin-reject-btn") : null;
+              const card = btn.closest(".admin-pending-card");
               btn.disabled = true;
-              if (siblingBtn) siblingBtn.disabled = true;
               btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري القبول...';
               try {
                 const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
@@ -1257,38 +1482,30 @@
                   body: JSON.stringify({ action: 'approve' })
                 });
                 if (r.ok) {
-                  showToast("تم قبول الإعلان ونشره بنجاح", "success");
-                  if (card) {
-                    card.style.transition = "opacity 0.25s ease, transform 0.25s ease";
-                    card.style.opacity = "0";
-                    card.style.transform = "scale(0.95)";
-                    setTimeout(() => {
-                      card.remove();
-                      if (!list.querySelectorAll(".ad-card").length && empty) {
-                        empty.classList.remove("hidden");
-                      }
-                    }, 250);
-                  }
+                  showToast("تم قبول الإعلان ونشره بنجاح ✅", "success");
+                  if (card) card.remove();
+                  adminPendingAds = adminPendingAds.filter(a => String(a.id) !== String(btn.dataset.id));
+                  if (pendingCount) pendingCount.textContent = adminPendingAds.length;
+                  if (!adminPendingAds.length && pendingEmpty) pendingEmpty.classList.remove("hidden");
                 } else {
                   const errData = await r.json().catch(() => ({}));
                   throw new Error(errData.error || "فشل قبول الإعلان");
                 }
-              } catch(e) {
-                showToast(e.message || "حدث خطأ أثناء قبول الإعلان", "error");
+              } catch (e) {
+                showToast(e.message, "error");
                 btn.disabled = false;
-                if (siblingBtn) siblingBtn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> قبول';
+                btn.innerHTML = '<i class="fa-solid fa-check"></i> قبول ونشر';
               }
             });
           });
-          
-          list.querySelectorAll(".admin-reject-btn").forEach(btn => {
+
+          // Reject listeners
+          pendingList.querySelectorAll(".admin-reject-btn").forEach(btn => {
             btn.addEventListener("click", async () => {
-              if (!confirm("هل أنت متأكد من رفض هذا الإعلان؟")) return;
-              const card = btn.closest(".ad-card");
-              const siblingBtn = card ? card.querySelector(".admin-approve-btn") : null;
+              const adTitle = btn.dataset.title || "هذا الإعلان";
+              if (!confirm(`هل تريد رفض الإعلان "${adTitle}"؟`)) return;
+              const card = btn.closest(".admin-pending-card");
               btn.disabled = true;
-              if (siblingBtn) siblingBtn.disabled = true;
               btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفض...';
               try {
                 const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
@@ -1297,33 +1514,140 @@
                   body: JSON.stringify({ action: 'reject' })
                 });
                 if (r.ok) {
-                  showToast("تم رفض الإعلان", "success");
-                  if (card) {
-                    card.style.transition = "opacity 0.25s ease, transform 0.25s ease";
-                    card.style.opacity = "0";
-                    card.style.transform = "scale(0.95)";
-                    setTimeout(() => {
-                      card.remove();
-                      if (!list.querySelectorAll(".ad-card").length && empty) {
-                        empty.classList.remove("hidden");
-                      }
-                    }, 250);
-                  }
+                  showToast("تم رفض الإعلان ❌", "success");
+                  if (card) card.remove();
+                  adminPendingAds = adminPendingAds.filter(a => String(a.id) !== String(btn.dataset.id));
+                  if (pendingCount) pendingCount.textContent = adminPendingAds.length;
+                  if (!adminPendingAds.length && pendingEmpty) pendingEmpty.classList.remove("hidden");
                 } else {
                   const errData = await r.json().catch(() => ({}));
                   throw new Error(errData.error || "فشل رفض الإعلان");
                 }
-              } catch(e) {
-                showToast(e.message || "حدث خطأ أثناء رفض الإعلان", "error");
+              } catch (e) {
+                showToast(e.message, "error");
                 btn.disabled = false;
-                if (siblingBtn) siblingBtn.disabled = false;
                 btn.innerHTML = '<i class="fa-solid fa-xmark"></i> رفض';
               }
             });
           });
-       }
-    } catch(err) {
-       list.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message}</div>`;
+        }
+      }
+
+      // ── Render Published Ads ──
+      if (!adminPublishedAds.length) {
+        if (publishedWrapper) publishedWrapper.classList.add("hidden");
+        if (publishedEmpty) publishedEmpty.classList.remove("hidden");
+      } else {
+        if (publishedEmpty) publishedEmpty.classList.add("hidden");
+        if (publishedWrapper) publishedWrapper.classList.remove("hidden");
+        if (publishedBody) {
+          publishedBody.innerHTML = adminPublishedAds.map(ad => {
+            const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || "");
+            const catName = getCategoryName(ad.category, state.lang);
+            const userEmail = ad.user_details?.email || ad.contact_phone || '-';
+
+            return `
+              <tr data-ad-id="${ad.id}">
+                <td style="font-weight:bold; cursor:pointer;" class="admin-pub-title" data-ad-id="${ad.id}">
+                  <span style="color:#1565C0;">${escapeHtml(adTitle)}</span>
+                </td>
+                <td><span style="background:#EEF0F4; padding:3px 8px; border-radius:6px; font-size:12px;">${escapeHtml(catName)}</span></td>
+                <td><strong>${ad.price || 0} JOD</strong></td>
+                <td style="font-size:12px; color:#7A8099;">${escapeHtml(userEmail)}</td>
+                <td>
+                  <button class="admin-delete-pub-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}" style="color:#E63946; background:none; border:none; cursor:pointer; padding:6px 10px; border-radius:6px;" title="حذف نهائياً">
+                    <i class="fa-regular fa-trash-can" style="font-size:16px;"></i>
+                  </button>
+                </td>
+              </tr>`;
+          }).join("");
+
+          // Click title to view ad
+          publishedBody.querySelectorAll(".admin-pub-title").forEach(el => {
+            el.addEventListener("click", () => openDetails(el.dataset.adId));
+          });
+
+          // Delete published ad
+          publishedBody.querySelectorAll(".admin-delete-pub-btn").forEach(btn => {
+            btn.addEventListener("click", async () => {
+              const adTitle = btn.dataset.title || "هذا الإعلان";
+              if (!confirm(`هل تريد حذف الإعلان "${adTitle}" نهائياً؟ لا يمكن التراجع عن هذا الإجراء.`)) return;
+              const tr = btn.closest("tr");
+              btn.disabled = true;
+              btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+              try {
+                const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+                  body: JSON.stringify({ action: 'delete' })
+                });
+                if (r.ok) {
+                  showToast("تم حذف الإعلان نهائياً", "success");
+                  if (tr) tr.remove();
+                  adminPublishedAds = adminPublishedAds.filter(a => String(a.id) !== String(btn.dataset.id));
+                  if (publishedCount) publishedCount.textContent = adminPublishedAds.length;
+                  if (!adminPublishedAds.length) {
+                    if (publishedWrapper) publishedWrapper.classList.add("hidden");
+                    if (publishedEmpty) publishedEmpty.classList.remove("hidden");
+                  }
+                } else {
+                  const errData = await r.json().catch(() => ({}));
+                  throw new Error(errData.error || "فشل حذف الإعلان");
+                }
+              } catch(e) {
+                showToast(e.message, "error");
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fa-regular fa-trash-can"></i>';
+              }
+            });
+          });
+        }
+      }
+
+      // ── 2. Fetch all users for admin ──
+      try {
+        const usersRes = await fetch(`${BASE_URL}/users/`, {
+          headers: { 'Authorization': 'Token ' + token }
+        });
+        const uData = await usersRes.json();
+        adminUsers = uData.results || (Array.isArray(uData) ? uData : []);
+
+        if (usersCount) usersCount.textContent = adminUsers.length;
+
+        if (!adminUsers.length) {
+          if (usersList) usersList.innerHTML = "";
+          if (usersEmpty) usersEmpty.classList.remove("hidden");
+        } else {
+          if (usersEmpty) usersEmpty.classList.add("hidden");
+          if (usersList) {
+            usersList.innerHTML = adminUsers.map(u => {
+              const isAdmin = u.role === "admin";
+              return `
+                <div class="admin-user-card" style="display:flex; align-items:center; justify-content:space-between; background:#fff; padding:14px 16px; border-radius:12px; margin-bottom:10px; border:1px solid #ECEDF3;">
+                  <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="width:42px; height:42px; border-radius:10px; background:${isAdmin ? '#FFF0E4' : '#E9F0FF'}; color:${isAdmin ? '#FF6A00' : '#111731'}; display:flex; align-items:center; justify-content:center; font-size:18px;">
+                      <i class="fa-solid ${isAdmin ? 'fa-shield-halved' : 'fa-user'}"></i>
+                    </div>
+                    <div>
+                      <div style="font-weight:bold; color:#151A2E; font-size:14px;">${escapeHtml(u.username || 'User')}</div>
+                      <div style="font-size:12px; color:#7A8099;">${escapeHtml(u.email || '')}</div>
+                    </div>
+                  </div>
+                  <span style="font-size:11px; font-weight:bold; padding:4px 10px; border-radius:6px; background:${isAdmin ? '#FFF0E4' : '#EEF0F4'}; color:${isAdmin ? '#FF6A00' : '#7A8099'};">
+                    ${isAdmin ? (state.lang === 'ar' ? 'أدمن' : 'Admin') : (state.lang === 'ar' ? 'مستخدم' : 'User')}
+                  </span>
+                </div>`;
+            }).join("");
+          }
+        }
+      } catch (uErr) {
+        console.error("Failed to load users:", uErr);
+        if (usersList) usersList.innerHTML = '<div style="color:#7A8099; text-align:center; padding:20px;">تعذر تحميل قائمة المستخدمين</div>';
+      }
+
+    } catch (err) {
+      console.error("renderAdminScreen error:", err);
+      showToast("حدث خطأ أثناء تحميل بيانات لوحة الأدمن", "error");
     }
   }
 
@@ -2238,68 +2562,186 @@
     });
   }
 
-  function updateSettingsPage() {
-    if (!state.user) return;
+  // ============================================
+  // SETTINGS / ACCOUNT HUB
+  // ============================================
+  let settingsInitialized = false;
 
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = val;
-    };
+  async function updateSettingsPage() {
+    const guestView = document.getElementById("settingsGuestView");
+    const userView = document.getElementById("settingsUserView");
+    const usernameEl = document.getElementById("accountUsername");
+    const emailEl = document.getElementById("accountEmail");
+    const referralCodeEl = document.getElementById("accountReferralCode");
+    const adminItem = document.getElementById("accountAdminItem");
+    const langSelect = document.getElementById("accountLangSelect");
+    const togglePush = document.getElementById("accountTogglePush");
+    const phoneRow = document.getElementById("accountPhoneRow");
+    const phoneVal = document.getElementById("accountPhoneVal");
 
-    setVal("settingsEmail", state.user.email || "");
-    setVal("settingsUsername", state.user.username || "");
+    if (!state.user) {
+      if (guestView) guestView.classList.remove("hidden");
+      if (userView) userView.classList.add("hidden");
+      return;
+    }
 
-    const setCheck = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.checked = val;
-    };
+    if (guestView) guestView.classList.add("hidden");
+    if (userView) userView.classList.remove("hidden");
 
-    setCheck("togglePush", state.settings.pushNotifications);
+    if (usernameEl) usernameEl.textContent = state.user.username || "User";
+    if (emailEl) emailEl.textContent = state.user.email || "";
 
-    const govSelect = document.getElementById("settingsGov");
-    if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
+    // Show/Hide admin panel button
+    if (adminItem) {
+      if (state.user.role === "admin") adminItem.classList.remove("hidden");
+      else adminItem.classList.add("hidden");
+    }
 
-    updateLanguageOptionsUI();
+    // Set Language select
+    if (langSelect) {
+      langSelect.value = state.lang;
+    }
+
+    // Set Push toggle
+    if (togglePush) {
+      togglePush.checked = !!state.settings.pushNotifications;
+    }
+
+    // Referral code display
+    if (referralCodeEl) {
+      if (state.user.referral_code) {
+        referralCodeEl.textContent = state.user.referral_code;
+      } else {
+        referralCodeEl.textContent = "---";
+      }
+    }
+
+    // Fetch fresh profile data to get referral_code and phone_number if not present
+    const token = localStorage.getItem("dj_token");
+    if (token) {
+      try {
+        const res = await fetch(`${BASE_URL}/profile/`, {
+          headers: { 'Authorization': 'Token ' + token }
+        });
+        if (res.ok) {
+          const prof = await res.json();
+          if (prof.referral_code) {
+            state.user.referral_code = prof.referral_code;
+            if (referralCodeEl) referralCodeEl.textContent = prof.referral_code;
+            try { localStorage.setItem("dj_user", JSON.stringify(state.user)); } catch (_) {}
+          }
+          if (prof.phone_number && phoneRow && phoneVal) {
+            phoneVal.textContent = prof.phone_number;
+            phoneRow.classList.remove("hidden");
+          }
+        }
+      } catch (e) {}
+    }
+
+    // One-time setup of event listeners
+    if (!settingsInitialized) {
+      settingsInitialized = true;
+
+      // Guest Login prompt
+      const loginPromptBtn = document.getElementById("settingsLoginPromptBtn");
+      if (loginPromptBtn) {
+        loginPromptBtn.addEventListener("click", () => openAuth("login"));
+      }
+
+      // Refresh button
+      const accRefreshBtn = document.getElementById("accountRefreshBtn");
+      if (accRefreshBtn) {
+        accRefreshBtn.addEventListener("click", updateSettingsPage);
+      }
+
+      // Copy referral code button
+      const copyRefBtn = document.getElementById("accountCopyReferralBtn");
+      if (copyRefBtn) {
+        copyRefBtn.addEventListener("click", () => {
+          const code = document.getElementById("accountReferralCode")?.textContent;
+          if (code && code !== "---") {
+            navigator.clipboard.writeText(code).then(() => {
+              showToast(t("referralCodeCopied"), "success");
+            }).catch(() => {
+              showToast(code, "info");
+            });
+          }
+        });
+      }
+
+      // Language switcher select
+      if (langSelect) {
+        langSelect.addEventListener("change", (e) => {
+          switchLanguage(e.target.value);
+        });
+      }
+
+      // Push toggle
+      if (togglePush) {
+        togglePush.addEventListener("change", (e) => {
+          state.settings.pushNotifications = e.target.checked;
+          localStorage.setItem("dj_settings", JSON.stringify(state.settings));
+        });
+      }
+
+      // Logout button
+      const accLogoutBtn = document.getElementById("accountLogoutBtn");
+      if (accLogoutBtn) {
+        accLogoutBtn.addEventListener("click", logout);
+      }
+
+      // Delete account button
+      const accDeleteBtn = document.getElementById("accountDeleteBtn");
+      if (accDeleteBtn) {
+        accDeleteBtn.addEventListener("click", async () => {
+          const confirmed = confirm(t("confirmDeleteAccount"));
+          if (!confirmed) return;
+          const uToken = localStorage.getItem("dj_token");
+          if (state.user && uToken) {
+            try {
+              await Api.deleteAccount(state.user.id, uToken);
+              showToast(state.lang === 'ar' ? 'تم حذف الحساب نهائياً' : 'Account deleted permanently', "info");
+              logout();
+            } catch (err) {
+              showToast(err.message, "error");
+            }
+          }
+        });
+      }
+    }
   }
 
-  const saveAccountBtn = document.getElementById("saveAccountBtn");
-  if (saveAccountBtn) {
-    saveAccountBtn.addEventListener("click", () => {
-      const newUsername = document.getElementById("settingsUsername")?.value.trim();
-      if (newUsername && newUsername.length >= 3) {
-        state.user.username = newUsername;
-        localStorage.setItem("dj_user", JSON.stringify(state.user));
-        updateDrawerUser();
-        showToast(t("settingsSaved"), "success");
+  // ============================================
+  // MOBILE BOTTOM NAVIGATION BAR
+  // ============================================
+  function updateBottomNav(screenName) {
+    document.querySelectorAll("#mobileBottomNav .bnav-item").forEach(item => {
+      const dest = item.dataset.nav;
+      if (dest === screenName || (dest === "settings" && screenName === "settings")) {
+        item.classList.add("active");
       } else {
-        showToast(t("usernameMinLength"), "error");
+        item.classList.remove("active");
       }
     });
   }
 
-  const bindCheckSetting = (id, key) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("change", (e) => {
-        state.settings[key] = e.target.checked;
-        localStorage.setItem("dj_settings", JSON.stringify(state.settings));
+  function setupMobileBottomNav() {
+    const nav = document.getElementById("mobileBottomNav");
+    if (!nav) return;
+
+    nav.querySelectorAll(".bnav-item").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.preventDefault();
+        const dest = item.dataset.nav;
+        if (item.hasAttribute("data-auth-required") && !state.user) {
+          state.pendingAction = { type: "navigate", dest };
+          openAuth("login");
+          return;
+        }
+        goToScreen(dest);
       });
-    }
-  };
-
-  bindCheckSetting("togglePush", "pushNotifications");
-
-  const settingsGov = document.getElementById("settingsGov");
-  if (settingsGov) {
-    settingsGov.addEventListener("change", (e) => {
-      state.settings.preferredGovernorate = e.target.value;
-      localStorage.setItem("dj_settings", JSON.stringify(state.settings));
-      showToast(t("preferredGovUpdated"), "success");
     });
   }
-
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
   function switchLanguage(lang) {
     state.lang = lang;
@@ -2723,6 +3165,8 @@
         updateNotificationDot();
       }
     } catch (e) {}
+
+    setupMobileBottomNav();
 
     // تعديل: استعادة الشاشة السابقة بدلاً من الذهاب إلى الرئيسية دائماً
     const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";

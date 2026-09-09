@@ -743,53 +743,28 @@ class AdViewSet(viewsets.ModelViewSet):
         from .models import AdImage
         ad = serializer.save()
         
-        # إعادة الإعلان لحالة المراجعة إذا قام المستخدم العادي بتعديله
+        # الحفاظ على حالة الإعلان (المعتمد يبقى معتمداً حتى لا يختفي من الموقع والتطبيق)
+        # إشعار صاحب الإعلان بنجاح حفظ التعديلات
+        try:
+            Notification.objects.create(
+                user=self.request.user,
+                title="✅ تم حفظ تعديلاتك",
+                message=f"تم تحديث إعلانك '{ad.title}' بنجاح.",
+                ad_id=ad.id
+            )
+        except Exception:
+            pass
+
+        # إشعار الأدمن بأن المستخدم قام بتعديل إعلانه
         if getattr(self.request.user, 'role', '') != 'admin':
-            # suppress_notifications=True لمنع إرسال إشعار قبول خاطئ عند التعديل
-            ad.status = 'pending'
-            ad.approved_at = None  # إعادة ضبط وقت القبول
-            ad.save(update_fields=['status', 'approved_at'], suppress_notifications=True)
-
-            # إشعار صاحب الإعلان بأن تعديله قيد المراجعة
-            try:
-                Notification.objects.create(
-                    user=self.request.user,
-                    title="🔄 إعلانك قيد المراجعة",
-                    message=f"تم استلام تعديلك على إعلان '{ad.title}' وهو الآن بانتظار مراجعة الأدمن.",
-                    ad_id=ad.id
-                )
-            except Exception:
-                pass
-
-            # إشعار الأدمن بأن إعلاناً تم تعديله ويحتاج مراجعة
             try:
                 admin_users = User.objects.filter(role='admin')
                 for admin_user in admin_users:
                     Notification.objects.create(
                         user=admin_user,
-                        title="✏️ إعلان معدَّل بانتظار المراجعة",
-                        message=f"قام المستخدم {self.request.user.email} بتعديل إعلان '{ad.title}'. يرجى مراجعته من لوحة التحكم.",
+                        title="✏️ تم تعديل إعلان",
+                        message=f"قام المستخدم {self.request.user.email} بتعديل إعلان '{ad.title}'.",
                         ad_id=ad.id
-                    )
-            except Exception:
-                pass
-
-            # إيميل للأدمن
-            try:
-                admin_emails = [a.email for a in User.objects.filter(role='admin') if a.email]
-                if admin_emails:
-                    from django.core.mail import send_mail
-                    send_mail(
-                        subject='✏️ إعلان معدَّل بانتظار المراجعة',
-                        message=(
-                            f'قام المستخدم {self.request.user.email} بتعديل إعلانه:\n'
-                            f'العنوان: {ad.title}\n'
-                            f'الإعلان الآن في حالة "قيد المراجعة".\n'
-                            f'يرجى مراجعته والبت فيه من لوحة التحكم.'
-                        ),
-                        from_email=settings.EMAIL_HOST_USER,
-                        recipient_list=admin_emails,
-                        fail_silently=True,
                     )
             except Exception:
                 pass
