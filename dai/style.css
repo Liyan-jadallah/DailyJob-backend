@@ -1896,30 +1896,82 @@ html[dir="rtl"] .modal-close {
    SETTINGS PAGE
    ============================================ */
 
+.settings-container {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 10px 16px 40px;
+}
+
 .settings-section {
-  padding: 0 16px;
-  margin-top: 18px;
+  margin-top: 20px;
 }
 
 .settings-section-title {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 800;
+  color: var(--ink-900);
   margin-bottom: 10px;
 }
 
 .settings-section-title i {
   color: var(--orange-600);
+  font-size: 14px;
 }
 
 .settings-card {
   background: #fff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 16px;
+  padding: 18px;
   box-shadow: var(--shadow-card);
+}
+
+.settings-card .form-input:disabled {
+  background: var(--gray-tint);
+  color: var(--ink-500);
+  cursor: not-allowed;
+  border-color: var(--line);
+}
+
+/* Save Changes Button */
+.settings-save-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  margin-top: 16px;
+  padding: 12px 22px;
+  background: linear-gradient(135deg, var(--orange-600) 0%, #ff7b25 100%);
+  color: #ffffff;
+  border: none;
+  border-radius: 12px;
+  font-size: 13.5px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(240, 112, 32, 0.25);
+}
+
+.settings-save-btn:hover {
+  background: linear-gradient(135deg, #d84315 0%, var(--orange-600) 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(240, 112, 32, 0.35);
+}
+
+.settings-save-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 6px rgba(240, 112, 32, 0.2);
+}
+
+.settings-save-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
 }
 
 .toggle-row {
@@ -1927,17 +1979,13 @@ html[dir="rtl"] .modal-close {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 12px 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.toggle-row:last-child {
-  border-bottom: none;
+  padding: 4px 0;
 }
 
 .toggle-text strong {
-  font-size: 13px;
-  font-weight: 800;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-900);
 }
 
 .toggle-text small {
@@ -1950,7 +1998,7 @@ html[dir="rtl"] .modal-close {
 .switch {
   position: relative;
   display: inline-block;
-  width: 46px;
+  width: 48px;
   height: 26px;
   flex-shrink: 0;
 }
@@ -1965,9 +2013,9 @@ html[dir="rtl"] .modal-close {
   position: absolute;
   cursor: pointer;
   inset: 0;
-  background: var(--ink-300);
+  background: #d1d5db;
   border-radius: 999px;
-  transition: .25s;
+  transition: .25s ease;
 }
 
 .slider::before {
@@ -1979,7 +2027,8 @@ html[dir="rtl"] .modal-close {
   bottom: 3px;
   background: #fff;
   border-radius: 50%;
-  transition: .25s;
+  transition: .25s ease;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15);
 }
 
 html[dir="rtl"] .slider::before {
@@ -1987,67 +2036,67 @@ html[dir="rtl"] .slider::before {
   right: 3px;
 }
 
-.switch input:checked+.slider {
+.switch input:checked + .slider {
   background: var(--orange-600);
 }
 
-html[dir="ltr"] .switch input:checked+.slider::before {
-  transform: translateX(20px);
+html[dir="ltr"] .switch input:checked + .slider::before {
+  transform: translateX(22px);
 }
 
-html[dir="rtl"] .switch input:checked+.slider::before {
-  transform: translateX(-20px);
+html[dir="rtl"] .switch input:checked + .slider::before {
+  transform: translateX(-22px);
 }
 
+/* Language Selection Options */
 .lang-options {
-  display: flex;
-  gap: 10px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
 }
 
 .lang-option {
-  flex: 1;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
-  gap: 6px;
-  padding: 14px 8px;
+  justify-content: center;
+  gap: 10px;
+  padding: 13px 16px;
   border-radius: 12px;
   border: 1.5px solid var(--line);
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 700;
   color: var(--ink-700);
   position: relative;
+  background: #fff;
   transition: all .2s ease;
   cursor: pointer;
 }
 
 .lang-option:hover {
   border-color: var(--orange-500);
+  background: rgba(240, 112, 32, 0.04);
+  transform: translateY(-1px);
 }
 
 .lang-option .lang-flag {
-  font-size: 22px;
+  font-size: 20px;
+  line-height: 1;
 }
 
 .lang-option .lang-check {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  color: var(--orange-600);
   font-size: 12px;
+  color: var(--orange-600);
+  margin-inline-start: 4px;
   opacity: 0;
   transition: opacity .2s ease;
-}
-
-html[dir="rtl"] .lang-option .lang-check {
-  right: auto;
-  left: 8px;
 }
 
 .lang-option.active {
   border-color: var(--orange-600);
   background: var(--orange-tint);
   color: var(--orange-600);
+  box-shadow: 0 2px 10px rgba(240, 112, 32, 0.12);
 }
 
 .lang-option.active .lang-check {
@@ -2060,6 +2109,80 @@ html[dir="rtl"] .lang-option .lang-check {
   font-size: 11px;
   color: var(--ink-500);
   text-align: center;
+}
+
+/* Settings Action Buttons (Logout & Delete Account) */
+.settings-actions-group {
+  margin-top: 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.settings-btn-logout {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #ffffff;
+  color: #e63946;
+  border: 1.5px solid #fecaca;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(230, 57, 70, 0.04);
+}
+
+.settings-btn-logout:hover {
+  background: #fff5f5;
+  border-color: #e63946;
+  color: #dc2626;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(230, 57, 70, 0.12);
+}
+
+.settings-btn-logout:active {
+  transform: translateY(0);
+}
+
+.settings-btn-logout i {
+  font-size: 14px;
+}
+
+.settings-btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 20px;
+  background: transparent;
+  color: var(--ink-500);
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+  font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-btn-delete:hover {
+  background: rgba(239, 68, 68, 0.05);
+  color: #ef4444;
+  border-color: #fca5a5;
+  border-style: solid;
+}
+
+.settings-btn-delete:active {
+  transform: translateY(0);
+}
+
+.settings-btn-delete i {
+  font-size: 13px;
 }
 
 /* ============================================
@@ -2335,5 +2458,10 @@ input[type="password"]::-ms-clear {
   .notifs-wrap {
     max-width: 800px;
     margin: 0 auto;
+  }
+
+  .settings-container {
+    max-width: 600px;
+    margin: 24px auto 60px;
   }
 }

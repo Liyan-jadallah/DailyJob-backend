@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=31">
+  <link rel="stylesheet" href="style.css?v=32">
 </head>
 
 <body>
@@ -416,90 +416,91 @@
         <span class="topbar-spacer"></span>
       </div>
 
-      <!-- Account Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-user"></i>
-          <span data-i18n="accountInfo">Account Information</span>
+      <div class="settings-container">
+        <!-- Account Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-user"></i>
+            <span data-i18n="accountInfo">Account Information</span>
+          </div>
+          <div class="settings-card">
+            <label class="form-label" data-i18n="email">Email Address</label>
+            <input class="form-input" id="settingsEmail" type="email" disabled>
+
+            <label class="form-label" style="margin-top:12px;" data-i18n="username">Username</label>
+            <input class="form-input" id="settingsUsername" type="text">
+
+            <button class="settings-save-btn" id="saveAccountBtn">
+              <i class="fa-solid fa-check"></i>
+              <span data-i18n="saveChanges">Save Changes</span>
+            </button>
+          </div>
         </div>
-        <div class="settings-card">
-          <label class="form-label" data-i18n="email">Email Address</label>
-          <input class="form-input" id="settingsEmail" type="email" disabled>
 
-          <label class="form-label" style="margin-top:12px;" data-i18n="username">Username</label>
-          <input class="form-input" id="settingsUsername" type="text">
+        <!-- Notifications Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-bell"></i>
+            <span data-i18n="notificationPrefs">Notification Preferences</span>
+          </div>
+          <div class="settings-card">
+            <div class="toggle-row">
+              <div class="toggle-text">
+                <strong data-i18n="generalNotifs">General Notifications</strong>
+              </div>
+              <label class="switch">
+                <input type="checkbox" id="togglePush">
+                <span class="slider"></span>
+              </label>
+            </div>
+          </div>
+        </div>
 
-          <button class="btn-primary btn-block" id="saveAccountBtn" style="margin-top:12px;">
-            <i class="fa-solid fa-check"></i>
-            <span data-i18n="saveChanges">Save Changes</span>
+        <!-- Governorate Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-location-dot"></i>
+            <span data-i18n="preferredGov">Preferred Governorate</span>
+          </div>
+          <div class="settings-card">
+            <select class="form-select" id="settingsGov"></select>
+          </div>
+        </div>
+
+        <!-- Language Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-language"></i>
+            <span data-i18n="language">Language</span>
+          </div>
+          <div class="settings-card">
+            <div class="lang-options">
+              <button type="button" class="lang-option active" data-lang="en" id="langOptionEn">
+                <span class="lang-flag">🇬🇧</span>
+                <span>English</span>
+                <i class="fa-solid fa-check lang-check"></i>
+              </button>
+              <button type="button" class="lang-option" data-lang="ar" id="langOptionAr">
+                <span class="lang-flag">🇯🇴</span>
+                <span>العربية</span>
+                <i class="fa-solid fa-check lang-check"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Danger Zone Section (Logout & Delete Account) -->
+        <div class="settings-actions-group">
+          <button class="settings-btn-logout" id="logoutBtn">
+            <i class="fa-solid fa-right-from-bracket"></i>
+            <span data-i18n="logout">Log Out</span>
+          </button>
+          
+          <button class="settings-btn-delete" id="deleteAccountBtn">
+            <i class="fa-solid fa-user-xmark"></i>
+            <span data-i18n="deleteAccount">Delete Account Permanently</span>
           </button>
         </div>
-      </div>
-
-      <!-- Notifications Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-bell"></i>
-          <span data-i18n="notificationPrefs">Notification Preferences</span>
-        </div>
-        <div class="settings-card">
-          <div class="toggle-row">
-            <div class="toggle-text">
-              <strong data-i18n="generalNotifs">General Notifications</strong>
-            </div>
-            <label class="switch">
-              <input type="checkbox" id="togglePush">
-              <span class="slider"></span>
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <!-- Governorate Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-location-dot"></i>
-          <span data-i18n="preferredGov">Preferred Governorate</span>
-        </div>
-        <div class="settings-card">
-          <select class="form-select" id="settingsGov"></select>
-        </div>
-      </div>
-
-      <!-- Language Section -->
-      <div class="settings-section">
-        <div class="settings-section-title">
-          <i class="fa-solid fa-language"></i>
-          <span data-i18n="language">Language</span>
-        </div>
-        <div class="settings-card">
-          <div class="lang-options">
-            <button type="button" class="lang-option active" data-lang="en" id="langOptionEn">
-              <span class="lang-flag">🇬🇧</span>
-              <span>English</span>
-              <i class="fa-solid fa-check lang-check"></i>
-            </button>
-            <button type="button" class="lang-option" data-lang="ar" id="langOptionAr">
-              <span class="lang-flag">🇯🇴</span>
-              <span>العربية</span>
-              <i class="fa-solid fa-check lang-check"></i>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <!-- Danger Zone Section (Logout & Delete Account) -->
-      <div class="settings-section" style="margin-top: 30px;">
-        <button class="btn-outline btn-block danger" id="logoutBtn" style="margin-bottom: 12px;">
-          <i class="fa-solid fa-right-from-bracket"></i>
-          <span data-i18n="logout">Log Out</span>
-        </button>
-        
-        <!-- زر حذف الحساب نهائياً -->
-        <button class="btn-outline btn-block" id="deleteAccountBtn" style="color: #ef4444; border-color: #ef4444; background: rgba(239, 68, 68, 0.05);">
-          <i class="fa-solid fa-user-xmark"></i>
-          <span data-i18n="deleteAccount">Delete Account Permanently</span>
-        </button>
       </div>
     </main>
 
@@ -867,7 +868,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="/script.js?v=31"></script>
+  <script src="/script.js?v=32"></script>
 
 </body>
 
