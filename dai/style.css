@@ -2296,6 +2296,12 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   }
 }
 
+@media (max-width: 480px) {
+  .hide-text-mobile {
+    display: none !important;
+  }
+}
+
 /* ============================================
    ACCESSIBILITY & UTILITIES
    ============================================ */

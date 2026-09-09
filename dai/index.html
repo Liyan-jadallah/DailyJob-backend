@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=34">
+  <link rel="stylesheet" href="style.css?v=35">
 </head>
 
 <body>
@@ -365,9 +365,11 @@
         <button class="back-btn" data-nav="home"><i class="fa-solid fa-arrow-left"></i></button>
         <span data-i18n="notifications">Notifications</span>
         <div style="display: flex; gap: 8px; align-items: center;">
-          <button class="text-btn-small" id="markAllReadBtn" data-i18n="markAllRead">Mark All as Read</button>
+          <button class="text-btn-small" id="markAllReadBtn" style="display: flex; align-items: center; gap: 4px;">
+            <i class="fa-solid fa-check-double"></i> <span class="hide-text-mobile" data-i18n="markAllRead">تحديد كمقروء</span>
+          </button>
           <button class="text-btn-small" id="deleteAllNotifsBtn" style="color: #E63946; display: flex; align-items: center; gap: 4px;">
-            <i class="fa-solid fa-trash-can"></i> <span data-i18n="deleteAll">حذف الكل</span>
+            <i class="fa-solid fa-trash-can"></i> <span class="hide-text-mobile" data-i18n="deleteAll">حذف الكل</span>
           </button>
         </div>
       </div>
@@ -827,7 +829,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=34"></script>
+  <script src="script.js?v=35"></script>
 
 </body>
 
