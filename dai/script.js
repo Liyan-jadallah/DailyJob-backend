@@ -1218,26 +1218,32 @@
              imagesHtml = `<a href="${allImages[0]}" target="_blank"><img src="${allImages[0]}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
            }
 
-           return `
-            <div class="ad-card" style="margin-bottom:15px; border-radius:12px; overflow:hidden; background:#fff; box-shadow:0 2px 8px rgba(0,0,0,0.05);">
+          return `
+            <div class="ad-card" data-ad-id="${ad.id}">
               ${imagesHtml}
               <div class="ad-card-top" style="padding:15px; display:flex; justify-content:space-between; align-items:flex-start;">
                 <div style="flex:1; min-width:0;">
-                  <h3 style="margin:0 0 5px 0; font-size:15px;">${escapeHtml(adTitle)}</h3>
-                  <p style="margin:0 0 8px 0; color:#666; font-size:13px;">${escapeHtml(adDesc).substring(0,80)}...</p>
-                  <p style="margin:0; font-size:13px;"><strong>📞</strong> ${ad.contact_phone}</p>
+                  <h3 class="ad-title" style="margin-bottom:5px;">${escapeHtml(adTitle)}</h3>
+                  <p class="ad-desc" style="margin-bottom:8px;">${escapeHtml(adDesc).substring(0,80)}...</p>
+                  
+                  <div class="tag-row" style="margin-bottom: 8px;">
+                    <span class="badge badge-other">${escapeHtml(ad.category || '')}</span>
+                    <span class="badge badge-other"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.governorate || '')}</span>
+                    <span class="badge badge-other"><i class="fa-solid fa-money-bill"></i> ${ad.price} JOD</span>
+                  </div>
                 </div>
+                
                 ${ad.receipt_image ? `
-                  <div style="margin-right: 10px; flex-shrink:0;">
-                    <p style="margin:0 0 4px 0; font-size:11px; color:#888; text-align:center;">وصل الدفع</p>
+                  <div style="margin-right: 10px; flex-shrink:0; text-align:center;">
+                    <p style="margin:0 0 4px 0; font-size:11px; color:var(--ink-500);">وصل الدفع</p>
                     <a href="${ad.receipt_image}" target="_blank">
-                      <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid #e9ecef;">
+                      <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid var(--line);">
                     </a>
-                  </div>` : '<p style="color:#f59e0b; font-size:12px; margin:0;">⚠️ لا يوجد وصل</p>'}
+                  </div>` : '<p style="color:var(--orange-500); font-size:12px; margin:0;"><i class="fa-solid fa-triangle-exclamation"></i> لا يوجد وصل</p>'}
               </div>
-              <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid #f1f3f5;">
-                <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#10b981;border:none;flex:1; padding:10px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-check"></i> قبول</button>
-                <button class="btn-primary admin-reject-btn" data-id="${ad.id}" style="background:#ef4444;border:none;flex:1; padding:10px; border-radius:8px; color:#fff; font-weight:bold; cursor:pointer;"><i class="fa-solid fa-xmark"></i> رفض</button>
+              <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid var(--line);">
+                <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:var(--green-500);border:none;flex:1;"><i class="fa-solid fa-check"></i> قبول</button>
+                <button class="btn-outline admin-reject-btn" data-id="${ad.id}" style="color:var(--red-500);border-color:var(--red-500);flex:1;"><i class="fa-solid fa-xmark"></i> رفض</button>
               </div>
             </div>`;
          }).join(""); 

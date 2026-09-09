@@ -210,12 +210,12 @@ MEDIA_ROOT = os.path.join(BASE_DIR, 'media')
 
 # Cloudinary Cloud Storage (for production media uploads)
 CLOUDINARY_STORAGE = {
-    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', ''),
-    'API_KEY': os.getenv('CLOUDINARY_API_KEY', ''),
-    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', ''),
+    'CLOUD_NAME': os.getenv('CLOUDINARY_CLOUD_NAME', 'y7s2dmkp'),
+    'API_KEY': os.getenv('CLOUDINARY_API_KEY', '741489492291134'),
+    'API_SECRET': os.getenv('CLOUDINARY_API_SECRET', '-qqSYqi2QT3c0YfPvADmsFcD9RY'),
 }
 
-if os.getenv('CLOUDINARY_CLOUD_NAME'):
+if os.getenv('CLOUDINARY_CLOUD_NAME') or True: # Always use cloudinary since we have fallbacks
     DEFAULT_FILE_STORAGE = 'cloudinary_storage.storage.MediaCloudinaryStorage'
     STORAGES = {
         "default": {

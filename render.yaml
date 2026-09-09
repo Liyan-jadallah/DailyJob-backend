@@ -20,3 +20,18 @@ services:
         value: "True"
       - key: CELERY_EAGER
         value: "True"
+
+  - type: cron
+    name: dailyjob-cron
+    runtime: python
+    schedule: "0 * * * *"
+    buildCommand: "./build.sh"
+    startCommand: "python manage.py delete_expired_ads"
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.12.10
+      - key: DATABASE_URL
+        fromService:
+          type: web
+          name: dailyjob-backend
+          envVarKey: DATABASE_URL
