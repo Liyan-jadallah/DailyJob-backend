@@ -228,14 +228,18 @@ if os.getenv('CLOUDINARY_CLOUD_NAME'):  # استخدام Cloudinary فقط إذ�
     }
 
 
-# Email Configuration (Standard Django SMTP Settings)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Email Configuration (HTTP API with SMTP Fallback)
+# Uses HTTPS (port 443) via Brevo or Resend to bypass cloud SMTP port blocks (e.g. Render)
+EMAIL_BACKEND = 'core.email_backends.HttpApiEmailBackend'
+BREVO_API_KEY = os.getenv('BREVO_API_KEY')
+RESEND_API_KEY = os.getenv('RESEND_API_KEY')
+
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_HOST_USER = os.getenv('EMAIL_HOST_USER')
 EMAIL_HOST_PASSWORD = os.getenv('EMAIL_HOST_PASSWORD')
-DEFAULT_FROM_EMAIL = os.getenv('EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+DEFAULT_FROM_EMAIL = os.getenv('DEFAULT_FROM_EMAIL', os.getenv('EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
 EMAIL_TIMEOUT = 3  # مهلة 3 ثوانٍ لمنع تعليق طلبات السيرفر نهائياً عند حظر منافذ SMTP السحابية
 
 
