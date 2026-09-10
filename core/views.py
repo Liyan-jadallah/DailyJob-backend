@@ -413,7 +413,9 @@ class PasswordResetConfirmView(APIView):
                     return Response({'error': " ".join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
 
                 user.set_password(new_password)
-                user.save()
+                if not user.is_active:
+                    user.is_active = True
+                user.save(update_fields=['password', 'is_active'])
 
                 # إلغاء كل الـ tokens القديمة — لمنع أي جلسة نشطة من الاستمرار بعد تغيير كلمة المرور
                 Token.objects.filter(user=user).delete()
