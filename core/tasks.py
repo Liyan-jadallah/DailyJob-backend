@@ -65,9 +65,9 @@ def delete_expired_content():
 def send_contact_email_task(name, email, subject, message):
     from django.core.mail import send_mail
     from django.conf import settings
-    admin_email = getattr(settings, 'EMAIL_HOST_USER', None)
+    admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
     if not admin_email:
-        return "Email host user not configured in settings."
+        admin_email = 'dailyjob2026@gmail.com'
     full_subject = f"رسالة دعم جديدة: {subject or 'بدون عنوان'}"
     body = f"رسالة جديدة من التطبيق:\n\nالاسم: {name}\nالبريد: {email}\nالموضوع: {subject or 'لا يوجد'}\n\nالرسالة:\n{message}\n"
     try:

@@ -11,8 +11,9 @@ class EmailOnlyBackend(ModelBackend):
         if username is None:
             username = kwargs.get(UserModel.USERNAME_FIELD)
 
-        # البحث بالإيميل فقط — username غير مدعوم للدخول
-        user = UserModel.objects.filter(email=username).first()
+        # البحث بالإيميل فقط دون حساسية للأحرف الكبيرة أو الصغيرة
+        clean_email = (username or '').strip().lower()
+        user = UserModel.objects.filter(email__iexact=clean_email).first()
 
         if user and user.check_password(password) and self.user_can_authenticate(user):
             return user

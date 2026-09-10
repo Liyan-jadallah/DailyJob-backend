@@ -90,6 +90,9 @@
       }
       
       if (!res.ok) {
+        if (data && (data.code === 'inactive_account_otp_sent' || (data.error && data.error.includes('غير مفع')))) {
+          return data;
+        }
         let errorMsg = data.email?.[0] || data.username?.[0] || data.error || data.detail || "فشل في إنشاء الحساب، تحقق من البيانات.";
         
         // Translate common Django DRF errors

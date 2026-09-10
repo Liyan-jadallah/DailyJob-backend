@@ -15,9 +15,9 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: ALLOWED_HOSTS
-        value: "*"
+        value: ".onrender.com,localhost,127.0.0.1"
       - key: CORS_ALLOW_ALL_ORIGINS
-        value: "True"
+        value: "False"
       - key: CELERY_EAGER
         value: "True"
       - key: BREVO_API_KEY

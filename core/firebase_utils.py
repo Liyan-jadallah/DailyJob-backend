@@ -74,7 +74,7 @@ def send_push_notification(user, title, body, data=None, badge_count=1):
         print(f"Failed to send FCM message to user {user.username}: {e}")
         return False
 
-def send_topic_notification(topic, title, body, data=None):
+def send_topic_notification(topic, title, body, data=None, badge_count=1):
     """
     إرسال إشعار دفع (Push Notification) لموضوع معين (Topic) في FCM
     """

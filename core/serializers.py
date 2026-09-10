@@ -60,9 +60,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         referred_by_code = validated_data.pop('referred_by_code', None)
+        raw_email = validated_data.get('email', '')
+        clean_email = raw_email.strip().lower() if raw_email else ''
         user = User.objects.create_user(
             username=validated_data['username'],
-            email=validated_data.get('email', ''),
+            email=clean_email,
             password=validated_data['password'],
             phone_number=validated_data.get('phone_number', ''),
             device_id=validated_data.get('device_id', ''),
@@ -94,8 +96,8 @@ class AdSerializer(serializers.ModelSerializer):
     # تفاصيل المستخدم مختصرة
     user_details = MinimalUserSerializer(source='user', read_only=True)
 
-    # السطر الجديد: جلب إيميل صاحب الإعلان مباشرة لزر الحذف
-    user_email = serializers.ReadOnlyField(source='user.email')
+    # جلب إيميل صاحب الإعلان فقط إذا كان الطلب من الأدمن أو صاحب الإعلان نفسه
+    user_email = serializers.SerializerMethodField()
 
     # الصور الإضافية
     extra_images = AdImageSerializer(many=True, read_only=True)
@@ -103,8 +105,15 @@ class AdSerializer(serializers.ModelSerializer):
     # الصورة الرئيسية للإعلان كـ absolute URL
     image = serializers.SerializerMethodField()
 
-    # صورة الوصل من Transaction
+    # صورة الوصل من Transaction (محمية: للأدمن وصاحب الإعلان فقط)
     receipt_image = serializers.SerializerMethodField()
+
+    def get_user_email(self, obj):
+        request = self.context.get('request')
+        if request and request.user.is_authenticated:
+            if getattr(request.user, 'role', '') == 'admin' or obj.user_id == request.user.id:
+                return obj.user.email
+        return None
 
     def get_image(self, obj):
         request = self.context.get('request')
@@ -136,9 +145,16 @@ class AdSerializer(serializers.ModelSerializer):
         return value
 
     def get_receipt_image(self, obj):
+        request = self.context.get('request')
+        if not request or not request.user.is_authenticated:
+            return None
+        is_admin = getattr(request.user, 'role', '') == 'admin'
+        is_owner = obj.user_id == request.user.id
+        if not (is_admin or is_owner):
+            return None
+
         tx = obj.transactions.order_by('-submitted_at').first()
         if tx and tx.receipt_image:
-            request = self.context.get('request')
             return _resolve_media_url(tx.receipt_image, request)
         return None
 
