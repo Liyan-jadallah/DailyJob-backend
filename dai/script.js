@@ -1149,13 +1149,13 @@
     if (ad.price === 0 || ad.type === "free") {
       priceDisplay = `<span class="ad-price free-price"><small>${t("free")}</small></span>`;
     } else {
-      priceDisplay = `<span class="ad-price">${ad.price} <small>${ad.currency || (state.lang === 'ar' ? 'د.أ' : 'JOD')}</small></span>`;
+      priceDisplay = `<span class="ad-price">${escapeHtml(String(ad.price))} <small>${ad.currency ? escapeHtml(ad.currency) : (state.lang === 'ar' ? 'د.أ' : 'JOD')}</small></span>`;
     }
     
     return `
       <article class="ad-card ${ad.mine ? 'mine' : ''}" data-ad-id="${ad.id}">
         <div class="ad-image-wrapper">
-          <img src="${ad.image || 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job'}" alt="Ad Cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/e9ecef/495057?text=Daily+Job';">
+          <img src="${ad.image ? escapeHtml(ad.image) : 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job'}" alt="Ad Cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/e9ecef/495057?text=Daily+Job';">
         </div>
         ${ad.mine ? `<span class="ad-mine-tag" style="${ad.status === 'pending' ? 'background:orange;' : (ad.status === 'rejected' ? 'background:red;' : '')}">${ad.status === 'pending' ? (state.lang === 'ar' ? 'قيد المراجعة' : 'Pending') : (ad.status === 'rejected' ? (state.lang === 'ar' ? 'مرفوض' : 'Rejected') : t("myAd"))}</span>` : ''}
         <div class="ad-card-top">
@@ -1252,11 +1252,11 @@
            if (allImages.length > 1) {
              imagesHtml = `
                <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
-                 ${allImages.map(src => `<a href="${src}" target="_blank"><img src="${src}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
+                 ${allImages.map(src => `<a href="${escapeHtml(src)}" target="_blank"><img src="${escapeHtml(src)}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
                </div>
              `;
            } else if (allImages.length === 1) {
-             imagesHtml = `<a href="${allImages[0]}" target="_blank"><img src="${allImages[0]}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
+             imagesHtml = `<a href="${escapeHtml(allImages[0])}" target="_blank"><img src="${escapeHtml(allImages[0])}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
            }
 
           return `
@@ -1270,15 +1270,15 @@
                   <div class="tag-row" style="margin-bottom: 8px;">
                     <span class="badge badge-other">${escapeHtml(ad.category || '')}</span>
                     <span class="badge badge-other"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.governorate || '')}</span>
-                    <span class="badge badge-other"><i class="fa-solid fa-money-bill"></i> ${ad.price} JOD</span>
+                    <span class="badge badge-other"><i class="fa-solid fa-money-bill"></i> ${escapeHtml(String(ad.price))} JOD</span>
                   </div>
                 </div>
                 
                 ${ad.receipt_image ? `
                   <div style="margin-right: 10px; flex-shrink:0; text-align:center;">
                     <p style="margin:0 0 4px 0; font-size:11px; color:var(--ink-500);">وصل الدفع</p>
-                    <a href="${ad.receipt_image}" target="_blank">
-                      <img src="${ad.receipt_image}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid var(--line);">
+                    <a href="${escapeHtml(ad.receipt_image)}" target="_blank">
+                      <img src="${escapeHtml(ad.receipt_image)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid var(--line);">
                     </a>
                   </div>` : '<p style="color:var(--orange-500); font-size:12px; margin:0;"><i class="fa-solid fa-triangle-exclamation"></i> لا يوجد وصل</p>'}
               </div>
@@ -1853,6 +1853,34 @@
     });
   }
 
+  function formatNotifContent(rawMessage, title = '') {
+    if (!rawMessage) return '';
+    const urlRegex = /(https?:\/\/[^\s]+)/gi;
+    const match = rawMessage.match(urlRegex);
+    if (!match) {
+      return `<div class="notif-text">${escapeHtml(rawMessage)}</div>`;
+    }
+
+    const url = match[0];
+    let cleanText = rawMessage.replace(/الرابط\s*:\s*https?:\/\/[^\s]+/i, '')
+                              .replace(/Link\s*:\s*https?:\/\/[^\s]+/i, '')
+                              .replace(url, '').trim();
+
+    const isReceipt = (title && title.includes('إيصال')) || cleanText.includes('إيصال') || url.includes('receipt') || url.includes('transactions');
+    const badgeLabel = isReceipt 
+      ? (state.lang === 'ar' ? 'معاينة الإيصال' : 'View Receipt')
+      : (state.lang === 'ar' ? 'فتح الرابط' : 'Open Link');
+    const badgeIcon = isReceipt ? 'fa-file-invoice-dollar' : 'fa-arrow-up-right-from-square';
+
+    return `
+      ${cleanText ? `<div class="notif-text">${escapeHtml(cleanText)}</div>` : ''}
+      <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" class="notif-link-badge" onclick="event.stopPropagation();">
+        <i class="fa-solid ${badgeIcon}"></i>
+        <span>${badgeLabel}</span>
+      </a>
+    `;
+  }
+
   function renderNotifications() {
     const list = document.getElementById("notifList");
     const emptyState = document.getElementById("notifEmptyState");
@@ -1881,7 +1909,7 @@
         <div class="notif-icon"><i class="fa-solid fa-bell"></i></div>
         <div class="notif-body">
           <div class="notif-title">${escapeHtml(n.title)}</div>
-          <div class="notif-text">${escapeHtml(n.message)}</div>
+          ${formatNotifContent(n.message, n.title)}
           <div class="notif-time">${formatRelative(new Date(n.created_at))}</div>
         </div>
         <button class="notif-delete-btn" data-delete-id="${n.id}" title="${state.lang === 'ar' ? 'حذف الإشعار' : 'Delete notification'}">
@@ -1907,10 +1935,10 @@
         const adId = (item.getAttribute("data-ad-id") || '').trim();
         const fullText = (item.textContent || '').toLowerCase();
 
-        if (adId && adId !== '' && adId !== 'null' && adId !== 'undefined') {
-          openDetails(adId);
-        } else if (state.user && state.user.role === 'admin' && (fullText.includes('إيصال') || fullText.includes('دفع') || fullText.includes('مراجعة') || fullText.includes('receipt'))) {
+        if (state.user && state.user.role === 'admin' && (fullText.includes('إيصال') || fullText.includes('دفع') || fullText.includes('مراجعة') || fullText.includes('receipt'))) {
           goToScreen('admin');
+        } else if (adId && adId !== '' && adId !== 'null' && adId !== 'undefined') {
+          openDetails(adId);
         } else if (fullText.includes('قسيمة') || fullText.includes('كوبون') || fullText.includes('هدية') || fullText.includes('كود') || fullText.includes('coupon')) {
           goToScreen('coupons');
         } else if (fullText.includes('إعلان') || fullText.includes('ad')) {

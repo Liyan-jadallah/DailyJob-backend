@@ -4,6 +4,10 @@ import uuid as uuid_lib
 def generate_secure_otp():
     """توليد رمز OTP عشوائي وآمن تشفيرياً مكون من 6 خانات (100000-999999)"""
     return f"{secrets.randbelow(900000) + 100000}"
+
+import logging
+logger = logging.getLogger(__name__)
+
 from django.core.cache import cache
 from rest_framework import viewsets, status, serializers
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
@@ -57,6 +61,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if user != request.user:
             return Response({'error': 'لا تملك صلاحية حذف هذا الحساب'}, status=status.HTTP_403_FORBIDDEN)
 
+        # التحقق من كلمة المرور قبل الحذف
+        password = request.data.get('password')
+        if not password or not user.check_password(password):
+            return Response({'error': 'كلمة المرور غير صحيحة. يرجى إدخال كلمة المرور لتأكيد حذف الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
+
         # حذف الـ Token لإنهاء كل الجلسات النشطة
         Token.objects.filter(user=user).delete()
 
@@ -102,7 +111,7 @@ class UserViewSet(viewsets.ModelViewSet):
                         fail_silently=True,
                     )
                 except Exception as e:
-                    print(f"[AUTH] Inactive account OTP sending failed: {e}")
+                    logger.warning(f"[AUTH] Inactive account OTP sending failed: {e}")
                 return Response(
                     {
                         'message': 'هذا البريد الإلكتروني مسجل مسبقاً لكن الحساب غير مفعّل. تم إرسال رمز تأكيد جديد — يرجى إدخاله لتفعيل حسابك.',
@@ -133,7 +142,7 @@ class UserViewSet(viewsets.ModelViewSet):
             )
             email_sent = True
         except Exception as e:
-            print(f"[AUTH] Email sending failed: {e}")
+            logger.warning(f"[AUTH] Email sending failed: {e}")
 
         user.is_active = False
         user.save(update_fields=['is_active'])
@@ -331,7 +340,7 @@ class ResendOTPView(APIView):
             )
             return Response({'message': 'تم إعادة إرسال رمز التفعيل إلى بريدك الإلكتروني.'})
         except Exception as e:
-            print(f"[OTP] Resend email failed: {e}")
+            logger.warning(f"[OTP] Resend email failed: {e}")
             return Response({'message': 'تم توليد رمز تفعيل جديد بنجاح.'})
 
 
@@ -358,7 +367,7 @@ class PasswordResetRequestView(APIView):
                     fail_silently=False,
                 )
             except Exception as e:
-                print(f"[RESET] Password reset email failed: {e}")
+                logger.warning(f"[RESET] Password reset email failed: {e}")
             
         # نرجع رسالة نجاح دائماً لدواعي أمنية ولمنع الخطأ 500
         return Response({'message': 'إذا كان البريد مسجلاً لدينا، سيصلك رمز التحقق قريباً.'})
@@ -413,9 +422,13 @@ class PasswordResetConfirmView(APIView):
                     return Response({'error': " ".join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
 
                 user.set_password(new_password)
+                # لا يتم تفعيل الحساب تلقائياً — يجب تأكيد البريد الإلكتروني أولاً
                 if not user.is_active:
-                    user.is_active = True
-                user.save(update_fields=['password', 'is_active'])
+                    return Response(
+                        {'error': 'تم تغيير كلمة المرور لكن حسابك غير مفعّل. يرجى تفعيل حسابك عبر رمز التأكيد أولاً.'},
+                        status=status.HTTP_400_BAD_REQUEST
+                    )
+                user.save(update_fields=['password'])
 
                 # إلغاء كل الـ tokens القديمة — لمنع أي جلسة نشطة من الاستمرار بعد تغيير كلمة المرور
                 Token.objects.filter(user=user).delete()
@@ -452,10 +465,10 @@ class PasswordResetConfirmView(APIView):
 
 
 
-class PaymentMethodViewSet(viewsets.ModelViewSet):
+class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentMethod.objects.filter(is_active=True)
     serializer_class = PaymentMethodSerializer
-    permission_classes = [IsAuthenticatedOrReadOnly]
+    permission_classes = [AllowAny]
 
 
 class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -484,6 +497,15 @@ class TransactionViewSet(viewsets.ModelViewSet):
         receipt_file = self.request.FILES.get('receipt_image')
         if receipt_file:
             validate_image_file(receipt_file)
+        # التحقق من أن المستخدم هو صاحب الإعلان
+        ad_id = self.request.data.get('ad')
+        if ad_id:
+            try:
+                ad = Ad.objects.get(id=ad_id)
+                if ad.user != self.request.user:
+                    raise serializers.ValidationError({'ad': 'لا يمكنك إنشاء معاملة لإعلان ليس لك.'})
+            except Ad.DoesNotExist:
+                raise serializers.ValidationError({'ad': 'الإعلان غير موجود.'})
         serializer.save(user=self.request.user)
 
 
@@ -528,6 +550,11 @@ class AdViewSet(viewsets.ModelViewSet):
                     defaults={'ip_address': ip, 'device_id': device_id}
                 )
                 view_recorded = created
+            elif ip:
+                # احتساب المشاهدة للزوار غير المسجلين بناءً على IP
+                if not AdView.objects.filter(ad=instance, user__isnull=True, ip_address=ip).exists():
+                    AdView.objects.create(ad=instance, ip_address=ip, device_id=device_id)
+                    view_recorded = True
 
             if view_recorded:
                 from django.db.models import F
@@ -660,8 +687,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 Q(title__icontains=search_query) |
                 Q(description__icontains=search_query) |
                 Q(category__icontains=search_query) |
-                Q(governorate__icontains=search_query) |
-                Q(contact_phone__icontains=search_query)
+                Q(governorate__icontains=search_query)
             )
 
         return queryset
@@ -676,6 +702,8 @@ class AdViewSet(viewsets.ModelViewSet):
             validate_image_file(main_image)
 
         images = self.request.FILES.getlist('images')
+        if len(images) > 10:
+            raise serializers.ValidationError({'images': 'لا يمكن رفع أكثر من 10 صور للإعلان الواحد.'})
         for img in images:
             validate_image_file(img)
 
@@ -892,6 +920,7 @@ class AdminAdActionView(APIView):
 
 
 class CustomAuthToken(ObtainAuthToken):
+    throttle_classes = [OTPThrottle]
     def post(self, request, *args, **kwargs):
         login_input = request.data.get('username')  # الحقل اسمه username لكن القيمة يجب أن تكون إيميل
         password = request.data.get('password')

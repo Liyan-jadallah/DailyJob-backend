@@ -4,6 +4,9 @@ from firebase_admin import credentials, messaging
 from django.conf import settings
 
 import json
+import logging
+
+logger = logging.getLogger(__name__)
 
 # مسار ملف المصادقة الخاص بـ Firebase Admin SDK أو المتغير البيئي
 cred_path = os.getenv('FIREBASE_CRED_PATH', os.path.join(settings.BASE_DIR, 'firebase-adminsdk.json'))
@@ -16,22 +19,22 @@ if not firebase_admin._apps:
             cred_dict = json.loads(firebase_json_env)
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
-            print("Successfully initialized Firebase Admin SDK from FIREBASE_CREDENTIALS_JSON env.")
+            logger.info("Successfully initialized Firebase Admin SDK from FIREBASE_CREDENTIALS_JSON env.")
         elif os.path.exists(cred_path):
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)
-            print("Successfully initialized Firebase Admin SDK from file.")
+            logger.info("Successfully initialized Firebase Admin SDK from file.")
         else:
-            print(f"Firebase credential file not found at {cred_path} and FIREBASE_CREDENTIALS_JSON not set.")
+            logger.warning(f"Firebase credential file not found at {cred_path} and FIREBASE_CREDENTIALS_JSON not set.")
     except Exception as e:
-        print(f"Error initializing Firebase Admin: {e}")
+        logger.warning(f"Error initializing Firebase Admin: {e}")
 
 def send_push_notification(user, title, body, data=None, badge_count=1):
     """
     إرسال إشعار دفع (Push Notification) لجهاز مستخدم معين عبر FCM
     """
     if not user.fcm_token:
-        print(f"User {user.username} doesn't have an FCM token. Skipping push.")
+        logger.info(f"User {user.username} doesn't have an FCM token. Skipping push.")
         return False
     
     try:
@@ -68,10 +71,10 @@ def send_push_notification(user, title, body, data=None, badge_count=1):
         )
         
         response = messaging.send(message)
-        print(f"FCM message sent successfully to user {user.username}. Response ID: {response}")
+        logger.info(f"FCM message sent successfully to user {user.username}. Response ID: {response}")
         return True
     except Exception as e:
-        print(f"Failed to send FCM message to user {user.username}: {e}")
+        logger.warning(f"Failed to send FCM message to user {user.username}: {e}")
         return False
 
 def send_topic_notification(topic, title, body, data=None, badge_count=1):
@@ -110,9 +113,9 @@ def send_topic_notification(topic, title, body, data=None, badge_count=1):
         )
         
         response = messaging.send(message)
-        print(f"FCM message sent successfully to topic {topic}. Response ID: {response}")
+        logger.info(f"FCM message sent successfully to topic {topic}. Response ID: {response}")
         return True
     except Exception as e:
-        print(f"Failed to send FCM message to topic {topic}: {e}")
+        logger.warning(f"Failed to send FCM message to topic {topic}: {e}")
         return False
 

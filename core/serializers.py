@@ -160,8 +160,8 @@ class AdSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Ad
-        fields = ['id', 'user', 'user_details', 'user_email', 'title', 'description', 'category', 'ad_type', 'governorate', 'price', 'contact_phone', 'contact_method', 'ad_duration', 'image', 'extra_images', 'receipt_image', 'status', 'views', 'created_at', 'approved_at']
-        read_only_fields = ['id', 'created_at', 'approved_at', 'user', 'views']
+        fields = ['id', 'user', 'user_details', 'user_email', 'title', 'description', 'category', 'ad_type', 'governorate', 'price', 'contact_phone', 'contact_method', 'ad_duration', 'image', 'extra_images', 'receipt_image', 'status', 'views', 'created_at', 'approved_at', 'is_auto_approved']
+        read_only_fields = ['id', 'created_at', 'approved_at', 'user', 'views', 'is_auto_approved']
 
     def get_fields(self):
         fields = super().get_fields()
@@ -206,3 +206,15 @@ class ContactMessageSerializer(serializers.ModelSerializer):
         model = ContactMessage
         fields = ['id', 'name', 'email', 'subject', 'message', 'is_resolved', 'created_at']
         read_only_fields = ['id', 'is_resolved', 'created_at']
+
+    def validate_name(self, value):
+        if len(value) > 150:
+            raise serializers.ValidationError("الاسم يجب أن لا يتجاوز 150 حرفاً.")
+        return value
+
+    def validate_message(self, value):
+        if len(value) > 5000:
+            raise serializers.ValidationError("الرسالة يجب أن لا تتجاوز 5000 حرف.")
+        if len(value.strip()) < 10:
+            raise serializers.ValidationError("الرسالة قصيرة جداً.")
+        return value

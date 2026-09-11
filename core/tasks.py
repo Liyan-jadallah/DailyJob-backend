@@ -28,17 +28,28 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category=''):
 
 @shared_task
 def auto_approve_pending_ads():
-    from .models import Ad
+    from .models import Ad, Transaction
+    from django.db.models import Q
     grace_minutes = int(os.getenv('AD_AUTO_APPROVE_MINUTES', '10'))
     grace_period_cutoff = timezone.now() - timedelta(minutes=grace_minutes)
 
+    # فقط الإعلانات المعلقة التي لها معاملة مع وصل دفع وتجاوزت فترة السماح
     pending_ads = Ad.objects.filter(status='pending', created_at__lt=grace_period_cutoff)
     approved_count = 0
     for ad in pending_ads:
-        ad.status = 'approved'
-        ad.save()
-        approved_count += 1
-    return f"Auto-approved {approved_count} ads (grace period: {grace_minutes} min)"
+        # التحقق من وجود معاملة مع وصل دفع أو كوبون مستخدم
+        has_valid_transaction = Transaction.objects.filter(
+            ad=ad
+        ).filter(
+            Q(receipt_image__isnull=False) & ~Q(receipt_image='') |
+            Q(coupon__isnull=False)
+        ).exists()
+        if has_valid_transaction:
+            ad.status = 'approved'
+            ad.is_auto_approved = True
+            ad.save()
+            approved_count += 1
+    return f"Auto-approved {approved_count} ads with valid payment (grace period: {grace_minutes} min)"
 
 @shared_task
 def delete_expired_content():

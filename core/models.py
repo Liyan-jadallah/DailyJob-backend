@@ -8,6 +8,9 @@ from django.conf import settings
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
+import logging
+
+logger = logging.getLogger(__name__)
 
 
 class WelcomeCouponRecord(models.Model):
@@ -132,6 +135,7 @@ class Ad(models.Model):
     is_deleted = models.BooleanField(default=False, db_index=True)
     deleted_at = models.DateTimeField(null=True, blank=True)
     approved_at = models.DateTimeField(null=True, blank=True, help_text="وقت قبول الإعلان من الأدمن")
+    is_auto_approved = models.BooleanField(default=False, help_text="تمت الموافقة تلقائياً بعد انتهاء فترة المراجعة")
 
     objects = models.Manager()
     active = ActiveAdManager()
@@ -373,7 +377,7 @@ def send_push_on_notification_create(sender, instance, created, **kwargs):
                 badge_count=unread_count
             )
         except Exception as e:
-            print(f"Error triggering push signal: {e}")
+            logger.warning(f"Error triggering push signal: {e}")
 
 
 class AdView(models.Model):
