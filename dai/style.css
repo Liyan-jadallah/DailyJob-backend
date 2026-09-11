@@ -1953,7 +1953,8 @@ html[dir="rtl"] .modal-close {
    SETTINGS PAGE
    ============================================ */
 
-.settings-container {
+.settings-container,
+.coupons-container {
   width: 100%;
   max-width: 620px;
   margin: 20px auto 60px;

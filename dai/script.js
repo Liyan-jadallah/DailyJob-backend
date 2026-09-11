@@ -63,7 +63,8 @@
           id: data.user_id, 
           email: email, 
           username: data.username || email.split('@')[0],
-          role: data.role || 'user'
+          role: data.role || 'user',
+          referral_code: data.referral_code || ''
         }
       };
     },
@@ -2597,6 +2598,17 @@
 
     setVal("settingsEmail", state.user.email || "");
     setVal("settingsUsername", state.user.username || "");
+    setVal("settingsReferralCode", state.user.referral_code || "---");
+
+    const copySettingsRefBtn = document.getElementById("copySettingsRefBtn");
+    if (copySettingsRefBtn) {
+      copySettingsRefBtn.onclick = () => {
+        const code = state.user?.referral_code;
+        if (code && code !== '---') {
+          navigator.clipboard.writeText(code).then(() => showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied!', 'success'));
+        }
+      };
+    }
 
     const setCheck = (id, val) => {
       const el = document.getElementById(id);
@@ -2999,17 +3011,28 @@
         state.user = JSON.parse(savedUser);
         state.isAuthenticated = true;
         
-        // Always ensure role is fetched if missing
-        if (!state.user.role) {
+        // Always ensure role and referral_code are fetched if missing
+        if (!state.user.role || !state.user.referral_code) {
             const token = localStorage.getItem("dj_token");
-            if (token) {
+            if (token && state.user.id) {
                 fetch(`${BASE_URL}/users/${state.user.id}/`, {
                     headers: { 'Authorization': 'Token ' + token }
                 }).then(r => r.json()).then(data => {
-                    if (data && data.role) {
-                        state.user.role = data.role;
-                        localStorage.setItem("dj_user", JSON.stringify(state.user));
-                        updateDrawerUser();
+                    if (data) {
+                        let changed = false;
+                        if (data.role && data.role !== state.user.role) {
+                            state.user.role = data.role;
+                            changed = true;
+                        }
+                        if (data.referral_code && data.referral_code !== state.user.referral_code) {
+                            state.user.referral_code = data.referral_code;
+                            changed = true;
+                        }
+                        if (changed) {
+                            localStorage.setItem("dj_user", JSON.stringify(state.user));
+                            updateDrawerUser();
+                            updateSettingsPage();
+                        }
                     }
                 }).catch(e => console.error(e));
             }
@@ -3425,39 +3448,83 @@
   // ══════════════════════════════════════════════════════════════════
   async function loadCouponsScreen() {
     const token = localStorage.getItem('dj_token');
-    const user  = state.user;
-    if (!token || !user) return;
+    let user  = state.user || JSON.parse(localStorage.getItem('dj_user') || 'null');
+    if (!token) {
+      openAuth('login');
+      return;
+    }
 
     // بطاقة الإحالة
     const referralCard = document.getElementById('referralCard');
     const referralCodeEl = document.getElementById('myReferralCode');
-    if (referralCard && user.referral_code) {
-      referralCard.classList.remove('hidden');
-      if (referralCodeEl) referralCodeEl.textContent = user.referral_code;
-    } else if (referralCard) {
-      // محاولة جلب كود الإحالة من localStorage
-      const savedUser = JSON.parse(localStorage.getItem('dj_user') || '{}');
-      if (savedUser.referral_code) {
-        referralCard.classList.remove('hidden');
-        if (referralCodeEl) referralCodeEl.textContent = savedUser.referral_code;
+    if (referralCard) referralCard.classList.remove('hidden');
+
+    let referralCode = user?.referral_code || '';
+    if (referralCode && referralCodeEl) {
+      referralCodeEl.textContent = referralCode;
+    }
+
+    // جلب كود الإحالة من السيرفر مباشرة إذا كان ناقصاً
+    if (!referralCode || referralCode === '---') {
+      try {
+        const userId = user?.id || localStorage.getItem('dj_user_id');
+        const url = userId ? `${BASE_URL}/users/${userId}/` : `${BASE_URL}/users/`;
+        const res = await fetch(url, {
+          headers: {
+            'Authorization': 'Token ' + token,
+            'Content-Type': 'application/json'
+          }
+        });
+        if (res.ok) {
+          const profileData = await res.json();
+          const profile = Array.isArray(profileData) ? profileData[0] : (profileData.results ? profileData.results[0] : profileData);
+          if (profile && profile.referral_code) {
+            referralCode = profile.referral_code;
+            if (!user) user = {};
+            user.id = profile.id;
+            user.email = profile.email;
+            user.username = profile.username;
+            user.role = profile.role;
+            user.referral_code = referralCode;
+            state.user = user;
+            localStorage.setItem('dj_user', JSON.stringify(user));
+            if (referralCodeEl) referralCodeEl.textContent = referralCode;
+          }
+        }
+      } catch (e) {
+        console.error("Failed to load user referral code:", e);
       }
     }
 
-    // زر نسخ كود الإحالة (اقتراح #5)
+    // زر نسخ كود الإحالة
     const copyRefBtn = document.getElementById('copyReferralBtn');
     if (copyRefBtn) {
       copyRefBtn.onclick = () => {
-        const code = referralCodeEl?.textContent || '';
+        const code = referralCodeEl?.textContent?.trim() || user?.referral_code || '';
         if (!code || code === '---') return;
-        navigator.clipboard.writeText(code).then(() => showToast('تم نسخ كود الإحالة!', 'success'));
+        navigator.clipboard.writeText(code).then(() => showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied successfully!', 'success'));
       };
     }
     const shareRefBtn = document.getElementById('shareReferralBtn');
     if (shareRefBtn) {
-      shareRefBtn.onclick = () => {
-        const code = referralCodeEl?.textContent || '';
-        const msg = t('shareMsg').replace('{code}', code);
-        navigator.clipboard.writeText(msg).then(() => showToast(t('shareSuccessToast'), 'success'));
+      shareRefBtn.onclick = async () => {
+        const code = referralCodeEl?.textContent?.trim() || user?.referral_code || '';
+        if (!code || code === '---') return;
+        const msg = state.lang === 'ar'
+          ? `سجل في منصة Daily Job للبحث عن وظائف يومية أو نشر إعلاناتك مجاناً! استخدم كود الإحالة الخاص بي: ${code} عند التسجيل للحصول على قسيمة إعلان مجانية!`
+          : `Join Daily Job to find daily jobs or post your ads for free! Use my referral code: ${code} when registering to get a free ad voucher!`;
+        
+        if (navigator.share) {
+          try {
+            await navigator.share({
+              title: 'Daily Job',
+              text: msg,
+              url: window.location.origin
+            });
+            return;
+          } catch (_) {}
+        }
+        navigator.clipboard.writeText(msg).then(() => showToast(state.lang === 'ar' ? 'تم نسخ رسالة المشاركة وكود الإحالة بنجاح!' : 'Share message copied successfully!', 'success'));
       };
     }
 
