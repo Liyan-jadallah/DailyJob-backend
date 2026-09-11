@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=40">
+  <link rel="stylesheet" href="style.css?v=42">
 </head>
 
 <body>
@@ -457,10 +457,12 @@
             <label class="form-label" style="margin-top:12px;" data-i18n="username">Username</label>
             <input class="form-input" id="settingsUsername" type="text">
 
-            <button class="settings-save-btn" id="saveAccountBtn">
-              <i class="fa-solid fa-check"></i>
-              <span data-i18n="saveChanges">Save Changes</span>
-            </button>
+            <div class="settings-actions-align">
+              <button class="settings-save-btn" id="saveAccountBtn">
+                <i class="fa-solid fa-check"></i>
+                <span data-i18n="saveChanges">Save Changes</span>
+              </button>
+            </div>
           </div>
         </div>
 
@@ -473,7 +475,7 @@
             <span data-i18n="preferredGov">Preferred Governorate</span>
           </div>
           <div class="settings-card">
-            <select class="form-select" id="settingsGov"></select>
+            <select class="form-select" id="settingsGov" style="margin-bottom:0;"></select>
           </div>
         </div>
 
@@ -506,19 +508,28 @@
             <span data-i18n="accountActions">Account Actions</span>
           </div>
           <div class="settings-card settings-actions-group" style="margin-top: 0;">
-            <button class="settings-btn-change-pass" id="changePasswordBtn">
-              <i class="fa-solid fa-key"></i>
-              <span data-i18n="changePassword">Change Password</span>
+            <button class="settings-action-item settings-btn-change-pass" id="changePasswordBtn">
+              <span class="settings-btn-content">
+                <i class="fa-solid fa-key"></i>
+                <span data-i18n="changePassword">Change Password</span>
+              </span>
+              <i class="fa-solid fa-chevron-left settings-chevron"></i>
             </button>
             
-            <button class="settings-btn-logout" id="logoutBtn">
-              <i class="fa-solid fa-right-from-bracket"></i>
-              <span data-i18n="logout">Log Out</span>
+            <button class="settings-action-item settings-btn-logout" id="logoutBtn">
+              <span class="settings-btn-content">
+                <i class="fa-solid fa-right-from-bracket"></i>
+                <span data-i18n="logout">Log Out</span>
+              </span>
+              <i class="fa-solid fa-chevron-left settings-chevron"></i>
             </button>
             
-            <button class="settings-btn-delete" id="deleteAccountBtn">
-              <i class="fa-solid fa-user-xmark"></i>
-              <span data-i18n="deleteAccount">Delete Account Permanently</span>
+            <button class="settings-action-item settings-btn-delete" id="deleteAccountBtn">
+              <span class="settings-btn-content">
+                <i class="fa-solid fa-user-xmark"></i>
+                <span data-i18n="deleteAccount">Delete Account Permanently</span>
+              </span>
+              <i class="fa-solid fa-chevron-left settings-chevron"></i>
             </button>
           </div>
         </div>
@@ -952,7 +963,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=41"></script>
+  <script src="script.js?v=42"></script>
 
 </body>
 

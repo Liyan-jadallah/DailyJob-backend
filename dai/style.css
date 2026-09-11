@@ -1955,9 +1955,10 @@ html[dir="rtl"] .modal-close {
 
 .settings-container {
   width: 100%;
-  max-width: 600px;
-  margin: 0 auto;
-  padding: 10px 16px 40px;
+  max-width: 620px;
+  margin: 20px auto 60px;
+  padding: 0 16px;
+  box-sizing: border-box;
 }
 
 .settings-section {
@@ -1968,10 +1969,11 @@ html[dir="rtl"] .modal-close {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: 14px;
   font-weight: 800;
   color: var(--ink-900);
   margin-bottom: 10px;
+  text-align: start;
 }
 
 .settings-section-title i {
@@ -1980,11 +1982,11 @@ html[dir="rtl"] .modal-close {
 }
 
 .settings-card {
-  background: #fff;
+  background: #ffffff;
   border: 1px solid var(--line);
   border-radius: 14px;
-  padding: 18px;
-  box-shadow: var(--shadow-card);
+  padding: 20px;
+  box-shadow: 0 2px 12px rgba(17, 23, 49, 0.04);
 }
 
 .settings-card .form-input:disabled {
@@ -1994,21 +1996,28 @@ html[dir="rtl"] .modal-close {
   border-color: var(--line);
 }
 
+/* Align buttons to the start (Right in Arabic RTL, Left in English LTR) */
+.settings-actions-align {
+  display: flex;
+  justify-content: flex-start;
+  margin-top: 18px;
+}
+
 /* Save Changes Button */
 .settings-save-btn {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 8px;
-  width: 100%;
-  margin-top: 16px;
-  padding: 12px 22px;
+  width: auto;
+  min-width: 160px;
+  padding: 11px 26px;
   background: linear-gradient(135deg, var(--orange-600) 0%, #ff7b25 100%);
   color: #ffffff;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-size: 13.5px;
-  font-weight: 800;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   box-shadow: 0 4px 14px rgba(240, 112, 32, 0.25);
@@ -2168,34 +2177,55 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   text-align: center;
 }
 
-/* Settings Action Buttons (Logout & Delete Account) */
+/* Settings Action Buttons (Change Password, Logout & Delete Account) */
 .settings-actions-group {
-  margin-top: 28px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  padding: 16px;
 }
 
-.settings-btn-change-pass {
+.settings-action-item {
   display: flex;
   align-items: center;
-  justify-content: center;
-  gap: 10px;
+  justify-content: space-between;
   width: 100%;
-  padding: 13px 20px;
+  padding: 14px 18px;
   background: #ffffff;
-  color: var(--ink-800);
   border: 1.5px solid var(--line);
   border-radius: 12px;
   font-weight: 700;
   font-size: 13.5px;
   cursor: pointer;
   transition: all 0.2s ease;
+  text-align: start;
+  box-sizing: border-box;
+}
+
+.settings-action-item .settings-btn-content {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.settings-action-item .settings-chevron {
+  font-size: 12px;
+  color: var(--ink-300);
+  transition: all 0.2s ease;
+}
+
+html[dir="ltr"] .settings-action-item .settings-chevron {
+  transform: rotate(180deg);
+}
+
+/* Change Password */
+.settings-btn-change-pass {
+  color: var(--ink-900);
 }
 
 .settings-btn-change-pass i {
   color: var(--orange-500);
-  font-size: 14px;
+  font-size: 15px;
 }
 
 .settings-btn-change-pass:hover {
@@ -2205,25 +2235,23 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   transform: translateY(-1px);
 }
 
-.settings-btn-change-pass:active {
-  transform: translateY(0);
+.settings-btn-change-pass:hover .settings-chevron {
+  color: var(--orange-500);
+  transform: translateX(-4px);
 }
 
+html[dir="ltr"] .settings-btn-change-pass:hover .settings-chevron {
+  transform: rotate(180deg) translateX(-4px);
+}
+
+/* Logout */
 .settings-btn-logout {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 13px 20px;
-  background: #ffffff;
-  color: var(--ink-700);
-  border: 1.5px solid var(--line);
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  color: var(--ink-800);
+}
+
+.settings-btn-logout i {
+  color: var(--ink-500);
+  font-size: 15px;
 }
 
 .settings-btn-logout:hover {
@@ -2232,42 +2260,40 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   transform: translateY(-1px);
 }
 
-.settings-btn-logout:active {
-  transform: translateY(0);
+.settings-btn-logout:hover .settings-chevron {
+  color: var(--ink-700);
+  transform: translateX(-4px);
 }
 
-.settings-btn-logout i {
-  font-size: 14px;
+html[dir="ltr"] .settings-btn-logout:hover .settings-chevron {
+  transform: rotate(180deg) translateX(-4px);
 }
 
+/* Delete Account */
 .settings-btn-delete {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  width: 100%;
-  padding: 13px 20px;
-  background: #ffffff;
   color: #e63946;
-  border: 1.5px solid #fecaca;
-  border-radius: 12px;
-  font-weight: 700;
-  font-size: 13.5px;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border-color: #fee2e2;
+  background: #ffffff;
+}
+
+.settings-btn-delete i {
+  color: #ef4444;
+  font-size: 15px;
 }
 
 .settings-btn-delete:hover {
   background: #fff5f5;
   border-color: #f87171;
+  transform: translateY(-1px);
 }
 
-.settings-btn-delete:active {
-  transform: translateY(0);
+.settings-btn-delete:hover .settings-chevron {
+  color: #ef4444;
+  transform: translateX(-4px);
 }
 
-.settings-btn-delete i {
-  font-size: 13px;
+html[dir="ltr"] .settings-btn-delete:hover .settings-chevron {
+  transform: rotate(180deg) translateX(-4px);
 }
 
 /* ============================================
@@ -2549,25 +2575,15 @@ input[type="password"]::-ms-clear {
   .add-form-wrap,
   .admin-wrap,
   .account-wrap,
-  .notifs-wrap,
-  .settings-container {
+  .notifs-wrap {
     max-width: 100%;
     margin: 0;
     padding: 24px 28px;
   }
+}
 
-  .settings-save-btn,
-  .settings-btn-logout,
-  .settings-btn-delete {
-    max-width: 400px;
-    margin-left: auto;
-    margin-right: auto;
-  }
-
-  .lang-options {
-    max-width: 400px;
-    margin: 0 auto;
-  }
+html[dir="rtl"] .back-btn i {
+  transform: rotate(180deg);
 }
 
 /* ============================================
