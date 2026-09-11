@@ -444,6 +444,20 @@
           </div>
         </div>
 
+        <!-- Change Password Section -->
+        <div class="settings-section">
+          <div class="settings-section-title">
+            <i class="fa-solid fa-lock"></i>
+            <span data-i18n="changePassword">Change Password</span>
+          </div>
+          <div class="settings-card">
+            <button class="settings-btn-logout" id="changePasswordBtn" style="background: #1967D2; color: white; border: none;">
+              <i class="fa-solid fa-key"></i>
+              <span data-i18n="changePasswordBtn">Change Password</span>
+            </button>
+          </div>
+        </div>
+
         <!-- Danger Zone Section (Logout & Delete Account) -->
         <div class="settings-section" style="margin-bottom: 20px;">
           <div class="settings-section-title">
@@ -819,12 +833,64 @@
       </div>
 
       <div class="form-error hidden" id="cliqModalError"></div>
-      <button class="btn-primary btn-block" id="confirmCliqBtn" style="margin-top:16px;">
+      <button class="btn-primary btn-block" id="confirmCliqBtn" style="margin-top:16px;">
         <i class="fa-solid fa-check-circle"></i>
         <span data-i18n="confirmPaymentAndPublish">Confirm & Publish</span>
       </button>
     </div>
   </div>
+
+    <!-- Change Password Modal -->
+    <div class="overlay" id="changePassOverlay">
+      <div class="auth-modal" style="max-width: 420px;">
+        <div class="auth-modal-header">
+          <h2><i class="fa-solid fa-lock" style="color:#1967D2;"></i> <span data-i18n="changePassword">Change Password</span></h2>
+          <button class="close-btn" id="changePassClose">✕</button>
+        </div>
+        <div style="padding: 20px;">
+          <div class="form-error hidden" id="changePassError"></div>
+          <div class="form-success hidden" id="changePassSuccess"></div>
+          <div class="form-group">
+            <label data-i18n="currentPassword">Current Password</label>
+            <input type="password" id="cpOldPass" class="form-input" autocomplete="current-password">
+          </div>
+          <div class="form-group">
+            <label data-i18n="newPassword">New Password</label>
+            <input type="password" id="cpNewPass" class="form-input" autocomplete="new-password">
+          </div>
+          <div class="form-group">
+            <label data-i18n="confirmNewPassword">Confirm New Password</label>
+            <input type="password" id="cpConfirmPass" class="form-input" autocomplete="new-password">
+          </div>
+          <button class="btn-primary" id="changePassSubmitBtn" style="width:100%; margin-top:12px;">
+            <i class="fa-solid fa-check"></i>
+            <span data-i18n="saveNewPassword">Save New Password</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div class="overlay" id="deleteAccOverlay">
+      <div class="auth-modal" style="max-width: 420px;">
+        <div class="auth-modal-header">
+          <h2 style="color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="deleteAccount">Delete Account</span></h2>
+          <button class="close-btn" id="deleteAccClose">✕</button>
+        </div>
+        <div style="padding: 20px;">
+          <p style="color:#7A8099; margin-bottom:16px; font-size:14px;" data-i18n="confirmDeleteAccount">Are you sure you want to delete your account permanently? This action cannot be undone.</p>
+          <div class="form-error hidden" id="deleteAccError"></div>
+          <div class="form-group">
+            <label data-i18n="password">Password</label>
+            <input type="password" id="deleteAccPass" class="form-input" autocomplete="current-password">
+          </div>
+          <button class="settings-btn-delete" id="deleteAccConfirmBtn" style="width:100%; margin-top:12px;">
+            <i class="fa-solid fa-user-xmark"></i>
+            <span data-i18n="deleteAccount">Delete Account Permanently</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>

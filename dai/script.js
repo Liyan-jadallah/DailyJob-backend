@@ -130,17 +130,20 @@
       if (!res.ok) throw new Error("حدث خطأ أثناء حذف الإعلان.");
       return true;
     },
-    deleteAccount: async (userId, token) => {
-      // (إصلاح) التحقق من وجود userId قبل الإرسال
+    deleteAccount: async (userId, token, password) => {
       if (!userId || userId === 'undefined' || userId === 'null') {
         throw new Error("معرّف المستخدم غير موجود. يرجى تسجيل الخروج وإعادة الدخول.");
       }
       const res = await fetch(`${BASE_URL}/users/${userId}/`, {
         method: 'DELETE',
-        headers: { 'Authorization': `Token ${token}` }
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
+        body: JSON.stringify({ password: password })
       });
       if (res.status === 401) { logout(); throw new Error('Session expired'); }
-      if (!res.ok) throw new Error("حدث خطأ أثناء حذف الحساب.");
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error || "حدث خطأ أثناء حذف الحساب.");
+      }
       return true;
     },
     getCoupons: async (token) => {
@@ -213,6 +216,16 @@
       if (res.status === 401 && token) { logout(); throw new Error('Session expired'); }
       if (!res.ok) throw new Error("الإعلان غير متوفر أو تم حذفه");
       return await res.json();
+    },
+    changePassword: async (oldPassword, newPassword, token) => {
+      const res = await fetch(`${BASE_URL}/change-password/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
+        body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "فشل تغيير كلمة المرور");
+      return data;
     }
   };
 
@@ -280,6 +293,13 @@
       send: "Send",
 
       forgotPassword: "Forgot Password?",
+      changePassword: "Change Password",
+      changePasswordBtn: "Change Password",
+      currentPassword: "Current Password",
+      newPassword: "New Password",
+      confirmNewPassword: "Confirm New Password",
+      saveNewPassword: "Save New Password",
+      passwordChanged: "Password changed successfully",
       cliqAccount: "CliQ Account - Dinarak Wallet (Alias: DAILYJOB1)",
       cliqTransferMsg: "Please transfer 1 JOD to CliQ Account - Dinarak Wallet (Alias: <strong>DAILYJOB1</strong>) and upload the receipt below:",
       uploadReceipt: "Upload Receipt",
@@ -424,6 +444,13 @@
       send: "إرسال",
 
       forgotPassword: "نسيت كلمة المرور؟",
+      changePassword: "تغيير كلمة المرور",
+      changePasswordBtn: "تغيير كلمة المرور",
+      currentPassword: "كلمة المرور الحالية",
+      newPassword: "كلمة المرور الجديدة",
+      confirmNewPassword: "تأكيد كلمة المرور الجديدة",
+      saveNewPassword: "حفظ كلمة المرور الجديدة",
+      passwordChanged: "تم تغيير كلمة المرور بنجاح",
       cliqAccount: "حساب كليك - محفظة دينارك (اسم مستعار: DAILYJOB1)",
       cliqTransferMsg: "يرجى تحويل 1 دينار إلى حساب كليك - محفظة دينارك (اسم مستعار: DAILYJOB1) وتحميل صورة الإيصال أدناه:",
       uploadReceipt: "تحميل الإيصال",
@@ -583,7 +610,7 @@
       preferredGovernorate: "all"
     },
     tempEmail: sessionStorage.getItem('dj_tempEmail') || null,
-    tempPassword: sessionStorage.getItem('dj_tempPassword') || null,
+    tempPassword: null,
     resetUserEmail: ''
   };
 
@@ -864,7 +891,7 @@
                   state.tempEmail = email;
                   state.tempPassword = password;
                   sessionStorage.setItem('dj_tempEmail', email);
-                  sessionStorage.setItem('dj_tempPassword', password);
+                  // Password no longer stored in sessionStorage for security
                   showToast("تم إرسال رمز التفعيل لبريدك!", "success");
                   document.querySelectorAll('.auth-step').forEach(s => s.classList.add('hidden'));
                   document.getElementById('authStepVerify').classList.remove('hidden');
@@ -955,7 +982,7 @@
         state.tempEmail = email;
         state.tempPassword = password;
         sessionStorage.setItem('dj_tempEmail', email);
-        sessionStorage.setItem('dj_tempPassword', password);
+        // Password no longer stored in sessionStorage for security
 
         showToast("تم إرسال رمز التأكيد لبريدك!", "success");
         
@@ -3277,36 +3304,149 @@
   // ══════════════════════════════════════════════════════════════════
 
   // ══════════════════════════════════════════════════════════════════
-  // إصلاح حذف الحساب — مسح كامل للبيانات
+  // حذف الحساب مع تأكيد كلمة المرور
   // ══════════════════════════════════════════════════════════════════
   const deleteAccountBtn = document.getElementById("deleteAccountBtn");
   if (deleteAccountBtn) {
-    deleteAccountBtn.addEventListener("click", async () => {
+    deleteAccountBtn.addEventListener("click", () => {
       if (!state.isAuthenticated || !state.user) {
         showToast("يجب تسجيل الدخول أولاً.", "error");
         return;
       }
-      const userId = state.user?.id;
-      if (!confirm(t("confirmDeleteAccount"))) return;
-      try {
-        const token = localStorage.getItem("dj_token");
-        await Api.deleteAccount(userId, token);
+      const overlay = document.getElementById("deleteAccOverlay");
+      const errEl = document.getElementById("deleteAccError");
+      const passInput = document.getElementById("deleteAccPass");
+      if (errEl) errEl.classList.add("hidden");
+      if (passInput) passInput.value = '';
+      if (overlay) overlay.classList.add("open");
+    });
+  }
 
-        // مسح كامل للبيانات المحلية
+  const deleteAccClose = document.getElementById("deleteAccClose");
+  if (deleteAccClose) deleteAccClose.addEventListener("click", () => {
+    document.getElementById("deleteAccOverlay")?.classList.remove("open");
+  });
+  const deleteAccOverlay = document.getElementById("deleteAccOverlay");
+  if (deleteAccOverlay) deleteAccOverlay.addEventListener("click", (e) => {
+    if (e.target === deleteAccOverlay) deleteAccOverlay.classList.remove("open");
+  });
+
+  const deleteAccConfirmBtn = document.getElementById("deleteAccConfirmBtn");
+  if (deleteAccConfirmBtn) {
+    deleteAccConfirmBtn.addEventListener("click", async () => {
+      const passInput = document.getElementById("deleteAccPass");
+      const errEl = document.getElementById("deleteAccError");
+      const password = passInput?.value?.trim();
+      if (!password) {
+        if (errEl) { errEl.textContent = state.lang === 'ar' ? 'يرجى إدخال كلمة المرور للتأكيد' : 'Please enter your password to confirm'; errEl.classList.remove('hidden'); }
+        return;
+      }
+      const userId = state.user?.id;
+      const token = localStorage.getItem("dj_token");
+      const originalText = deleteAccConfirmBtn.innerHTML;
+      try {
+        deleteAccConfirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        deleteAccConfirmBtn.disabled = true;
+        await Api.deleteAccount(userId, token, password);
+        document.getElementById("deleteAccOverlay")?.classList.remove("open");
         localStorage.removeItem("dj_user");
         localStorage.removeItem("dj_token");
         localStorage.removeItem("dj_favorites");
         sessionStorage.clear();
-
         state.isAuthenticated = false;
         state.user = null;
         state.favorites = new Set();
         updateDrawerUser();
-
         showToast("تم حذف حسابك بنجاح. نتمنى أن نراك مجدداً!", "success");
         goToScreen("home");
       } catch (err) {
-        showToast(err.message, "error");
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+      } finally {
+        deleteAccConfirmBtn.innerHTML = originalText;
+        deleteAccConfirmBtn.disabled = false;
+      }
+    });
+  }
+
+  // ══════════════════════════════════════════════════════════════════
+  // تغيير كلمة المرور
+  // ══════════════════════════════════════════════════════════════════
+  const changePasswordBtn = document.getElementById("changePasswordBtn");
+  if (changePasswordBtn) {
+    changePasswordBtn.addEventListener("click", () => {
+      if (!state.isAuthenticated) { openAuth('login'); return; }
+      const overlay = document.getElementById("changePassOverlay");
+      const errEl = document.getElementById("changePassError");
+      const successEl = document.getElementById("changePassSuccess");
+      if (errEl) errEl.classList.add("hidden");
+      if (successEl) successEl.classList.add("hidden");
+      document.getElementById("cpOldPass").value = '';
+      document.getElementById("cpNewPass").value = '';
+      document.getElementById("cpConfirmPass").value = '';
+      if (overlay) overlay.classList.add("open");
+    });
+  }
+
+  const changePassClose = document.getElementById("changePassClose");
+  if (changePassClose) changePassClose.addEventListener("click", () => {
+    document.getElementById("changePassOverlay")?.classList.remove("open");
+  });
+  const changePassOverlay = document.getElementById("changePassOverlay");
+  if (changePassOverlay) changePassOverlay.addEventListener("click", (e) => {
+    if (e.target === changePassOverlay) changePassOverlay.classList.remove("open");
+  });
+
+  const changePassSubmitBtn = document.getElementById("changePassSubmitBtn");
+  if (changePassSubmitBtn) {
+    changePassSubmitBtn.addEventListener("click", async () => {
+      const errEl = document.getElementById("changePassError");
+      const successEl = document.getElementById("changePassSuccess");
+      if (errEl) errEl.classList.add("hidden");
+      if (successEl) successEl.classList.add("hidden");
+
+      const oldPass = document.getElementById("cpOldPass")?.value?.trim();
+      const newPass = document.getElementById("cpNewPass")?.value?.trim();
+      const confirmPass = document.getElementById("cpConfirmPass")?.value?.trim();
+
+      if (!oldPass || !newPass || !confirmPass) {
+        if (errEl) { errEl.textContent = t('fillAllFields'); errEl.classList.remove('hidden'); }
+        return;
+      }
+      if (newPass.length < 6) {
+        if (errEl) { errEl.textContent = t('passwordMinLength'); errEl.classList.remove('hidden'); }
+        return;
+      }
+      if (newPass !== confirmPass) {
+        if (errEl) { errEl.textContent = t('passwordsMismatch'); errEl.classList.remove('hidden'); }
+        return;
+      }
+
+      const token = localStorage.getItem("dj_token");
+      const originalText = changePassSubmitBtn.innerHTML;
+      try {
+        changePassSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        changePassSubmitBtn.disabled = true;
+        const result = await Api.changePassword(oldPass, newPass, token);
+        // تحديث التوكن الجديد
+        if (result.token) {
+          localStorage.setItem("dj_token", result.token);
+        }
+        if (successEl) {
+          successEl.textContent = result.message || (state.lang === 'ar' ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully');
+          successEl.classList.remove('hidden');
+        }
+        document.getElementById("cpOldPass").value = '';
+        document.getElementById("cpNewPass").value = '';
+        document.getElementById("cpConfirmPass").value = '';
+        showToast(state.lang === 'ar' ? 'تم تغيير كلمة المرور بنجاح ✅' : 'Password changed successfully ✅', 'success');
+        setTimeout(() => {
+          document.getElementById("changePassOverlay")?.classList.remove("open");
+        }, 1500);
+      } catch (err) {
+        if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+      } finally {
+        changePassSubmitBtn.innerHTML = originalText;
+        changePassSubmitBtn.disabled = false;
       }
     });
   }

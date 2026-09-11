@@ -41,7 +41,7 @@ def auto_approve_pending_ads():
         has_valid_transaction = Transaction.objects.filter(
             ad=ad
         ).filter(
-            Q(receipt_image__isnull=False) & ~Q(receipt_image='') |
+            (Q(receipt_image__isnull=False) & ~Q(receipt_image='')) |
             Q(coupon__isnull=False)
         ).exists()
         if has_valid_transaction:

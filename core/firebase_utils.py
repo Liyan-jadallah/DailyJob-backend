@@ -73,6 +73,11 @@ def send_push_notification(user, title, body, data=None, badge_count=1):
         response = messaging.send(message)
         logger.info(f"FCM message sent successfully to user {user.username}. Response ID: {response}")
         return True
+    except messaging.UnregisteredError:
+        logger.info(f"FCM token expired for user {user.username}. Clearing token.")
+        user.fcm_token = ''
+        user.save(update_fields=['fcm_token'])
+        return False
     except Exception as e:
         logger.warning(f"Failed to send FCM message to user {user.username}: {e}")
         return False

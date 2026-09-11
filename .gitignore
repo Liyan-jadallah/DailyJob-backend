@@ -34,3 +34,6 @@ scratch/
 test_ads.json
 *.log
 .DS_Store
+
+.env
+firebase-adminsdk.json

@@ -1058,6 +1058,57 @@ class NotificationDetailView(APIView):
         return Response({'error': 'Notification not found'}, status=status.HTTP_404_NOT_FOUND)
 
 
+class ChangePasswordView(APIView):
+    permission_classes = [IsAuthenticated]
+    throttle_classes = [OTPThrottle]
+
+    def post(self, request):
+        old_password = request.data.get('old_password')
+        new_password = request.data.get('new_password')
+
+        if not old_password or not new_password:
+            return Response({'error': 'يرجى إدخال كلمة المرور الحالية والجديدة.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user = request.user
+
+        if not user.check_password(old_password):
+            return Response({'error': 'كلمة المرور الحالية غير صحيحة.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        if len(new_password) < 6:
+            return Response({'error': 'كلمة المرور الجديدة يجب أن تكون 6 خانات على الأقل.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            validate_password(new_password, user=user)
+        except Exception as e:
+            error_messages = e.messages if hasattr(e, 'messages') else [str(e)]
+            return Response({'error': ' '.join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(new_password)
+        user.save(update_fields=['password'])
+
+        # إلغاء كل التوكنات القديمة وإنشاء توكن جديد
+        Token.objects.filter(user=user).delete()
+        new_token = Token.objects.create(user=user)
+
+        # إشعار بتغيير كلمة المرور
+        try:
+            email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+            send_mail(
+                'تم تغيير كلمة المرور - Daily Job',
+                f'مرحباً {user.username},\n\nتم تغيير كلمة مرور حسابك بنجاح.\n\nإذا لم تكن أنت من قام بهذا التغيير، يرجى التواصل معنا فوراً على: dailyjob2026@gmail.com\n\nفريق Daily Job',
+                email_sender,
+                [user.email],
+                fail_silently=True,
+            )
+        except Exception:
+            pass
+
+        return Response({
+            'message': 'تم تغيير كلمة المرور بنجاح.',
+            'token': new_token.key,
+        })
+
+
 class ContactMessageCreateView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [OTPThrottle] # استخدام نفس التحديد لتجنب الـ spam
