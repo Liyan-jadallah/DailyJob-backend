@@ -2176,6 +2176,39 @@ html[dir="rtl"] .switch input:checked + .slider::before {
   gap: 12px;
 }
 
+.settings-btn-change-pass {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 13px 20px;
+  background: #ffffff;
+  color: var(--ink-800);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.settings-btn-change-pass i {
+  color: var(--orange-500);
+  font-size: 14px;
+}
+
+.settings-btn-change-pass:hover {
+  background: rgba(240, 112, 32, 0.05);
+  border-color: var(--orange-500);
+  color: var(--orange-600);
+  transform: translateY(-1px);
+}
+
+.settings-btn-change-pass:active {
+  transform: translateY(0);
+}
+
 .settings-btn-logout {
   display: flex;
   align-items: center;

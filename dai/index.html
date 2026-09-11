@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=36">
+  <link rel="stylesheet" href="style.css?v=39">
 </head>
 
 <body>
@@ -444,27 +444,18 @@
           </div>
         </div>
 
-        <!-- Change Password Section -->
-        <div class="settings-section">
+        <!-- Actions Section (Change Password, Logout & Delete Account) -->
+        <div class="settings-section" style="margin-bottom: 24px;">
           <div class="settings-section-title">
-            <i class="fa-solid fa-lock"></i>
-            <span data-i18n="changePassword">Change Password</span>
-          </div>
-          <div class="settings-card">
-            <button class="settings-btn-logout" id="changePasswordBtn" style="background: #1967D2; color: white; border: none;">
-              <i class="fa-solid fa-key"></i>
-              <span data-i18n="changePasswordBtn">Change Password</span>
-            </button>
-          </div>
-        </div>
-
-        <!-- Danger Zone Section (Logout & Delete Account) -->
-        <div class="settings-section" style="margin-bottom: 20px;">
-          <div class="settings-section-title">
-            <i class="fa-solid fa-triangle-exclamation" style="color: #ef4444;"></i>
+            <i class="fa-solid fa-shield-halved" style="color: var(--orange-500);"></i>
             <span data-i18n="accountActions">Account Actions</span>
           </div>
           <div class="settings-card settings-actions-group" style="margin-top: 0;">
+            <button class="settings-btn-change-pass" id="changePasswordBtn">
+              <i class="fa-solid fa-key"></i>
+              <span data-i18n="changePassword">Change Password</span>
+            </button>
+            
             <button class="settings-btn-logout" id="logoutBtn">
               <i class="fa-solid fa-right-from-bracket"></i>
               <span data-i18n="logout">Log Out</span>
@@ -840,62 +831,67 @@
     </div>
   </div>
 
-    <!-- Change Password Modal -->
-    <div class="overlay" id="changePassOverlay">
-      <div class="auth-modal" style="max-width: 420px;">
-        <div class="auth-modal-header">
-          <h2><i class="fa-solid fa-lock" style="color:#1967D2;"></i> <span data-i18n="changePassword">Change Password</span></h2>
-          <button class="close-btn" id="changePassClose">✕</button>
-        </div>
-        <div style="padding: 20px;">
-          <div class="form-error hidden" id="changePassError"></div>
-          <div class="form-success hidden" id="changePassSuccess"></div>
-          <div class="form-group">
-            <label data-i18n="currentPassword">Current Password</label>
-            <input type="password" id="cpOldPass" class="form-input" autocomplete="current-password">
-          </div>
-          <div class="form-group">
-            <label data-i18n="newPassword">New Password</label>
-            <input type="password" id="cpNewPass" class="form-input" autocomplete="new-password">
-          </div>
-          <div class="form-group">
-            <label data-i18n="confirmNewPassword">Confirm New Password</label>
-            <input type="password" id="cpConfirmPass" class="form-input" autocomplete="new-password">
-          </div>
-          <button class="btn-primary" id="changePassSubmitBtn" style="width:100%; margin-top:12px;">
-            <i class="fa-solid fa-check"></i>
-            <span data-i18n="saveNewPassword">Save New Password</span>
-          </button>
-        </div>
-      </div>
-    </div>
+  <!-- ============ CHANGE PASSWORD MODAL ============ -->
+  <div class="modal-overlay" id="changePassOverlay">
+    <div class="modal-sheet">
+      <button class="modal-close" id="changePassClose">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
 
-    <!-- Delete Account Confirmation Modal -->
-    <div class="overlay" id="deleteAccOverlay">
-      <div class="auth-modal" style="max-width: 420px;">
-        <div class="auth-modal-header">
-          <h2 style="color:#ef4444;"><i class="fa-solid fa-triangle-exclamation"></i> <span data-i18n="deleteAccount">Delete Account</span></h2>
-          <button class="close-btn" id="deleteAccClose">✕</button>
-        </div>
-        <div style="padding: 20px;">
-          <p style="color:#7A8099; margin-bottom:16px; font-size:14px;" data-i18n="confirmDeleteAccount">Are you sure you want to delete your account permanently? This action cannot be undone.</p>
-          <div class="form-error hidden" id="deleteAccError"></div>
-          <div class="form-group">
-            <label data-i18n="password">Password</label>
-            <input type="password" id="deleteAccPass" class="form-input" autocomplete="current-password">
-          </div>
-          <button class="settings-btn-delete" id="deleteAccConfirmBtn" style="width:100%; margin-top:12px;">
-            <i class="fa-solid fa-user-xmark"></i>
-            <span data-i18n="deleteAccount">Delete Account Permanently</span>
-          </button>
-        </div>
-      </div>
+      <div class="modal-icon"><i class="fa-solid fa-key" style="color:var(--orange-500);"></i></div>
+      <h2 class="modal-title" data-i18n="changePassword">Change Password</h2>
+      <p class="modal-sub" style="margin-bottom:15px; font-size:12px; color:var(--ink-500); text-align:center;">
+        أدخل كلمة المرور الحالية ثم كلمة المرور الجديدة
+      </p>
+
+      <div class="form-error hidden" id="changePassError"></div>
+      <div class="form-success hidden" id="changePassSuccess" style="background:#e8f5e9; color:#2e7d32; padding:10px 14px; border-radius:8px; margin-bottom:12px; font-size:13px; text-align:center;"></div>
+
+      <label class="form-label" data-i18n="currentPassword">Current Password</label>
+      <input type="password" id="cpOldPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
+
+      <label class="form-label" style="margin-top:12px;" data-i18n="newPassword">New Password</label>
+      <input type="password" id="cpNewPass" class="form-input" placeholder="••••••••" autocomplete="new-password">
+
+      <label class="form-label" style="margin-top:12px;" data-i18n="confirmNewPassword">Confirm New Password</label>
+      <input type="password" id="cpConfirmPass" class="form-input" placeholder="••••••••" autocomplete="new-password">
+
+      <button class="btn-primary btn-block" id="changePassSubmitBtn" style="margin-top:16px;">
+        <i class="fa-solid fa-check"></i>
+        <span data-i18n="saveNewPassword">Save New Password</span>
+      </button>
     </div>
+  </div>
+
+  <!-- ============ DELETE ACCOUNT MODAL ============ -->
+  <div class="modal-overlay" id="deleteAccOverlay">
+    <div class="modal-sheet">
+      <button class="modal-close" id="deleteAccClose">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-icon"><i class="fa-solid fa-triangle-exclamation" style="color:#ef4444;"></i></div>
+      <h2 class="modal-title" style="color:#ef4444;" data-i18n="deleteAccount">Delete Account</h2>
+      <p class="modal-sub" style="margin-bottom:16px; font-size:13px; color:var(--ink-500); text-align:center;" data-i18n="confirmDeleteAccount">
+        هل أنت متأكد من حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع إعلاناتك.
+      </p>
+
+      <div class="form-error hidden" id="deleteAccError"></div>
+
+      <label class="form-label" data-i18n="password">Password</label>
+      <input type="password" id="deleteAccPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
+
+      <button class="settings-btn-delete" id="deleteAccConfirmBtn" style="margin-top:16px;">
+        <i class="fa-solid fa-user-xmark"></i>
+        <span data-i18n="deleteAccount">Delete Account Permanently</span>
+      </button>
+    </div>
+  </div>
 
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=37"></script>
+  <script src="script.js?v=39"></script>
 
 </body>
 
