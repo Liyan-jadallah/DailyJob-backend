@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=52">
+  <link rel="stylesheet" href="style.css?v=53">
 </head>
 
 <body>
@@ -57,7 +57,7 @@
         <button class="filter-btn" id="filterBtn"><i class="fa-solid fa-sliders"></i></button>
       </div>
 
-      <!-- EXACT CATEGORY CHIPS - Simplified -->
+      <!-- EXACT CATEGORY CHIPS -->
       <div class="chip-row" id="typeChipRow">
         <button class="chip chip-cat active" data-type="all">
           <i class="fa-solid fa-layer-group"></i>
@@ -74,9 +74,39 @@
           <span data-i18n="fullTime">Full-Time Jobs</span>
         </button>
 
+        <button class="chip" data-type="ads">
+          <i class="fa-solid fa-rectangle-ad"></i>
+          <span data-i18n="announcements">Ads & News</span>
+        </button>
+
         <button class="chip" data-type="services">
           <i class="fa-solid fa-hand-holding-hand"></i>
           <span data-i18n="services">Services</span>
+        </button>
+
+        <button class="chip" data-type="used">
+          <i class="fa-regular fa-comment-dots"></i>
+          <span data-i18n="usedGoods">Used Items</span>
+        </button>
+
+        <button class="chip" data-type="free">
+          <i class="fa-solid fa-gift"></i>
+          <span data-i18n="freebies">Freebies</span>
+        </button>
+
+        <button class="chip" data-type="real_estate">
+          <i class="fa-solid fa-building"></i>
+          <span data-i18n="realEstate">Real Estate</span>
+        </button>
+
+        <button class="chip" data-type="cars">
+          <i class="fa-solid fa-car"></i>
+          <span data-i18n="cars">Cars</span>
+        </button>
+
+        <button class="chip" data-type="rentals">
+          <i class="fa-solid fa-key"></i>
+          <span data-i18n="rentals">Rentals</span>
         </button>
       </div>
 
@@ -909,7 +939,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=52"></script>
+  <script src="script.js?v=53"></script>
 
 </body>
 

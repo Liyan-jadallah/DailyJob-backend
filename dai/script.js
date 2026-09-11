@@ -632,6 +632,7 @@
       id: dbAd.id,
       type: dbAd.category,
       category: dbAd.category,
+      ad_type: dbAd.ad_type,
       governorate: dbAd.governorate,
       area: { ar: dbAd.governorate, en: dbAd.governorate },
       title: { ar: dbAd.title, en: dbAd.title },
@@ -1136,12 +1137,36 @@
 
     return ads.slice()
       .filter((ad) => {
-        // 1. Basic Filters
+        // 1. Filter by Chip / Type
         if (f.type !== "all") {
-          const adMainType = getMainCategory(ad.type);
-          if (adMainType !== f.type) return false;
+          const adMainType = getMainCategory(ad.category || ad.type);
+          const isMatch = (
+            adMainType === f.type ||
+            ad.category === f.type ||
+            ad.type === f.type ||
+            (ad.ad_type && ad.ad_type === f.type) ||
+            (f.type === 'rentals' && (ad.category === 'rent' || ad.category === 'rental' || ad.category === 'rentals' || ad.ad_type === 'rent')) ||
+            (f.type === 'cars' && (ad.category === 'cars' || ad.ad_type === 'cars')) ||
+            (f.type === 'real_estate' && (ad.category === 'real_estate' || ad.ad_type === 'real_estate'))
+          );
+          if (!isMatch) return false;
         }
-        if (f.category !== "all" && f.category !== ad.category) return false;
+
+        // 2. Filter by Modal Category
+        if (f.category !== "all") {
+          const adMainCat = getMainCategory(ad.category);
+          const isCatMatch = (
+            ad.category === f.category ||
+            adMainCat === f.category ||
+            (ad.ad_type && ad.ad_type === f.category) ||
+            (f.category === 'rentals' && (ad.category === 'rent' || ad.category === 'rental' || ad.category === 'rentals' || ad.ad_type === 'rent')) ||
+            (f.category === 'cars' && (ad.category === 'cars' || ad.ad_type === 'cars')) ||
+            (f.category === 'real_estate' && (ad.category === 'real_estate' || ad.ad_type === 'real_estate'))
+          );
+          if (!isCatMatch) return false;
+        }
+
+        // 3. Filter by Governorate
         if (f.governorate !== "all" && ad.governorate !== f.governorate) return false;
 
         // 2. Smart Search
@@ -2911,7 +2936,15 @@
       chip.classList.add("active");
 
       state.filters.type = chip.dataset.type;
+      state.filters.category = "all";
+
+      document.querySelectorAll("#filterCategoryChips button").forEach(b => {
+        if (b.dataset.cat === chip.dataset.type) b.classList.add("active");
+        else b.classList.remove("active");
+      });
+
       renderAds();
+      updateFilterButtonState();
     });
   }
 
@@ -2942,7 +2975,16 @@
   if (filterApplyBtn) {
     filterApplyBtn.addEventListener("click", () => {
       const activeCatChip = document.querySelector("#filterCategoryChips button.active");
-      state.filters.category = activeCatChip ? activeCatChip.dataset.cat : "all";
+      const chosenCat = activeCatChip ? activeCatChip.dataset.cat : "all";
+      state.filters.category = chosenCat;
+      state.filters.type = chosenCat;
+
+      const homeChips = document.querySelectorAll("#typeChipRow .chip");
+      homeChips.forEach(c => {
+        if (c.dataset.type === chosenCat) c.classList.add("active");
+        else c.classList.remove("active");
+      });
+
       const fGov = document.getElementById("filterGovSelect");
       if (fGov) state.filters.governorate = fGov.value;
 
@@ -3012,11 +3054,15 @@
                        state.filters.type === "ads" ? t("announcements") :
                        state.filters.type === "services" ? t("services") :
                        state.filters.type === "used" ? t("usedGoods") :
-                       state.filters.type === "free" ? t("freebies") : state.filters.type;
+                       state.filters.type === "free" ? t("freebies") :
+                       state.filters.type === "real_estate" ? t("realEstate") :
+                       state.filters.type === "cars" ? t("cars") :
+                       state.filters.type === "rentals" ? t("rentals") :
+                       getCategoryName(state.filters.type, state.lang);
       tags.push(`<span class="filter-tag">${typeName}<i class="fa-solid fa-xmark" data-clear-filter="type"></i></span>`);
     }
 
-    if (state.filters.category !== "all") {
+    if (state.filters.category !== "all" && state.filters.category !== state.filters.type) {
       const catName = getCategoryName(state.filters.category, state.lang);
       tags.push(`<span class="filter-tag">${catName}<i class="fa-solid fa-xmark" data-clear-filter="category"></i></span>`);
     }
@@ -3038,9 +3084,23 @@
       btn.addEventListener("click", () => {
         const filterType = btn.dataset.clearFilter;
         if (filterType === "query") { state.filters.query = ""; if (searchInput) searchInput.value = ""; }
-        else if (filterType === "type") { state.filters.type = "all"; }
-        else if (filterType === "category") { state.filters.category = "all"; }
-        else if (filterType === "governorate") { state.filters.governorate = "all"; }
+        else if (filterType === "type") {
+          state.filters.type = "all";
+          state.filters.category = "all";
+          document.querySelectorAll("#typeChipRow .chip").forEach(c => c.classList.remove("active"));
+          const defaultChip = document.querySelector('#typeChipRow .chip[data-type="all"]');
+          if (defaultChip) defaultChip.classList.add("active");
+          document.querySelectorAll("#filterCategoryChips button").forEach(b => b.classList.remove("active"));
+        }
+        else if (filterType === "category") {
+          state.filters.category = "all";
+          document.querySelectorAll("#filterCategoryChips button").forEach(b => b.classList.remove("active"));
+        }
+        else if (filterType === "governorate") {
+          state.filters.governorate = "all";
+          const fGov = document.getElementById("filterGovSelect");
+          if (fGov) fGov.value = "all";
+        }
         renderAds();
         updateFilterButtonState();
       });
