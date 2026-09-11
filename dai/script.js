@@ -1243,162 +1243,409 @@
     });
   }
 
-  async function renderAdminAds() {
-    const list = document.getElementById("adminAdsList");
-    const empty = document.getElementById("adminEmptyState");
-    if (!list) return;
-    
-    list.innerHTML = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x"></i></div>';
-    
-    try {
-       const token = localStorage.getItem("dj_token");
-       const res = await fetch(`${BASE_URL}/ads/?status=pending`, { 
-         headers: { 'Authorization': 'Token ' + token } 
-       });
-       const data = await res.json();
-       const pendingAds = data.results || data || [];
-       
-       if (!pendingAds.length) { 
-         list.innerHTML = ""; 
-         if (empty) empty.classList.remove("hidden"); 
-       } else { 
-         if (empty) empty.classList.add("hidden"); 
-         list.innerHTML = pendingAds.map(ad => {
-           const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : ad.title;
-           const adDesc = typeof ad.description === 'object' ? (ad.description.ar || ad.description.en) : ad.description;
-           
-           // Build images for admin panel
-           const allImages = [];
-           if (ad.image) allImages.push(ad.image);
-           if (ad.extra_images && ad.extra_images.length > 0) {
-             ad.extra_images.forEach(img => {
-               if (img.image && !allImages.includes(img.image)) allImages.push(img.image);
-             });
-           }
-           let imagesHtml = '';
-           if (allImages.length > 1) {
-             imagesHtml = `
-               <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
-                 ${allImages.map(src => `<a href="${escapeHtml(src)}" target="_blank"><img src="${escapeHtml(src)}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:100px; min-width:100px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6;"></a>`).join('')}
-               </div>
-             `;
-           } else if (allImages.length === 1) {
-             imagesHtml = `<a href="${escapeHtml(allImages[0])}" target="_blank"><img src="${escapeHtml(allImages[0])}" onerror="this.onerror=null; this.src='https://placehold.co/400x180/e9ecef/495057?text=Daily+Job';" style="width:100%; height:180px; object-fit:cover;"></a>`;
-           }
+  // ══════════════════════════════════════════════════════════════════
+  // لوحة تحكم الأدمن (مطابقة لتقسيمات التطبيق: 4 تبويبات)
+  // ══════════════════════════════════════════════════════════════════
+  let _adminActiveTab = 'pending';
+  let _adminTabsInitialized = false;
 
-          return `
-            <div class="ad-card" data-ad-id="${ad.id}">
-              ${imagesHtml}
-              <div class="ad-card-top" style="padding:15px; display:flex; justify-content:space-between; align-items:flex-start;">
-                <div style="flex:1; min-width:0;">
-                  <h3 class="ad-title" style="margin-bottom:5px;">${escapeHtml(adTitle)}</h3>
-                  <p class="ad-desc" style="margin-bottom:8px;">${escapeHtml(adDesc).substring(0,80)}...</p>
-                  
-                  <div class="tag-row" style="margin-bottom: 8px;">
-                    <span class="badge badge-other">${escapeHtml(ad.category || '')}</span>
-                    <span class="badge badge-other"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.governorate || '')}</span>
-                    <span class="badge badge-other"><i class="fa-solid fa-money-bill"></i> ${escapeHtml(String(ad.price))} JOD</span>
-                  </div>
-                </div>
-                
-                ${ad.receipt_image ? `
-                  <div style="margin-right: 10px; flex-shrink:0; text-align:center;">
-                    <p style="margin:0 0 4px 0; font-size:11px; color:var(--ink-500);">وصل الدفع</p>
-                    <a href="${escapeHtml(ad.receipt_image)}" target="_blank">
-                      <img src="${escapeHtml(ad.receipt_image)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover;border-radius:8px; border:2px solid var(--line);">
-                    </a>
-                  </div>` : '<p style="color:var(--orange-500); font-size:12px; margin:0;"><i class="fa-solid fa-triangle-exclamation"></i> لا يوجد وصل</p>'}
-              </div>
-              <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid var(--line);">
-                <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:var(--green-500);border:none;flex:1;"><i class="fa-solid fa-check"></i> قبول</button>
-                <button class="btn-outline admin-reject-btn" data-id="${ad.id}" style="color:var(--red-500);border-color:var(--red-500);flex:1;"><i class="fa-solid fa-xmark"></i> رفض</button>
-              </div>
-            </div>`;
-         }).join(""); 
-         
-          // Attach events
-          list.querySelectorAll(".admin-approve-btn").forEach(btn => {
-            btn.addEventListener("click", async () => {
-              const card = btn.closest(".ad-card");
-              const siblingBtn = card ? card.querySelector(".admin-reject-btn") : null;
-              btn.disabled = true;
-              if (siblingBtn) siblingBtn.disabled = true;
-              btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري القبول...';
-              try {
-                const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
-                  body: JSON.stringify({ action: 'approve' })
-                });
-                if (r.ok) {
-                  showToast("تم قبول الإعلان ونشره بنجاح", "success");
-                  if (card) {
-                    card.style.transition = "opacity 0.25s ease, transform 0.25s ease";
-                    card.style.opacity = "0";
-                    card.style.transform = "scale(0.95)";
-                    setTimeout(() => {
-                      card.remove();
-                      if (!list.querySelectorAll(".ad-card").length && empty) {
-                        empty.classList.remove("hidden");
-                      }
-                    }, 250);
-                  }
-                } else {
-                  const errData = await r.json().catch(() => ({}));
-                  throw new Error(errData.error || "فشل قبول الإعلان");
-                }
-              } catch(e) {
-                showToast(e.message || "حدث خطأ أثناء قبول الإعلان", "error");
-                btn.disabled = false;
-                if (siblingBtn) siblingBtn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-check"></i> قبول';
-              }
-            });
-          });
-          
-          list.querySelectorAll(".admin-reject-btn").forEach(btn => {
-            btn.addEventListener("click", async () => {
-              if (!confirm("هل أنت متأكد من رفض هذا الإعلان؟")) return;
-              const card = btn.closest(".ad-card");
-              const siblingBtn = card ? card.querySelector(".admin-approve-btn") : null;
-              btn.disabled = true;
-              if (siblingBtn) siblingBtn.disabled = true;
-              btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفض...';
-              try {
-                const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
-                  body: JSON.stringify({ action: 'reject' })
-                });
-                if (r.ok) {
-                  showToast("تم رفض الإعلان", "success");
-                  if (card) {
-                    card.style.transition = "opacity 0.25s ease, transform 0.25s ease";
-                    card.style.opacity = "0";
-                    card.style.transform = "scale(0.95)";
-                    setTimeout(() => {
-                      card.remove();
-                      if (!list.querySelectorAll(".ad-card").length && empty) {
-                        empty.classList.remove("hidden");
-                      }
-                    }, 250);
-                  }
-                } else {
-                  const errData = await r.json().catch(() => ({}));
-                  throw new Error(errData.error || "فشل رفض الإعلان");
-                }
-              } catch(e) {
-                showToast(e.message || "حدث خطأ أثناء رفض الإعلان", "error");
-                btn.disabled = false;
-                if (siblingBtn) siblingBtn.disabled = false;
-                btn.innerHTML = '<i class="fa-solid fa-xmark"></i> رفض';
-              }
-            });
-          });
-       }
-    } catch(err) {
-       list.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message}</div>`;
+  function setupAdminTabs() {
+    if (_adminTabsInitialized) return;
+    _adminTabsInitialized = true;
+
+    document.querySelectorAll(".admin-tab-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        switchAdminTab(btn.dataset.adminTab);
+      });
+    });
+
+    const refreshBtn = document.getElementById("refreshAdminBtn");
+    if (refreshBtn) {
+      refreshBtn.addEventListener("click", () => renderAdminAds());
     }
+  }
+
+  function switchAdminTab(tab) {
+    _adminActiveTab = tab;
+    document.querySelectorAll(".admin-tab-btn").forEach(b => {
+      if (b.dataset.adminTab === tab) b.classList.add("active");
+      else b.classList.remove("active");
+    });
+
+    const tabMap = {
+      pending: "adminTabPending",
+      published: "adminTabPublished",
+      users: "adminTabUsers",
+      auto: "adminTabAuto"
+    };
+
+    Object.keys(tabMap).forEach(key => {
+      const panel = document.getElementById(tabMap[key]);
+      if (panel) {
+        if (key === tab) {
+          panel.style.display = "block";
+          panel.classList.add("active");
+        } else {
+          panel.style.display = "none";
+          panel.classList.remove("active");
+        }
+      }
+    });
+  }
+
+  async function renderAdminAds() {
+    setupAdminTabs();
+
+    if (!state.isAuthenticated || state.user?.role !== 'admin') {
+      showToast("ليس لديك صلاحية الوصول للوحة الأدمن", "error");
+      goToScreen("home");
+      return;
+    }
+
+    const token = localStorage.getItem("dj_token");
+    const loadingHtml = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-500);"></i></div>';
+
+    const pendingList = document.getElementById("adminPendingList");
+    const publishedList = document.getElementById("adminPublishedList");
+    const usersList = document.getElementById("adminUsersList");
+    const autoList = document.getElementById("adminAutoList");
+
+    if (pendingList) pendingList.innerHTML = loadingHtml;
+    if (publishedList) publishedList.innerHTML = loadingHtml;
+    if (usersList) usersList.innerHTML = loadingHtml;
+    if (autoList) autoList.innerHTML = loadingHtml;
+
+    try {
+      // 1. جلب كل الإعلانات للأدمن (مع admin_all=true لتجاوز فلترة الإعلانات المقبولة فقط)
+      const adsPromise = fetch(`${BASE_URL}/ads/?admin_all=true`, {
+        headers: { 'Authorization': 'Token ' + token }
+      }).then(r => r.json());
+
+      // 2. جلب كل المستخدمين
+      const usersPromise = fetch(`${BASE_URL}/users/`, {
+        headers: { 'Authorization': 'Token ' + token }
+      }).then(r => r.json());
+
+      const [adsData, usersData] = await Promise.all([adsPromise, usersPromise]);
+
+      const allAds = (adsData && adsData.results) ? adsData.results : (Array.isArray(adsData) ? adsData : []);
+      const allUsers = (usersData && usersData.results) ? usersData.results : (Array.isArray(usersData) ? usersData : []);
+
+      const pendingAds = allAds.filter(a => a.status === 'pending');
+      const publishedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved !== true);
+      const autoApprovedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved === true);
+
+      // تحديث شارات العدادات
+      const bPending = document.getElementById("adminPendingBadge");
+      const bPublished = document.getElementById("adminPublishedBadge");
+      const bUsers = document.getElementById("adminUsersBadge");
+      const bAuto = document.getElementById("adminAutoBadge");
+
+      if (bPending) bPending.textContent = pendingAds.length;
+      if (bPublished) bPublished.textContent = publishedAds.length;
+      if (bUsers) bUsers.textContent = allUsers.length;
+      if (bAuto) bAuto.textContent = autoApprovedAds.length;
+
+      // 1. تبويب طلبات النشر
+      renderAdminPendingTab(pendingAds, token);
+
+      // 2. تبويب كل الإعلانات
+      renderAdminPublishedTab(publishedAds, token);
+
+      // 3. تبويب المستخدمين
+      renderAdminUsersTab(allUsers);
+
+      // 4. تبويب نُشر تلقائياً
+      renderAdminAutoTab(autoApprovedAds, token);
+
+    } catch (err) {
+      if (pendingList) pendingList.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message || 'حدث خطأ أثناء تحميل البيانات'}</div>`;
+    }
+  }
+
+  function renderAdminPendingTab(ads, token) {
+    const list = document.getElementById("adminPendingList");
+    const empty = document.getElementById("adminPendingEmpty");
+    if (!list) return;
+
+    if (!ads.length) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      return;
+    }
+    if (empty) empty.classList.add("hidden");
+
+    list.innerHTML = ads.map(ad => {
+      const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || '');
+      const adDesc = typeof ad.description === 'object' ? (ad.description.ar || ad.description.en) : (ad.description || '');
+      const allImages = [];
+      if (ad.image) allImages.push(ad.image);
+      if (ad.extra_images && ad.extra_images.length) {
+        ad.extra_images.forEach(img => { if (img.image && !allImages.includes(img.image)) allImages.push(img.image); });
+      }
+
+      let imagesHtml = '';
+      if (allImages.length > 0) {
+        imagesHtml = `
+          <div style="display:flex; overflow-x:auto; gap:8px; padding:10px 15px; background:#f8f9fa;">
+            ${allImages.map(src => `<a href="${escapeHtml(src)}" target="_blank" onclick="event.preventDefault(); openLightbox(['${escapeHtml(src)}'],0);"><img src="${escapeHtml(src)}" onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';" style="height:90px; min-width:90px; object-fit:cover; border-radius:8px; border:1px solid #dee2e6; cursor:pointer;"></a>`).join('')}
+          </div>
+        `;
+      }
+
+      return `
+        <div class="ad-card" data-ad-id="${ad.id}">
+          ${imagesHtml}
+          <div class="ad-card-top" style="padding:15px; display:flex; justify-content:space-between; align-items:flex-start;">
+            <div style="flex:1; min-width:0;">
+              <div style="margin-bottom:6px;">
+                <span class="badge" style="background:#FFF0E4; color:#FF6A00; font-weight:bold; font-size:11px; padding:3px 8px; border-radius:6px;">قيد المراجعة</span>
+              </div>
+              <h3 class="ad-title" style="margin-bottom:5px; font-size:16px;">${escapeHtml(adTitle)}</h3>
+              <div style="font-size:12px; color:var(--ink-500); margin-bottom:6px;">
+                <i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}
+              </div>
+              <p class="ad-desc" style="margin-bottom:8px; font-size:13px; color:var(--ink-700);">${escapeHtml(adDesc).substring(0, 100)}${adDesc.length > 100 ? '...' : ''}</p>
+              
+              <div class="tag-row" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:6px;">
+                <span class="badge badge-other">${escapeHtml(ad.category || '')}</span>
+                <span class="badge badge-other"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.governorate || '')}</span>
+                <span class="badge" style="background:#fff3e0; color:#e65100; font-weight:bold;">${escapeHtml(String(ad.price || '0'))} دينار</span>
+              </div>
+            </div>
+            
+            ${ad.receipt_image ? `
+              <div style="margin-inline-start: 12px; flex-shrink:0; text-align:center;">
+                <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">إيصال الدفع</p>
+                <div onclick="openLightbox(['${escapeHtml(ad.receipt_image)}'], 0);" style="cursor:pointer; position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--orange-500);">
+                  <img src="${escapeHtml(ad.receipt_image)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover; display:block;">
+                  <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 0;">تكبير <i class="fa-solid fa-magnifying-glass-plus"></i></div>
+                </div>
+              </div>` : `
+              <div style="margin-inline-start: 12px; flex-shrink:0; text-align:center; padding:10px; background:#fff3cd; border-radius:8px;">
+                <i class="fa-solid fa-triangle-exclamation" style="color:#d97706; font-size:18px;"></i>
+                <p style="color:#92400e; font-size:10px; margin:4px 0 0 0; font-weight:bold;">لا يوجد وصل</p>
+              </div>`}
+          </div>
+          <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid var(--line);">
+            <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#2E9E5B;border:none;flex:1;font-weight:bold;"><i class="fa-solid fa-check"></i> قبول ونشر</button>
+            <button class="btn-outline admin-reject-btn" data-id="${ad.id}" style="color:#e63946;border-color:#e63946;flex:1;font-weight:bold;"><i class="fa-solid fa-xmark"></i> رفض</button>
+          </div>
+        </div>`;
+    }).join("");
+
+    // ربط أزرار القبول والرفض
+    list.querySelectorAll(".admin-approve-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const card = btn.closest(".ad-card");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري القبول...';
+        try {
+          const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+            body: JSON.stringify({ action: 'approve' })
+          });
+          if (r.ok) {
+            showToast("تم قبول الإعلان ونشره بنجاح ✅", "success");
+            if (card) card.remove();
+            renderAdminAds();
+          } else {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "فشل قبول الإعلان");
+          }
+        } catch(e) {
+          showToast(e.message || "حدث خطأ أثناء قبول الإعلان", "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> قبول ونشر';
+        }
+      });
+    });
+
+    list.querySelectorAll(".admin-reject-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        if (!confirm("هل أنت متأكد من رفض هذا الإعلان؟")) return;
+        const card = btn.closest(".ad-card");
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفض...';
+        try {
+          const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+            body: JSON.stringify({ action: 'reject' })
+          });
+          if (r.ok) {
+            showToast("تم رفض الإعلان ❌", "success");
+            if (card) card.remove();
+            renderAdminAds();
+          } else {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "فشل رفض الإعلان");
+          }
+        } catch(e) {
+          showToast(e.message || "حدث خطأ أثناء رفض الإعلان", "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-xmark"></i> رفض';
+        }
+      });
+    });
+  }
+
+  function renderAdminPublishedTab(ads, token) {
+    const list = document.getElementById("adminPublishedList");
+    const empty = document.getElementById("adminPublishedEmpty");
+    if (!list) return;
+
+    if (!ads.length) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      return;
+    }
+    if (empty) empty.classList.add("hidden");
+
+    list.innerHTML = ads.map(ad => {
+      const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || '');
+      return `
+        <div class="admin-published-card" data-ad-id="${ad.id}">
+          <div class="admin-published-info">
+            <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
+              <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
+              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} دينار</span>
+              <span><i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}</span>
+            </div>
+          </div>
+          <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}">
+            <i class="fa-solid fa-trash-can"></i> حذف
+          </button>
+        </div>
+      `;
+    }).join("");
+
+    list.querySelectorAll(".admin-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const title = btn.dataset.title;
+        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        try {
+          const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+            body: JSON.stringify({ action: 'delete' })
+          });
+          if (r.ok) {
+            showToast("تم حذف الإعلان نهائياً ❌", "success");
+            btn.closest(".admin-published-card")?.remove();
+            renderAdminAds();
+          } else {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "فشل حذف الإعلان");
+          }
+        } catch(e) {
+          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
+        }
+      });
+    });
+  }
+
+  function renderAdminUsersTab(users) {
+    const list = document.getElementById("adminUsersList");
+    const empty = document.getElementById("adminUsersEmpty");
+    if (!list) return;
+
+    if (!users.length) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      return;
+    }
+    if (empty) empty.classList.add("hidden");
+
+    list.innerHTML = users.map(user => {
+      const isAdmin = user.role === 'admin';
+      return `
+        <div class="admin-user-card">
+          <div class="admin-user-avatar ${isAdmin ? 'admin' : 'user'}">
+            <i class="fa-solid ${isAdmin ? 'fa-shield-halved' : 'fa-user'}"></i>
+          </div>
+          <div class="admin-user-info">
+            <div class="admin-user-name">${escapeHtml(user.username || 'مستخدم')}</div>
+            <div class="admin-user-email">${escapeHtml(user.email || '')}</div>
+            ${user.phone_number ? `<div style="font-size:11px; color:var(--ink-400);"><i class="fa-solid fa-phone"></i> ${escapeHtml(user.phone_number)}</div>` : ''}
+          </div>
+          <span class="admin-user-badge ${isAdmin ? 'admin' : 'user'}">
+            ${isAdmin ? 'أدمن' : 'مستخدم'}
+          </span>
+        </div>
+      `;
+    }).join("");
+  }
+
+  function renderAdminAutoTab(ads, token) {
+    const list = document.getElementById("adminAutoList");
+    const empty = document.getElementById("adminAutoEmpty");
+    if (!list) return;
+
+    if (!ads.length) {
+      list.innerHTML = "";
+      if (empty) empty.classList.remove("hidden");
+      return;
+    }
+    if (empty) empty.classList.add("hidden");
+
+    list.innerHTML = ads.map(ad => {
+      const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || '');
+      return `
+        <div class="admin-published-card" data-ad-id="${ad.id}" style="border-left: 4px solid #2E9E5B; border-right: 4px solid #2E9E5B;">
+          <div class="admin-published-info">
+            <div style="margin-bottom:4px;">
+              <span class="badge" style="background:#E8F5E9; color:#2E9E5B; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
+                <i class="fa-solid fa-bolt"></i> نُشر تلقائياً
+              </span>
+            </div>
+            <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
+              <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
+              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} دينار</span>
+              <span><i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}</span>
+            </div>
+          </div>
+          <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}">
+            <i class="fa-solid fa-trash-can"></i> حذف
+          </button>
+        </div>
+      `;
+    }).join("");
+
+    list.querySelectorAll(".admin-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const title = btn.dataset.title;
+        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        try {
+          const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+            body: JSON.stringify({ action: 'delete' })
+          });
+          if (r.ok) {
+            showToast("تم حذف الإعلان ❌", "success");
+            btn.closest(".admin-published-card")?.remove();
+            renderAdminAds();
+          } else {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "فشل حذف الإعلان");
+          }
+        } catch(e) {
+          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
+        }
+      });
+    });
   }
 
   function renderAds() {

@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=39">
+  <link rel="stylesheet" href="style.css?v=40">
 </head>
 
 <body>
@@ -331,14 +331,69 @@
     <main class="screen" id="screen-admin">
       <div class="details-topbar">
         <button class="back-btn" data-nav="home"><i class="fa-solid fa-arrow-left"></i></button>
-        <span data-i18n="adminPanel">Admin Panel</span>
-        <span class="topbar-spacer"></span>
+        <span style="font-weight:bold;"><i class="fa-solid fa-shield-halved" style="color:var(--orange-500); margin-inline-end:6px;"></i><span data-i18n="adminPanel">لوحة الأدمن</span></span>
+        <button class="text-btn-small" id="refreshAdminBtn" style="margin-inline-start:auto;"><i class="fa-solid fa-rotate-right"></i></button>
       </div>
-      <div class="ads-list" id="adminAdsList"></div>
-      <div class="empty-state hidden" id="adminEmptyState">
-        <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 3rem; margin-bottom: 12px;"></i>
-        <h3 data-i18n="noPendingAds">No pending ads</h3>
-        <p data-i18n="allCaughtUp">You're all caught up!</p>
+
+      <!-- Admin Navigation Tabs (مثل التطبيق) -->
+      <div class="admin-tabs-bar">
+        <button class="admin-tab-btn active" data-admin-tab="pending">
+          <i class="fa-solid fa-clock-rotate-left"></i>
+          <span>طلبات النشر</span>
+          <span class="admin-tab-badge" id="adminPendingBadge">0</span>
+        </button>
+        <button class="admin-tab-btn" data-admin-tab="published">
+          <i class="fa-solid fa-list-check"></i>
+          <span>كل الإعلانات</span>
+          <span class="admin-tab-badge" id="adminPublishedBadge">0</span>
+        </button>
+        <button class="admin-tab-btn" data-admin-tab="users">
+          <i class="fa-solid fa-users"></i>
+          <span>المستخدمون</span>
+          <span class="admin-tab-badge" id="adminUsersBadge">0</span>
+        </button>
+        <button class="admin-tab-btn" data-admin-tab="auto">
+          <i class="fa-solid fa-bolt"></i>
+          <span>نُشر تلقائياً</span>
+          <span class="admin-tab-badge" id="adminAutoBadge">0</span>
+        </button>
+      </div>
+
+      <!-- Tab 1: Pending Ads -->
+      <div class="admin-tab-content active" id="adminTabPending">
+        <div class="ads-list" id="adminPendingList"></div>
+        <div class="empty-state hidden" id="adminPendingEmpty">
+          <i class="fa-solid fa-check-circle" style="color: #10b981; font-size: 3rem; margin-bottom: 12px;"></i>
+          <h3 data-i18n="noPendingAds">لا توجد إعلانات معلقة!</h3>
+          <p>جميع الإعلانات تمت مراجعتها بنجاح.</p>
+        </div>
+      </div>
+
+      <!-- Tab 2: Published Ads -->
+      <div class="admin-tab-content" id="adminTabPublished" style="display:none;">
+        <div class="ads-list" id="adminPublishedList" style="padding: 12px 16px;"></div>
+        <div class="empty-state hidden" id="adminPublishedEmpty">
+          <i class="fa-regular fa-folder-open" style="font-size: 3rem; margin-bottom: 12px; color:var(--ink-400);"></i>
+          <h3>لا توجد إعلانات منشورة</h3>
+        </div>
+      </div>
+
+      <!-- Tab 3: Users List -->
+      <div class="admin-tab-content" id="adminTabUsers" style="display:none;">
+        <div class="admin-users-list" id="adminUsersList"></div>
+        <div class="empty-state hidden" id="adminUsersEmpty">
+          <i class="fa-solid fa-user-slash" style="font-size: 3rem; margin-bottom: 12px; color:var(--ink-400);"></i>
+          <h3>لا يوجد مستخدمون</h3>
+        </div>
+      </div>
+
+      <!-- Tab 4: Auto-Approved Ads -->
+      <div class="admin-tab-content" id="adminTabAuto" style="display:none;">
+        <div class="ads-list" id="adminAutoList" style="padding: 12px 16px;"></div>
+        <div class="empty-state hidden" id="adminAutoEmpty">
+          <i class="fa-solid fa-bolt" style="font-size: 3rem; margin-bottom: 12px; color:var(--ink-400);"></i>
+          <h3>لا توجد إعلانات نُشرت تلقائياً</h3>
+        </div>
       </div>
     </main>
     <!-- ============ SCREEN: MY LISTINGS ============ -->
@@ -891,7 +946,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=39"></script>
+  <script src="script.js?v=40"></script>
 
 </body>
 
