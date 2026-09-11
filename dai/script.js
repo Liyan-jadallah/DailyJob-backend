@@ -1974,16 +1974,19 @@
       )
     );
 
-    const ownerActions = document.getElementById("detailsOwnerActions");
+    const editAdBtn = document.getElementById("editAdBtn");
+    const deleteAdBtn = document.getElementById("deleteAdBtn");
     const topbarOwner = document.getElementById("topbarOwnerActions");
     const topbarSpacer = document.getElementById("topbarSpacer");
 
     if (isAdOwner) {
-      if (ownerActions) ownerActions.classList.remove("hidden");
+      if (editAdBtn) editAdBtn.classList.remove("hidden");
+      if (deleteAdBtn) deleteAdBtn.classList.remove("hidden");
       if (topbarOwner) topbarOwner.classList.remove("hidden");
       if (topbarSpacer) topbarSpacer.classList.add("hidden");
     } else {
-      if (ownerActions) ownerActions.classList.add("hidden");
+      if (editAdBtn) editAdBtn.classList.add("hidden");
+      if (deleteAdBtn) deleteAdBtn.classList.add("hidden");
       if (topbarOwner) topbarOwner.classList.add("hidden");
       if (topbarSpacer) topbarSpacer.classList.remove("hidden");
     }

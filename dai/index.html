@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=54">
+  <link rel="stylesheet" href="style.css?v=55">
 </head>
 
 <body>
@@ -196,28 +196,20 @@
         </div>
       </div>
       <div class="details-actionbar">
-        <!-- صف أزرار صاحب الإعلان (يظهر لصاحب الإعلان أو المشرف فقط) -->
-        <div class="details-owner-actions hidden" id="detailsOwnerActions">
-          <button type="button" class="btn-owner-edit" id="editAdBtn">
-            <i class="fa-solid fa-pen-to-square"></i>
-            <span data-i18n="editAd">تعديل الإعلان</span>
-          </button>
-          <button type="button" class="btn-owner-delete" id="deleteAdBtn">
-            <i class="fa-solid fa-trash-can"></i>
-            <span data-i18n="deleteAd">حذف الإعلان</span>
-          </button>
-        </div>
-
-        <div class="details-buttons-row">
-          <button class="contact-main" id="contactBtn"><i class="fa-brands fa-whatsapp"></i>
-            <span data-i18n="contactWhatsapp">Call or WhatsApp</span></button>
-          <a class="contact-call-btn" id="callBtn" href="tel:">
-            <i class="fa-solid fa-phone"></i>
-            <span data-i18n="callDirect">Call</span>
-          </a>
-          <button class="icon-round" id="shareBtn" title="مشاركة"><i class="fa-solid fa-share-nodes"></i></button>
-          <button class="icon-round" id="favBtn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
-        </div>
+        <button class="contact-main" id="contactBtn"><i class="fa-brands fa-whatsapp"></i>
+          <span data-i18n="contactWhatsapp">Call or WhatsApp</span></button>
+        <a class="contact-call-btn" id="callBtn" href="tel:">
+          <i class="fa-solid fa-phone"></i>
+          <span data-i18n="callDirect">Call</span>
+        </a>
+        <button class="icon-round hidden" id="editAdBtn" title="تعديل الإعلان">
+          <i class="fa-solid fa-pen-to-square"></i>
+        </button>
+        <button class="icon-round hidden" id="deleteAdBtn" title="حذف الإعلان">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+        <button class="icon-round" id="shareBtn" title="مشاركة"><i class="fa-solid fa-share-nodes"></i></button>
+        <button class="icon-round" id="favBtn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
       </div>
     </main>
 
@@ -947,7 +939,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=54"></script>
+  <script src="script.js?v=55"></script>
 
 </body>
 

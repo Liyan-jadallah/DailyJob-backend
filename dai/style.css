@@ -1158,8 +1158,8 @@ html[dir="rtl"] .desc-list li::before {
 
 .details-actionbar {
   display: flex;
-  flex-direction: column;
-  gap: 10px;
+  align-items: center;
+  gap: 8px;
   padding: 12px 16px;
   background: #fff;
   border-top: 1px solid var(--line);
@@ -1168,59 +1168,89 @@ html[dir="rtl"] .desc-list li::before {
   z-index: 15;
 }
 
-.details-owner-actions {
-  display: flex;
-  gap: 10px;
-  width: 100%;
-}
-
-.btn-owner-edit,
-.btn-owner-delete {
-  flex: 1;
+.icon-round {
+  width: 40px;
+  height: 40px;
+  min-width: 40px;
+  border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 8px;
-  padding: 11px 16px;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 13.5px;
-  cursor: pointer;
+  background: var(--gray-tint);
+  color: var(--ink-700);
+  font-size: 14px;
+  border: 1.5px solid transparent;
   transition: all .2s ease;
-  font-family: inherit;
+  flex-shrink: 0;
+  cursor: pointer;
 }
 
-.btn-owner-edit {
+.icon-round:hover {
+  background: var(--orange-tint);
+  color: var(--orange-600);
+  transform: translateY(-2px);
+}
+
+.icon-round.is-fav {
+  background: rgba(230, 57, 70, .1);
+  color: var(--red-600);
+}
+
+.icon-round.hidden {
+  display: none !important;
+}
+
+/* زر التعديل بجانب أزرار الإعلان */
+#editAdBtn {
   background: #eff6ff;
-  border: 1.5px solid #bfdbfe;
-  color: #1d4ed8;
+  color: #2563eb;
+  border-color: #bfdbfe;
 }
-
-.btn-owner-edit:hover {
+#editAdBtn:hover {
   background: #dbeafe;
+  color: #1d4ed8;
   border-color: #93c5fd;
-  color: #1e40af;
-  transform: translateY(-1px);
+  transform: translateY(-2px);
 }
 
-.btn-owner-delete {
+/* زر الحذف بجانب أزرار الإعلان */
+#deleteAdBtn {
   background: #fef2f2;
-  border: 1.5px solid #fee2e2;
-  color: #dc2626;
+  color: #ef4444;
+  border-color: #fecaca;
 }
-
-.btn-owner-delete:hover {
+#deleteAdBtn:hover {
   background: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
-  transform: translateY(-1px);
+  color: #dc2626;
+  border-color: #f87171;
+  transform: translateY(-2px);
 }
 
-.details-buttons-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  width: 100%;
+@media (max-width: 400px) {
+  .details-actionbar {
+    gap: 6px;
+    padding: 10px 10px;
+  }
+  .icon-round {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    font-size: 13px;
+  }
+  .contact-call-btn span {
+    display: none;
+  }
+  .contact-call-btn {
+    padding: 10px 10px;
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    justify-content: center;
+  }
+  .contact-main {
+    padding: 10px 12px;
+    font-size: 12px;
+  }
 }
 
 .contact-main {
