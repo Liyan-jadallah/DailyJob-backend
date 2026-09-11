@@ -519,17 +519,17 @@
   <div class="drawer-overlay" id="drawerOverlay">
     <aside class="drawer-panel">
       <div class="drawer-head">
-        <div class="drawer-user-card" id="drawerUserCard" role="button" tabindex="0" title="حسابي والملف الشخصي">
-          <div class="drawer-avatar" id="drawerAvatar">
-            <i class="fa-regular fa-user"></i>
+        <div class="drawer-avatar" id="drawerAvatar">
+          <i class="fa-regular fa-user"></i>
+        </div>
+        <div class="drawer-user">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
+            <strong id="drawerUserName">Guest</strong>
+            <button class="drawer-edit-btn hidden" id="drawerEditProfileHeadBtn" title="تعديل الملف الشخصي" aria-label="Edit Profile">
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
           </div>
-          <div class="drawer-user">
-            <div style="display:flex; align-items:center; gap:6px;">
-              <strong id="drawerUserName">Guest</strong>
-              <i class="fa-solid fa-pen-to-square profile-edit-badge" id="drawerUserEditBadge" style="display:none; font-size:11px; color:var(--orange-500);" title="تعديل"></i>
-            </div>
-            <span id="drawerUserSub">Sign in to see more</span>
-          </div>
+          <span id="drawerUserSub">Sign in to see more</span>
         </div>
         <button class="modal-close" id="drawerClose">
           <i class="fa-solid fa-xmark"></i>
@@ -573,10 +573,22 @@
             <span data-i18n="couponsOffers">القسائم والعروض</span>
           </button>
         </li>
-        <li>
-          <button type="button" id="drawerProfileBtn" data-auth-required>
-            <i class="fa-solid fa-circle-user"></i>
-            <span data-i18n="myAccount">حسابي والملف الشخصي</span>
+        <li class="drawer-auth-item hidden">
+          <button type="button" id="drawerEditProfileBtn">
+            <i class="fa-solid fa-user-gear"></i>
+            <span data-i18n="editProfile">Edit Profile</span>
+          </button>
+        </li>
+        <li class="drawer-auth-item hidden">
+          <button type="button" id="changePasswordBtn">
+            <i class="fa-solid fa-key"></i>
+            <span data-i18n="changePassword">Change Password</span>
+          </button>
+        </li>
+        <li class="drawer-auth-item drawer-item-danger hidden">
+          <button type="button" id="deleteAccountBtn">
+            <i class="fa-solid fa-user-xmark"></i>
+            <span data-i18n="deleteAccount">Delete Account Permanently</span>
           </button>
         </li>
         <li>
@@ -808,55 +820,35 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="modal-icon"><i class="fa-solid fa-circle-user" style="color:var(--orange-500);"></i></div>
-      <h2 class="modal-title" data-i18n="myAccount">حسابي والملف الشخصي</h2>
-      <p class="modal-sub" style="margin-bottom:16px; font-size:12px; color:var(--ink-500); text-align:center;" data-i18n="manageAccountInfo">
-        تعديل البيانات الشخصية وإعدادات الحساب والأمان
+      <div class="modal-icon"><i class="fa-solid fa-user-gear" style="color:var(--orange-500);"></i></div>
+      <h2 class="modal-title" data-i18n="editProfile">الملف الشخصي</h2>
+      <p class="modal-sub" style="margin-bottom:15px; font-size:12px; color:var(--ink-500); text-align:center;" data-i18n="editProfileSub">
+        تعديل بيانات حسابك والمحافظة المفضلة
       </p>
 
-      <div class="profile-modal-body">
-        <label class="form-label" data-i18n="email">البريد الإلكتروني</label>
-        <div style="position:relative; margin-bottom:12px;">
-          <input class="form-input" id="profileEmail" type="email" disabled style="background:var(--surface-sunken, #f8fafc); color:var(--ink-600); cursor:not-allowed; padding-inline-end:36px;">
-          <i class="fa-solid fa-lock" style="position:absolute; inset-inline-end:12px; top:50%; transform:translateY(-50%); color:var(--ink-400); font-size:12px;"></i>
-        </div>
+      <div class="form-error hidden" id="profileModalError"></div>
 
-        <label class="form-label" style="margin-top:4px;" data-i18n="username">اسم المستخدم</label>
-        <input class="form-input" id="profileUsername" type="text" placeholder="اسم المستخدم" style="margin-bottom:12px;">
+      <label class="form-label" data-i18n="email">البريد الإلكتروني</label>
+      <input class="form-input" id="profileEmail" type="email" disabled style="background:var(--gray-tint, #f4f5f7); color:var(--ink-500); cursor:not-allowed;">
 
-        <label class="form-label" style="margin-top:4px;" data-i18n="preferredGov">المحافظة المفضلة</label>
-        <select class="form-select" id="profileGov" style="margin-bottom:16px;"></select>
+      <label class="form-label" style="margin-top:10px;" data-i18n="username">اسم المستخدم</label>
+      <input class="form-input" id="profileUsername" type="text" placeholder="اسم المستخدم">
 
-        <button type="button" class="btn-primary btn-block" id="saveProfileBtn" style="height:44px; font-weight:700;">
-          <i class="fa-solid fa-check"></i>
-          <span data-i18n="saveChanges">حفظ التغييرات</span>
+      <label class="form-label" style="margin-top:10px;" data-i18n="preferredGov">المحافظة المفضلة</label>
+      <select class="form-select" id="profileGov"></select>
+
+      <label class="form-label" style="margin-top:10px;" data-i18n="referralCode">كود الإحالة الخاص بك</label>
+      <div style="display:flex; gap:8px;">
+        <input class="form-input" id="profileReferralCode" type="text" disabled style="font-weight:800; color:var(--orange-600); letter-spacing:2px; margin-bottom:0; background:var(--gray-tint, #f4f5f7);" placeholder="---">
+        <button type="button" id="copyProfileRefBtn" class="btn-outline" style="height:42px; padding:0 16px; white-space:nowrap; border-radius:10px; cursor:pointer;" title="نسخ الكود">
+          <i class="fa-solid fa-copy"></i>
         </button>
-
-        <!-- كود الدعوة في الملف الشخصي (Referral Code) -->
-        <div id="profileRefBox" style="margin-top:14px; padding:10px 14px; background:var(--surface-sunken, #f8fafc); border-radius:10px; border:1px dashed var(--line, #e2e8f0); display:flex; align-items:center; justify-content:space-between; gap:10px;">
-          <div style="display:flex; flex-direction:column; gap:2px; overflow:hidden;">
-            <span style="font-size:11px; color:var(--ink-500); font-weight:600;" data-i18n="referralCode">كود الإحالة الخاص بك</span>
-            <span id="profileReferralCode" style="font-weight:800; color:var(--orange-600); letter-spacing:1.5px; font-size:14px;">---</span>
-          </div>
-          <button type="button" id="copyProfileRefBtn" class="btn-outline" style="height:32px; padding:0 12px; border-radius:8px; font-size:12px; display:inline-flex; align-items:center; gap:6px; cursor:pointer;" title="نسخ الكود">
-            <i class="fa-solid fa-copy"></i>
-            <span data-i18n="copy">نسخ</span>
-          </button>
-        </div>
-
-        <!-- أزرار الأمان والحساب -->
-        <div style="margin-top:18px; padding-top:14px; border-top:1px solid var(--line, #e2e8f0); display:flex; flex-direction:column; gap:10px;">
-          <button type="button" class="btn-outline btn-block" id="profileChangePasswordBtn" style="display:flex; align-items:center; justify-content:center; gap:8px; height:40px; font-weight:600; font-size:13px;">
-            <i class="fa-solid fa-key" style="color:var(--orange-500);"></i>
-            <span data-i18n="changePassword">تغيير كلمة المرور</span>
-          </button>
-
-          <button type="button" class="btn-danger-outline btn-block" id="profileDeleteAccountBtn" style="display:flex; align-items:center; justify-content:center; gap:8px; height:40px; font-weight:600; font-size:13px; color:#ef4444; border:1.5px solid #fee2e2; background:#fff; border-radius:10px; cursor:pointer; transition:all 0.2s ease;">
-            <i class="fa-solid fa-user-xmark"></i>
-            <span data-i18n="deleteAccount">حذف الحساب نهائياً</span>
-          </button>
-        </div>
       </div>
+
+      <button class="btn-primary btn-block" id="saveProfileBtn" style="margin-top:18px;">
+        <i class="fa-solid fa-check"></i>
+        <span data-i18n="saveChanges">حفظ التعديلات</span>
+      </button>
     </div>
   </div>
 

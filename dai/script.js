@@ -294,6 +294,9 @@
       send: "Send",
 
       forgotPassword: "Forgot Password?",
+      editProfile: "Edit Profile",
+      editProfileSub: "Update your personal details and preferred governorate",
+      profileSaved: "Profile updated successfully",
       changePassword: "Change Password",
       changePasswordBtn: "Change Password",
       currentPassword: "Current Password",
@@ -352,9 +355,6 @@
       viewsCount: "views",
       noNotifications: "No notifications at the moment",
       settings: "Settings",
-      myAccount: "My Account & Profile",
-      manageAccountInfo: "Manage your profile details and account security",
-      accountSecurity: "Security Settings",
       accountInfo: "Account Information",
       email: "Email Address",
       username: "Username",
@@ -448,6 +448,9 @@
       send: "إرسال",
 
       forgotPassword: "نسيت كلمة المرور؟",
+      editProfile: "تعديل الملف الشخصي",
+      editProfileSub: "تعديل بيانات حسابك والمحافظة المفضلة",
+      profileSaved: "تم تحديث الملف الشخصي بنجاح",
       changePassword: "تغيير كلمة المرور",
       changePasswordBtn: "تغيير كلمة المرور",
       currentPassword: "كلمة المرور الحالية",
@@ -506,9 +509,6 @@
       viewsCount: "مشاهدة",
       noNotifications: "لا توجد إشعارات حالياً",
       settings: "الإعدادات",
-      myAccount: "حسابي والملف الشخصي",
-      manageAccountInfo: "تعديل البيانات الشخصية وإعدادات الحساب والأمان",
-      accountSecurity: "إعدادات الأمان",
       accountInfo: "معلومات الحساب",
       email: "البريد الإلكتروني",
       username: "اسم المستخدم",
@@ -1036,16 +1036,6 @@
   }
 
   function goToScreen(name, pushState = true) {
-    if (name === "settings") {
-      closeDrawer();
-      if (state.isAuthenticated && state.user) {
-        openProfileModal();
-      } else {
-        openAuth("login");
-      }
-      return;
-    }
-
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
     
     const targetScreen = document.getElementById("screen-" + name);
@@ -2095,22 +2085,23 @@
     const subEl = document.getElementById("drawerUserSub");
     const authBtnLabel = document.getElementById("drawerAuthLabel");
     const avatarEl = document.getElementById("drawerAvatar");
+    const editHeadBtn = document.getElementById("drawerEditProfileHeadBtn");
+    const authItems = document.querySelectorAll(".drawer-auth-item");
 
     if (!nameEl) return;
 
     const adminDrawerItem = document.getElementById("adminDrawerItem");
 
-    const editBadge = document.getElementById("drawerUserEditBadge");
-
     if (state.isAuthenticated && state.user) {
       nameEl.textContent = state.user.username;
       if (subEl) subEl.textContent = state.user.email;
       if (authBtnLabel) authBtnLabel.textContent = t("logout");
-      if (editBadge) editBadge.style.display = "inline-block";
       if (avatarEl) {
         avatarEl.innerHTML = `<i class="fa-solid fa-user-check"></i>`;
         avatarEl.style.background = "var(--orange-tint)";
       }
+      if (editHeadBtn) editHeadBtn.classList.remove("hidden");
+      authItems.forEach(el => el.classList.remove("hidden"));
       if (adminDrawerItem) {
         if (state.user.role === 'admin') adminDrawerItem.classList.remove("hidden");
         else adminDrawerItem.classList.add("hidden");
@@ -2119,11 +2110,12 @@
       nameEl.textContent = t("guest");
       if (subEl) subEl.textContent = t("signInToSeeMore");
       if (authBtnLabel) authBtnLabel.textContent = t("login");
-      if (editBadge) editBadge.style.display = "none";
       if (avatarEl) {
         avatarEl.innerHTML = `<i class="fa-regular fa-user"></i>`;
         avatarEl.style.background = "var(--orange-tint)";
       }
+      if (editHeadBtn) editHeadBtn.classList.add("hidden");
+      authItems.forEach(el => el.classList.add("hidden"));
       if (adminDrawerItem) adminDrawerItem.classList.add("hidden");
     }
   }
@@ -2147,27 +2139,19 @@
     });
   }
 
-  const drawerUserCard = document.getElementById("drawerUserCard");
-  if (drawerUserCard) {
-    drawerUserCard.addEventListener("click", () => {
+  const drawerEditProfileHeadBtn = document.getElementById("drawerEditProfileHeadBtn");
+  if (drawerEditProfileHeadBtn) {
+    drawerEditProfileHeadBtn.addEventListener("click", () => {
       closeDrawer();
-      if (state.isAuthenticated && state.user) {
-        openProfileModal();
-      } else {
-        openAuth("login");
-      }
+      openProfileModal();
     });
   }
 
-  const drawerProfileBtn = document.getElementById("drawerProfileBtn");
-  if (drawerProfileBtn) {
-    drawerProfileBtn.addEventListener("click", () => {
+  const drawerEditProfileBtn = document.getElementById("drawerEditProfileBtn");
+  if (drawerEditProfileBtn) {
+    drawerEditProfileBtn.addEventListener("click", () => {
       closeDrawer();
-      if (state.isAuthenticated && state.user) {
-        openProfileModal();
-      } else {
-        openAuth("login");
-      }
+      openProfileModal();
     });
   }
 
@@ -2337,22 +2321,14 @@
   function populateFormSelects() {
     const govSelect = document.getElementById("fGovernorate");
     if (govSelect) {
-      govSelect.innerHTML = GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("");
+      govSelect.innerHTML = GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("");
     }
 
     const profileGovSelect = document.getElementById("profileGov");
     if (profileGovSelect) {
       profileGovSelect.innerHTML = `
         <option value="all">— ${t("all")} —</option>
-        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
-      `;
-    }
-
-    const settingsGovSelect = document.getElementById("settingsGov");
-    if (settingsGovSelect) {
-      settingsGovSelect.innerHTML = `
-        <option value="all">— ${t("all")} —</option>
-        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
+        ${GOVERNORATES.map((g) => `<option value="${g.key}">${state.lang === "ar" ? g.ar : g.en}</option>`).join("")}
       `;
     }
 
@@ -2360,7 +2336,7 @@
     if (filterGovSelect) {
       filterGovSelect.innerHTML = `
         <option value="all">— ${t("all")} —</option>
-        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
+        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("")}
       `;
     }
 
@@ -2639,25 +2615,27 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // نافذة الملف الشخصي والحساب (Profile & Account Modal)
-  // ══════════════════════════════════════════════════════════════════
   function openProfileModal() {
     if (!state.isAuthenticated || !state.user) {
       openAuth("login");
       return;
     }
-    closeDrawer();
 
-    const emailEl = document.getElementById("profileEmail");
-    const usernameEl = document.getElementById("profileUsername");
-    const govEl = document.getElementById("profileGov");
-    const refCodeEl = document.getElementById("profileReferralCode");
+    const nameInput = document.getElementById("profileUsername");
+    const emailInput = document.getElementById("profileEmail");
+    const govSelect = document.getElementById("profileGov");
+    const refInput = document.getElementById("profileReferralCode");
+    const errEl = document.getElementById("profileModalError");
 
-    if (emailEl) emailEl.value = state.user.email || "";
-    if (usernameEl) usernameEl.value = state.user.username || "";
-    if (govEl) govEl.value = state.settings.preferredGovernorate || "all";
-    if (refCodeEl) refCodeEl.textContent = state.user.referral_code || "---";
+    if (errEl) {
+      errEl.textContent = "";
+      errEl.classList.add("hidden");
+    }
+
+    if (nameInput) nameInput.value = state.user.username || "";
+    if (emailInput) emailInput.value = state.user.email || "";
+    if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
+    if (refInput) refInput.value = state.user.referral_code || "---";
 
     const modal = document.getElementById("profileModalOverlay");
     if (modal) modal.classList.add("open");
@@ -2681,26 +2659,27 @@
   const saveProfileBtn = document.getElementById("saveProfileBtn");
   if (saveProfileBtn) {
     saveProfileBtn.addEventListener("click", () => {
-      const usernameInput = document.getElementById("profileUsername");
-      const govInput = document.getElementById("profileGov");
-      const newUsername = usernameInput?.value.trim();
+      const nameInput = document.getElementById("profileUsername");
+      const govSelect = document.getElementById("profileGov");
+      const errEl = document.getElementById("profileModalError");
+      const newUsername = nameInput?.value.trim();
 
       if (!newUsername || newUsername.length < 3) {
-        showToast(t("usernameMinLength"), "error");
+        showFormError(errEl, t("usernameMinLength") || (state.lang === "ar" ? "اسم المستخدم يجب أن يكون 3 أحرف على الأقل" : "Username must be at least 3 characters"));
         return;
       }
 
       state.user.username = newUsername;
       localStorage.setItem("dj_user", JSON.stringify(state.user));
 
-      if (govInput) {
-        state.settings.preferredGovernorate = govInput.value;
+      if (govSelect) {
+        state.settings.preferredGovernorate = govSelect.value;
         localStorage.setItem("dj_settings", JSON.stringify(state.settings));
       }
 
       updateDrawerUser();
-      showToast(state.lang === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Profile updated successfully', 'success');
       closeProfileModal();
+      showToast(t("profileSaved"), "success");
     });
   }
 
@@ -2715,78 +2694,6 @@
       }
     });
   }
-
-  const profileChangePasswordBtn = document.getElementById("profileChangePasswordBtn");
-  if (profileChangePasswordBtn) {
-    profileChangePasswordBtn.addEventListener("click", () => {
-      closeProfileModal();
-      const changePasswordBtn = document.getElementById("changePasswordBtn");
-      if (changePasswordBtn) {
-        changePasswordBtn.click();
-      } else {
-        const overlay = document.getElementById("changePassOverlay");
-        const errEl = document.getElementById("changePassError");
-        const successEl = document.getElementById("changePassSuccess");
-        if (errEl) errEl.classList.add("hidden");
-        if (successEl) successEl.classList.add("hidden");
-        const oPass = document.getElementById("cpOldPass");
-        const nPass = document.getElementById("cpNewPass");
-        const cPass = document.getElementById("cpConfirmPass");
-        if (oPass) oPass.value = '';
-        if (nPass) nPass.value = '';
-        if (cPass) cPass.value = '';
-        if (overlay) overlay.classList.add("open");
-      }
-    });
-  }
-
-  const profileDeleteAccountBtn = document.getElementById("profileDeleteAccountBtn");
-  if (profileDeleteAccountBtn) {
-    profileDeleteAccountBtn.addEventListener("click", () => {
-      closeProfileModal();
-      const deleteAccountBtn = document.getElementById("deleteAccountBtn");
-      if (deleteAccountBtn) {
-        deleteAccountBtn.click();
-      } else {
-        const overlay = document.getElementById("deleteAccOverlay");
-        const errEl = document.getElementById("deleteAccError");
-        const passInput = document.getElementById("deleteAccPass");
-        if (errEl) errEl.classList.add("hidden");
-        if (passInput) passInput.value = '';
-        if (overlay) overlay.classList.add("open");
-      }
-    });
-  }
-
-  function updateSettingsPage() {
-    if (!state.user) return;
-    const emailEl = document.getElementById("profileEmail");
-    const usernameEl = document.getElementById("profileUsername");
-    const govEl = document.getElementById("profileGov");
-    const refCodeEl = document.getElementById("profileReferralCode");
-    if (emailEl) emailEl.value = state.user.email || "";
-    if (usernameEl) usernameEl.value = state.user.username || "";
-    if (govEl) govEl.value = state.settings.preferredGovernorate || "all";
-    if (refCodeEl) refCodeEl.textContent = state.user.referral_code || "---";
-  }
-
-  const saveAccountBtn = document.getElementById("saveAccountBtn");
-  if (saveAccountBtn) {
-    saveAccountBtn.addEventListener("click", () => {
-      const newUsername = document.getElementById("settingsUsername")?.value.trim();
-      if (newUsername && newUsername.length >= 3) {
-        state.user.username = newUsername;
-        localStorage.setItem("dj_user", JSON.stringify(state.user));
-        updateDrawerUser();
-        showToast(t("settingsSaved"), "success");
-      } else {
-        showToast(t("usernameMinLength"), "error");
-      }
-    });
-  }
-
-  const logoutBtn = document.getElementById("logoutBtn");
-  if (logoutBtn) logoutBtn.addEventListener("click", logout);
 
   function switchLanguage(lang) {
     state.lang = lang;
@@ -3157,7 +3064,6 @@
                         if (changed) {
                             localStorage.setItem("dj_user", JSON.stringify(state.user));
                             updateDrawerUser();
-                            updateSettingsPage();
                         }
                     }
                 }).catch(e => console.error(e));
@@ -3223,8 +3129,7 @@
     } catch (e) {}
 
     // تعديل: استعادة الشاشة السابقة بدلاً من الذهاب إلى الرئيسية دائماً
-    let lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
-    if (lastScreen === "settings") lastScreen = "home";
+    const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
     if (lastScreen !== "details" && lastScreen !== "edit") {
       goToScreen(lastScreen);
     } else {
@@ -3750,6 +3655,7 @@
   const deleteAccountBtn = document.getElementById("deleteAccountBtn");
   if (deleteAccountBtn) {
     deleteAccountBtn.addEventListener("click", () => {
+      closeDrawer();
       if (!state.isAuthenticated || !state.user) {
         showToast("يجب تسجيل الدخول أولاً.", "error");
         return;
@@ -3815,6 +3721,7 @@
   const changePasswordBtn = document.getElementById("changePasswordBtn");
   if (changePasswordBtn) {
     changePasswordBtn.addEventListener("click", () => {
+      closeDrawer();
       if (!state.isAuthenticated) { openAuth('login'); return; }
       const overlay = document.getElementById("changePassOverlay");
       const errEl = document.getElementById("changePassError");
