@@ -2624,7 +2624,6 @@
     const nameInput = document.getElementById("profileUsername");
     const emailInput = document.getElementById("profileEmail");
     const govSelect = document.getElementById("profileGov");
-    const refInput = document.getElementById("profileReferralCode");
     const errEl = document.getElementById("profileModalError");
 
     if (errEl) {
@@ -2635,7 +2634,6 @@
     if (nameInput) nameInput.value = state.user.username || "";
     if (emailInput) emailInput.value = state.user.email || "";
     if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
-    if (refInput) refInput.value = state.user.referral_code || "---";
 
     const modal = document.getElementById("profileModalOverlay");
     if (modal) modal.classList.add("open");
@@ -2680,18 +2678,6 @@
       updateDrawerUser();
       closeProfileModal();
       showToast(t("profileSaved"), "success");
-    });
-  }
-
-  const copyProfileRefBtn = document.getElementById("copyProfileRefBtn");
-  if (copyProfileRefBtn) {
-    copyProfileRefBtn.addEventListener("click", () => {
-      const code = state.user?.referral_code;
-      if (code && code !== '---') {
-        navigator.clipboard.writeText(code).then(() => {
-          showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied!', 'success');
-        });
-      }
     });
   }
 
