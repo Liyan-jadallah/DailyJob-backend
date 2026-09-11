@@ -904,8 +904,14 @@
 
       <label class="form-label" data-i18n="currentPassword">Current Password</label>
       <input type="password" id="cpOldPass" class="form-input" placeholder="••••••••" autocomplete="current-password">
+      <div style="display:flex; justify-content:flex-end; margin-top:6px; margin-bottom:10px;">
+        <button type="button" id="cpForgotPassBtn" style="background:none; border:none; padding:0; color:var(--orange-500, #ff6a00); font-size:13px; font-weight:600; cursor:pointer; font-family:inherit; display:inline-flex; align-items:center; gap:6px;">
+          <i class="fa-solid fa-key" style="font-size:12px;"></i>
+          <span data-i18n="forgotPassword">نسيت كلمة المرور؟</span>
+        </button>
+      </div>
 
-      <label class="form-label" style="margin-top:12px;" data-i18n="newPassword">New Password</label>
+      <label class="form-label" style="margin-top:4px;" data-i18n="newPassword">New Password</label>
       <input type="password" id="cpNewPass" class="form-input" placeholder="••••••••" autocomplete="new-password">
 
       <label class="form-label" style="margin-top:12px;" data-i18n="confirmNewPassword">Confirm New Password</label>
@@ -946,7 +952,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=40"></script>
+  <script src="script.js?v=41"></script>
 
 </body>
 

@@ -3643,6 +3643,31 @@
     if (e.target === changePassOverlay) changePassOverlay.classList.remove("open");
   });
 
+  const cpForgotPassBtn = document.getElementById("cpForgotPassBtn");
+  if (cpForgotPassBtn) {
+    cpForgotPassBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      // إغلاق نافذة تغيير كلمة المرور
+      document.getElementById("changePassOverlay")?.classList.remove("open");
+
+      // تعبئة البريد الإلكتروني للمستخدم الحالي تلقائياً
+      const userEmail = state.currentUser?.email || localStorage.getItem("dj_user_email") || "";
+      const forgotEmailInput = document.getElementById("forgotEmail");
+      if (forgotEmailInput && userEmail) {
+        forgotEmailInput.value = userEmail;
+      }
+
+      // إظهار واجهة نسيت كلمة المرور وفتح نافذة المصادقة
+      if (typeof showAuthStep === 'function') {
+        showAuthStep('authStepForgot');
+      }
+      const authOverlayEl = (typeof elements !== 'undefined' && elements.authOverlay) || document.getElementById("authOverlay");
+      if (authOverlayEl) {
+        authOverlayEl.classList.add("open");
+      }
+    });
+  }
+
   const changePassSubmitBtn = document.getElementById("changePassSubmitBtn");
   if (changePassSubmitBtn) {
     changePassSubmitBtn.addEventListener("click", async () => {

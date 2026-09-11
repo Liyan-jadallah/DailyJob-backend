@@ -4,7 +4,7 @@ services:
     runtime: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn backend.wsgi:application"
+    startCommand: "gunicorn backend.wsgi:application --workers 2 --threads 4 --worker-class gthread"
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.10
