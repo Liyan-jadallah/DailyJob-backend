@@ -1663,6 +1663,16 @@ html[dir="rtl"] .drawer-panel {
   color: var(--orange-700);
 }
 
+.profile-avatar-box:hover {
+  border-color: var(--orange-600) !important;
+  transform: scale(1.02);
+}
+
+.profile-avatar-badge:hover {
+  background: var(--orange-600) !important;
+  transform: scale(1.1);
+}
+
 .drawer-list {
   flex: 1;
   display: flex;

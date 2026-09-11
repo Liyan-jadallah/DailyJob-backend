@@ -295,8 +295,9 @@
 
       forgotPassword: "Forgot Password?",
       editProfile: "Edit Profile",
-      editProfileSub: "Update your personal details and preferred governorate",
       profileSaved: "Profile updated successfully",
+      removeAvatar: "Remove Photo",
+      changeAvatar: "Change Photo",
       changePassword: "Change Password",
       changePasswordBtn: "Change Password",
       currentPassword: "Current Password",
@@ -449,8 +450,9 @@
 
       forgotPassword: "نسيت كلمة المرور؟",
       editProfile: "تعديل الملف الشخصي",
-      editProfileSub: "تعديل بيانات حسابك والمحافظة المفضلة",
       profileSaved: "تم تحديث الملف الشخصي بنجاح",
+      removeAvatar: "إزالة الصورة",
+      changeAvatar: "تغيير الصورة",
       changePassword: "تغيير كلمة المرور",
       changePasswordBtn: "تغيير كلمة المرور",
       currentPassword: "كلمة المرور الحالية",
@@ -2097,8 +2099,15 @@
       if (subEl) subEl.textContent = state.user.email;
       if (authBtnLabel) authBtnLabel.textContent = t("logout");
       if (avatarEl) {
-        avatarEl.innerHTML = `<i class="fa-solid fa-user-check"></i>`;
-        avatarEl.style.background = "var(--orange-tint)";
+        if (state.user.avatar) {
+          avatarEl.innerHTML = `<img src="${state.user.avatar}" alt="Avatar" style="width:100%; height:100%; object-fit:cover; border-radius:12px;">`;
+          avatarEl.style.background = "transparent";
+          avatarEl.style.overflow = "hidden";
+        } else {
+          avatarEl.innerHTML = `<i class="fa-solid fa-user-check"></i>`;
+          avatarEl.style.background = "var(--orange-tint)";
+          avatarEl.style.overflow = "visible";
+        }
       }
       if (editHeadBtn) editHeadBtn.classList.remove("hidden");
       authItems.forEach(el => el.classList.remove("hidden"));
@@ -2113,6 +2122,7 @@
       if (avatarEl) {
         avatarEl.innerHTML = `<i class="fa-regular fa-user"></i>`;
         avatarEl.style.background = "var(--orange-tint)";
+        avatarEl.style.overflow = "visible";
       }
       if (editHeadBtn) editHeadBtn.classList.add("hidden");
       authItems.forEach(el => el.classList.add("hidden"));
@@ -2615,11 +2625,37 @@
     });
   }
 
+  let pendingAvatarDataUrl = null;
+
+  function renderModalAvatar() {
+    const avatarImg = document.getElementById("profileAvatarImg");
+    const avatarPlaceholder = document.getElementById("profileAvatarPlaceholder");
+    const avatarActions = document.getElementById("profileAvatarActions");
+
+    if (pendingAvatarDataUrl) {
+      if (avatarImg) {
+        avatarImg.src = pendingAvatarDataUrl;
+        avatarImg.classList.remove("hidden");
+      }
+      if (avatarPlaceholder) avatarPlaceholder.classList.add("hidden");
+      if (avatarActions) avatarActions.classList.remove("hidden");
+    } else {
+      if (avatarImg) {
+        avatarImg.src = "";
+        avatarImg.classList.add("hidden");
+      }
+      if (avatarPlaceholder) avatarPlaceholder.classList.remove("hidden");
+      if (avatarActions) avatarActions.classList.add("hidden");
+    }
+  }
+
   function openProfileModal() {
     if (!state.isAuthenticated || !state.user) {
       openAuth("login");
       return;
     }
+
+    pendingAvatarDataUrl = state.user.avatar || null;
 
     const nameInput = document.getElementById("profileUsername");
     const emailInput = document.getElementById("profileEmail");
@@ -2634,6 +2670,8 @@
     if (nameInput) nameInput.value = state.user.username || "";
     if (emailInput) emailInput.value = state.user.email || "";
     if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
+
+    renderModalAvatar();
 
     const modal = document.getElementById("profileModalOverlay");
     if (modal) modal.classList.add("open");
@@ -2654,6 +2692,69 @@
     });
   }
 
+  const profileAvatarFileInput = document.getElementById("profileAvatarFileInput");
+  const profileAvatarBox = document.getElementById("profileAvatarBox");
+  const profileAvatarUploadBtn = document.getElementById("profileAvatarUploadBtn");
+  const removeAvatarBtn = document.getElementById("removeAvatarBtn");
+
+  if (profileAvatarBox) {
+    profileAvatarBox.addEventListener("click", () => {
+      if (profileAvatarFileInput) profileAvatarFileInput.click();
+    });
+  }
+  if (profileAvatarUploadBtn) {
+    profileAvatarUploadBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (profileAvatarFileInput) profileAvatarFileInput.click();
+    });
+  }
+
+  if (profileAvatarFileInput) {
+    profileAvatarFileInput.addEventListener("change", (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+
+      if (!file.type.startsWith("image/")) {
+        showToast(state.lang === "ar" ? "يرجى اختيار ملف صورة صالح" : "Please select a valid image file", "error");
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (evt) => {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement("canvas");
+          const maxDim = 280;
+          let w = img.width;
+          let h = img.height;
+          if (w > h && w > maxDim) {
+            h = Math.round((h * maxDim) / w);
+            w = maxDim;
+          } else if (h > maxDim) {
+            w = Math.round((w * maxDim) / h);
+            h = maxDim;
+          }
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.drawImage(img, 0, 0, w, h);
+          pendingAvatarDataUrl = canvas.toDataURL("image/jpeg", 0.82);
+          renderModalAvatar();
+        };
+        img.src = evt.target.result;
+      };
+      reader.readAsDataURL(file);
+      profileAvatarFileInput.value = "";
+    });
+  }
+
+  if (removeAvatarBtn) {
+    removeAvatarBtn.addEventListener("click", () => {
+      pendingAvatarDataUrl = null;
+      renderModalAvatar();
+    });
+  }
+
   const saveProfileBtn = document.getElementById("saveProfileBtn");
   if (saveProfileBtn) {
     saveProfileBtn.addEventListener("click", () => {
@@ -2668,6 +2769,11 @@
       }
 
       state.user.username = newUsername;
+      if (pendingAvatarDataUrl) {
+        state.user.avatar = pendingAvatarDataUrl;
+      } else {
+        delete state.user.avatar;
+      }
       localStorage.setItem("dj_user", JSON.stringify(state.user));
 
       if (govSelect) {

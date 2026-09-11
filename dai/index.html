@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=46">
+  <link rel="stylesheet" href="style.css?v=47">
 </head>
 
 <body>
@@ -820,8 +820,24 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="modal-icon"><i class="fa-solid fa-user-gear" style="color:var(--orange-500);"></i></div>
-      <h2 class="modal-title" data-i18n="editProfile" style="margin-bottom: 18px;">الملف الشخصي</h2>
+      <div class="profile-avatar-wrapper" style="position:relative; width:84px; height:84px; margin:0 auto 12px;">
+        <div class="profile-avatar-box" id="profileAvatarBox" style="width:84px; height:84px; border-radius:50%; background:var(--orange-tint, #fff4ed); border:3px solid var(--orange-500, #ff6a00); display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; position:relative; box-shadow:0 4px 14px rgba(255,106,0,0.18); transition:all .2s ease;">
+          <img id="profileAvatarImg" src="" alt="Avatar" class="hidden" style="width:100%; height:100%; object-fit:cover;">
+          <i id="profileAvatarPlaceholder" class="fa-solid fa-user" style="font-size:36px; color:var(--orange-500, #ff6a00);"></i>
+        </div>
+        <button type="button" id="profileAvatarUploadBtn" class="profile-avatar-badge" title="تغيير الصورة الشخصية" aria-label="Upload Avatar" style="position:absolute; bottom:2px; right:2px; width:28px; height:28px; border-radius:50%; background:var(--orange-500, #ff6a00); color:#fff; border:2px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.2); transition:all .2s ease;">
+          <i class="fa-solid fa-camera"></i>
+        </button>
+        <input type="file" id="profileAvatarFileInput" accept="image/*" class="hidden">
+      </div>
+      <div id="profileAvatarActions" class="hidden" style="display:flex; justify-content:center; gap:10px; margin-bottom:12px;">
+        <button type="button" id="removeAvatarBtn" style="background:none; border:none; color:#ef4444; font-size:11.5px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
+          <i class="fa-regular fa-trash-can"></i>
+          <span data-i18n="removeAvatar">إزالة الصورة</span>
+        </button>
+      </div>
+
+      <h2 class="modal-title" data-i18n="editProfile" style="margin-bottom: 16px;">الملف الشخصي</h2>
 
       <div class="form-error hidden" id="profileModalError"></div>
 
@@ -907,7 +923,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=46"></script>
+  <script src="script.js?v=47"></script>
 
 </body>
 
