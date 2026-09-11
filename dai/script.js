@@ -326,8 +326,10 @@
       activeAds: "Active Listings",
       noResults: "No results match your search",
       adDetails: "Ad Details",
-      jobDesc: "Description",
       contactWhatsapp: "Call or WhatsApp",
+      loginRequiredContact: "Please log in or register to contact the advertiser",
+      loginRequiredCall: "Please log in or register to call the advertiser",
+      loginToViewPhone: "Log in to show phone",
       abuDinar: "Abu Al-Dinar",
       abuDinarSub: "Best way to connect your service with employers and users",
       adTitle: "Ad Title",
@@ -483,6 +485,9 @@
       adDetails: "تفاصيل الإعلان",
       jobDesc: "وصف العمل",
       contactWhatsapp: "اتصال أو واتساب",
+      loginRequiredContact: "يرجى تسجيل الدخول أو إنشاء حساب للتواصل مع صاحب الإعلان",
+      loginRequiredCall: "يرجى تسجيل الدخول أو إنشاء حساب للاتصال بصاحب الإعلان",
+      loginToViewPhone: "تسجيل الدخول لإظهار الرقم",
       abuDinar: "أبو الدينار",
       abuDinarSub: "أفضل طريقة لتوصيل خدمتك بالمعلن والمستخدم",
       adTitle: "عنوان الإعلان",
@@ -893,6 +898,10 @@
         loadAdsFromAPI();
         fetchNotifications();
 
+        if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
+          renderDetails(state.currentAdId);
+        }
+
         if (typeof state.pendingAction === "function") {
           const fn = state.pendingAction;
           state.pendingAction = null;
@@ -999,6 +1008,16 @@
           updateDrawerUser();
           showToast(regRes.message || "تم إنشاء الحساب بنجاح! مرحباً بك 🎉", "success");
           fetchNotifications();
+
+          if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
+            renderDetails(state.currentAdId);
+          }
+
+          if (typeof state.pendingAction === "function") {
+            const fn = state.pendingAction;
+            state.pendingAction = null;
+            fn();
+          }
           return;
         }
 
@@ -1826,15 +1845,6 @@
   }
 
   async function openDetails(adId) {
-    if (!state.isAuthenticated) {
-      state.pendingAction = () => {
-        state.currentAdId = adId;
-        openDetails(adId);
-      };
-      openAuth("login");
-      return;
-    }
-
     state.currentAdId = adId;
     let existingAd = ads.find(a => String(a.id) === String(adId));
     if (existingAd) {
@@ -2043,16 +2053,63 @@
     }
 
     const phoneVal = document.getElementById("phoneValue");
-    if (phoneVal) phoneVal.textContent = ad.phone;
+    const phoneDisplay = document.getElementById("phoneDisplay");
+    if (phoneVal) {
+      if (state.isAuthenticated) {
+        phoneVal.textContent = ad.phone;
+        if (phoneDisplay) phoneDisplay.classList.remove("is-locked");
+      } else {
+        phoneVal.innerHTML = `<span class="phone-locked"><i class="fa-solid fa-lock"></i> ${t("loginToViewPhone")}</span>`;
+        if (phoneDisplay) phoneDisplay.classList.add("is-locked");
+      }
+    }
 
     const callBtn = document.getElementById("callBtn");
-    if (callBtn) callBtn.href = `tel:${ad.phone}`;
+    if (callBtn) {
+      if (state.isAuthenticated) {
+        callBtn.href = `tel:${ad.phone}`;
+      } else {
+        callBtn.removeAttribute("href");
+        callBtn.style.cursor = "pointer";
+      }
+    }
   }
 
   const contactBtnEl = document.getElementById("contactBtn");
   if (contactBtnEl) {
     contactBtnEl.addEventListener("click", () => {
       handleContact(state.currentAdId);
+    });
+  }
+
+  const callBtnEl = document.getElementById("callBtn");
+  if (callBtnEl) {
+    callBtnEl.addEventListener("click", (e) => {
+      if (!state.isAuthenticated) {
+        e.preventDefault();
+        e.stopPropagation();
+        showToast(t("loginRequiredCall"), "info");
+        state.pendingAction = () => {
+          const ad = ads.find(a => String(a.id) === String(state.currentAdId));
+          if (ad && ad.phone) {
+            window.location.href = `tel:${ad.phone}`;
+          }
+        };
+        openAuth("login");
+      }
+    });
+  }
+
+  const phoneDisplayEl = document.getElementById("phoneDisplay");
+  if (phoneDisplayEl) {
+    phoneDisplayEl.addEventListener("click", () => {
+      if (!state.isAuthenticated) {
+        showToast(t("loginToViewPhone"), "info");
+        state.pendingAction = () => {
+          if (state.currentAdId) renderDetails(state.currentAdId);
+        };
+        openAuth("login");
+      }
     });
   }
 
@@ -2071,6 +2128,12 @@
   }
 
   function handleContact(adId) {
+    if (!state.isAuthenticated) {
+      showToast(t("loginRequiredContact"), "info");
+      state.pendingAction = () => handleContact(adId);
+      openAuth("login");
+      return;
+    }
     const ad = ads.find((a) => String(a.id) === String(adId));
     if (!ad || !ad.phone) return;
     const cleanPhone = String(ad.phone).replace(/\D/g, '').replace(/^0/, '');
@@ -3452,6 +3515,16 @@
         updateDrawerUser();
         showToast("تم تفعيل حسابك بنجاح!", "success");
         fetchNotifications();
+
+        if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
+          renderDetails(state.currentAdId);
+        }
+
+        if (typeof state.pendingAction === "function") {
+          const fn = state.pendingAction;
+          state.pendingAction = null;
+          fn();
+        }
         
       } catch (error) {
         showFormError(errorEl, error.message);

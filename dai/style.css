@@ -1092,6 +1092,32 @@ html[dir="rtl"] .gallery-nav.next {
   letter-spacing: 1px;
 }
 
+.phone-display-card.is-locked {
+  cursor: pointer;
+  background: #fff8f3;
+  border: 1.5px dashed var(--orange-600);
+  transition: all 0.2s ease;
+}
+
+.phone-display-card.is-locked:hover {
+  background: #fff0e4;
+  transform: translateY(-1px);
+}
+
+.phone-locked {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--orange-600);
+  cursor: pointer;
+}
+
+.phone-locked i {
+  font-size: 14px;
+}
+
 /* ============================================
    DESCRIPTION CARD
    ============================================ */
