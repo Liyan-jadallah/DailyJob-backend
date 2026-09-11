@@ -352,6 +352,9 @@
       viewsCount: "views",
       noNotifications: "No notifications at the moment",
       settings: "Settings",
+      myAccount: "My Account & Profile",
+      manageAccountInfo: "Manage your profile details and account security",
+      accountSecurity: "Security Settings",
       accountInfo: "Account Information",
       email: "Email Address",
       username: "Username",
@@ -503,6 +506,9 @@
       viewsCount: "مشاهدة",
       noNotifications: "لا توجد إشعارات حالياً",
       settings: "الإعدادات",
+      myAccount: "حسابي والملف الشخصي",
+      manageAccountInfo: "تعديل البيانات الشخصية وإعدادات الحساب والأمان",
+      accountSecurity: "إعدادات الأمان",
       accountInfo: "معلومات الحساب",
       email: "البريد الإلكتروني",
       username: "اسم المستخدم",
@@ -1030,6 +1036,16 @@
   }
 
   function goToScreen(name, pushState = true) {
+    if (name === "settings") {
+      closeDrawer();
+      if (state.isAuthenticated && state.user) {
+        openProfileModal();
+      } else {
+        openAuth("login");
+      }
+      return;
+    }
+
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
     
     const targetScreen = document.getElementById("screen-" + name);
@@ -1070,7 +1086,6 @@
       case "admin":
         renderAdminAds();
         break;
-      case "settings": updateSettingsPage(); break;
       case "coupons": loadCouponsScreen(); break;
     }
 
@@ -2085,10 +2100,13 @@
 
     const adminDrawerItem = document.getElementById("adminDrawerItem");
 
+    const editBadge = document.getElementById("drawerUserEditBadge");
+
     if (state.isAuthenticated && state.user) {
       nameEl.textContent = state.user.username;
       if (subEl) subEl.textContent = state.user.email;
       if (authBtnLabel) authBtnLabel.textContent = t("logout");
+      if (editBadge) editBadge.style.display = "inline-block";
       if (avatarEl) {
         avatarEl.innerHTML = `<i class="fa-solid fa-user-check"></i>`;
         avatarEl.style.background = "var(--orange-tint)";
@@ -2101,6 +2119,7 @@
       nameEl.textContent = t("guest");
       if (subEl) subEl.textContent = t("signInToSeeMore");
       if (authBtnLabel) authBtnLabel.textContent = t("login");
+      if (editBadge) editBadge.style.display = "none";
       if (avatarEl) {
         avatarEl.innerHTML = `<i class="fa-regular fa-user"></i>`;
         avatarEl.style.background = "var(--orange-tint)";
@@ -2125,6 +2144,30 @@
       closeDrawer();
       if (state.isAuthenticated) logout();
       else openAuth("login");
+    });
+  }
+
+  const drawerUserCard = document.getElementById("drawerUserCard");
+  if (drawerUserCard) {
+    drawerUserCard.addEventListener("click", () => {
+      closeDrawer();
+      if (state.isAuthenticated && state.user) {
+        openProfileModal();
+      } else {
+        openAuth("login");
+      }
+    });
+  }
+
+  const drawerProfileBtn = document.getElementById("drawerProfileBtn");
+  if (drawerProfileBtn) {
+    drawerProfileBtn.addEventListener("click", () => {
+      closeDrawer();
+      if (state.isAuthenticated && state.user) {
+        openProfileModal();
+      } else {
+        openAuth("login");
+      }
     });
   }
 
@@ -2294,14 +2337,22 @@
   function populateFormSelects() {
     const govSelect = document.getElementById("fGovernorate");
     if (govSelect) {
-      govSelect.innerHTML = GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("");
+      govSelect.innerHTML = GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("");
+    }
+
+    const profileGovSelect = document.getElementById("profileGov");
+    if (profileGovSelect) {
+      profileGovSelect.innerHTML = `
+        <option value="all">— ${t("all")} —</option>
+        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
+      `;
     }
 
     const settingsGovSelect = document.getElementById("settingsGov");
     if (settingsGovSelect) {
       settingsGovSelect.innerHTML = `
         <option value="all">— ${t("all")} —</option>
-        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("")}
+        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
       `;
     }
 
@@ -2309,7 +2360,7 @@
     if (filterGovSelect) {
       filterGovSelect.innerHTML = `
         <option value="all">— ${t("all")} —</option>
-        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("")}
+        ${GOVERNORATES.map((g) => `<option value="${g.key}">${g[state.lang] || g.en}</option>`).join("")}
       `;
     }
 
@@ -2588,39 +2639,135 @@
     });
   }
 
+  // ══════════════════════════════════════════════════════════════════
+  // نافذة الملف الشخصي والحساب (Profile & Account Modal)
+  // ══════════════════════════════════════════════════════════════════
+  function openProfileModal() {
+    if (!state.isAuthenticated || !state.user) {
+      openAuth("login");
+      return;
+    }
+    closeDrawer();
+
+    const emailEl = document.getElementById("profileEmail");
+    const usernameEl = document.getElementById("profileUsername");
+    const govEl = document.getElementById("profileGov");
+    const refCodeEl = document.getElementById("profileReferralCode");
+
+    if (emailEl) emailEl.value = state.user.email || "";
+    if (usernameEl) usernameEl.value = state.user.username || "";
+    if (govEl) govEl.value = state.settings.preferredGovernorate || "all";
+    if (refCodeEl) refCodeEl.textContent = state.user.referral_code || "---";
+
+    const modal = document.getElementById("profileModalOverlay");
+    if (modal) modal.classList.add("open");
+  }
+
+  function closeProfileModal() {
+    const modal = document.getElementById("profileModalOverlay");
+    if (modal) modal.classList.remove("open");
+  }
+
+  const profileModalClose = document.getElementById("profileModalClose");
+  if (profileModalClose) profileModalClose.addEventListener("click", closeProfileModal);
+
+  const profileModalOverlay = document.getElementById("profileModalOverlay");
+  if (profileModalOverlay) {
+    profileModalOverlay.addEventListener("click", (e) => {
+      if (e.target === profileModalOverlay) closeProfileModal();
+    });
+  }
+
+  const saveProfileBtn = document.getElementById("saveProfileBtn");
+  if (saveProfileBtn) {
+    saveProfileBtn.addEventListener("click", () => {
+      const usernameInput = document.getElementById("profileUsername");
+      const govInput = document.getElementById("profileGov");
+      const newUsername = usernameInput?.value.trim();
+
+      if (!newUsername || newUsername.length < 3) {
+        showToast(t("usernameMinLength"), "error");
+        return;
+      }
+
+      state.user.username = newUsername;
+      localStorage.setItem("dj_user", JSON.stringify(state.user));
+
+      if (govInput) {
+        state.settings.preferredGovernorate = govInput.value;
+        localStorage.setItem("dj_settings", JSON.stringify(state.settings));
+      }
+
+      updateDrawerUser();
+      showToast(state.lang === 'ar' ? 'تم حفظ التعديلات بنجاح' : 'Profile updated successfully', 'success');
+      closeProfileModal();
+    });
+  }
+
+  const copyProfileRefBtn = document.getElementById("copyProfileRefBtn");
+  if (copyProfileRefBtn) {
+    copyProfileRefBtn.addEventListener("click", () => {
+      const code = state.user?.referral_code;
+      if (code && code !== '---') {
+        navigator.clipboard.writeText(code).then(() => {
+          showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied!', 'success');
+        });
+      }
+    });
+  }
+
+  const profileChangePasswordBtn = document.getElementById("profileChangePasswordBtn");
+  if (profileChangePasswordBtn) {
+    profileChangePasswordBtn.addEventListener("click", () => {
+      closeProfileModal();
+      const changePasswordBtn = document.getElementById("changePasswordBtn");
+      if (changePasswordBtn) {
+        changePasswordBtn.click();
+      } else {
+        const overlay = document.getElementById("changePassOverlay");
+        const errEl = document.getElementById("changePassError");
+        const successEl = document.getElementById("changePassSuccess");
+        if (errEl) errEl.classList.add("hidden");
+        if (successEl) successEl.classList.add("hidden");
+        const oPass = document.getElementById("cpOldPass");
+        const nPass = document.getElementById("cpNewPass");
+        const cPass = document.getElementById("cpConfirmPass");
+        if (oPass) oPass.value = '';
+        if (nPass) nPass.value = '';
+        if (cPass) cPass.value = '';
+        if (overlay) overlay.classList.add("open");
+      }
+    });
+  }
+
+  const profileDeleteAccountBtn = document.getElementById("profileDeleteAccountBtn");
+  if (profileDeleteAccountBtn) {
+    profileDeleteAccountBtn.addEventListener("click", () => {
+      closeProfileModal();
+      const deleteAccountBtn = document.getElementById("deleteAccountBtn");
+      if (deleteAccountBtn) {
+        deleteAccountBtn.click();
+      } else {
+        const overlay = document.getElementById("deleteAccOverlay");
+        const errEl = document.getElementById("deleteAccError");
+        const passInput = document.getElementById("deleteAccPass");
+        if (errEl) errEl.classList.add("hidden");
+        if (passInput) passInput.value = '';
+        if (overlay) overlay.classList.add("open");
+      }
+    });
+  }
+
   function updateSettingsPage() {
     if (!state.user) return;
-
-    const setVal = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.value = val;
-    };
-
-    setVal("settingsEmail", state.user.email || "");
-    setVal("settingsUsername", state.user.username || "");
-    setVal("settingsReferralCode", state.user.referral_code || "---");
-
-    const copySettingsRefBtn = document.getElementById("copySettingsRefBtn");
-    if (copySettingsRefBtn) {
-      copySettingsRefBtn.onclick = () => {
-        const code = state.user?.referral_code;
-        if (code && code !== '---') {
-          navigator.clipboard.writeText(code).then(() => showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied!', 'success'));
-        }
-      };
-    }
-
-    const setCheck = (id, val) => {
-      const el = document.getElementById(id);
-      if (el) el.checked = val;
-    };
-
-    setCheck("togglePush", state.settings.pushNotifications);
-
-    const govSelect = document.getElementById("settingsGov");
-    if (govSelect) govSelect.value = state.settings.preferredGovernorate || "all";
-
-    updateLanguageOptionsUI();
+    const emailEl = document.getElementById("profileEmail");
+    const usernameEl = document.getElementById("profileUsername");
+    const govEl = document.getElementById("profileGov");
+    const refCodeEl = document.getElementById("profileReferralCode");
+    if (emailEl) emailEl.value = state.user.email || "";
+    if (usernameEl) usernameEl.value = state.user.username || "";
+    if (govEl) govEl.value = state.settings.preferredGovernorate || "all";
+    if (refCodeEl) refCodeEl.textContent = state.user.referral_code || "---";
   }
 
   const saveAccountBtn = document.getElementById("saveAccountBtn");
@@ -2635,27 +2782,6 @@
       } else {
         showToast(t("usernameMinLength"), "error");
       }
-    });
-  }
-
-  const bindCheckSetting = (id, key) => {
-    const el = document.getElementById(id);
-    if (el) {
-      el.addEventListener("change", (e) => {
-        state.settings[key] = e.target.checked;
-        localStorage.setItem("dj_settings", JSON.stringify(state.settings));
-      });
-    }
-  };
-
-  bindCheckSetting("togglePush", "pushNotifications");
-
-  const settingsGov = document.getElementById("settingsGov");
-  if (settingsGov) {
-    settingsGov.addEventListener("change", (e) => {
-      state.settings.preferredGovernorate = e.target.value;
-      localStorage.setItem("dj_settings", JSON.stringify(state.settings));
-      showToast(t("preferredGovUpdated"), "success");
     });
   }
 
@@ -3097,7 +3223,8 @@
     } catch (e) {}
 
     // تعديل: استعادة الشاشة السابقة بدلاً من الذهاب إلى الرئيسية دائماً
-    const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
+    let lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
+    if (lastScreen === "settings") lastScreen = "home";
     if (lastScreen !== "details" && lastScreen !== "edit") {
       goToScreen(lastScreen);
     } else {

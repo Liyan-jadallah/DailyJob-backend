@@ -1644,6 +1644,49 @@ html[dir="rtl"] .drawer-panel {
   line-height: 1.3;
 }
 
+.drawer-user-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  padding: 6px 8px;
+  margin: -6px -8px;
+  border-radius: 12px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  user-select: none;
+}
+
+.drawer-user-card:hover {
+  background: var(--surface-sunken, #f1f5f9);
+}
+
+.drawer-user-card:active {
+  transform: scale(0.98);
+}
+
+.profile-edit-badge {
+  transition: transform 0.2s ease;
+}
+
+.drawer-user-card:hover .profile-edit-badge {
+  transform: scale(1.2);
+}
+
+.btn-danger-outline {
+  color: #ef4444 !important;
+  border: 1.5px solid #fee2e2 !important;
+  background: #ffffff !important;
+  transition: all 0.2s ease;
+}
+
+.btn-danger-outline:hover {
+  background: #fff5f5 !important;
+  border-color: #fca5a5 !important;
+  color: #dc2626 !important;
+  transform: translateY(-1px);
+}
+
 .drawer-list {
   flex: 1;
   display: flex;
