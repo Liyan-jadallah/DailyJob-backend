@@ -1158,13 +1158,69 @@ html[dir="rtl"] .desc-list li::before {
 
 .details-actionbar {
   display: flex;
-  gap: 8px;
-  padding: 14px 16px;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 16px;
   background: #fff;
   border-top: 1px solid var(--line);
   position: sticky;
   bottom: 0;
   z-index: 15;
+}
+
+.details-owner-actions {
+  display: flex;
+  gap: 10px;
+  width: 100%;
+}
+
+.btn-owner-edit,
+.btn-owner-delete {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 16px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 13.5px;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-family: inherit;
+}
+
+.btn-owner-edit {
+  background: #eff6ff;
+  border: 1.5px solid #bfdbfe;
+  color: #1d4ed8;
+}
+
+.btn-owner-edit:hover {
+  background: #dbeafe;
+  border-color: #93c5fd;
+  color: #1e40af;
+  transform: translateY(-1px);
+}
+
+.btn-owner-delete {
+  background: #fef2f2;
+  border: 1.5px solid #fee2e2;
+  color: #dc2626;
+}
+
+.btn-owner-delete:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+  transform: translateY(-1px);
+}
+
+.details-buttons-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
 }
 
 .contact-main {

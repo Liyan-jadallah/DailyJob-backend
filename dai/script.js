@@ -311,6 +311,8 @@
       confirmPaymentAndPublish: "Confirm Payment & Publish",
       receiptRequired: "Please upload the payment receipt",
       postAd: "Post Your Ad Now",
+      editAd: "Edit Ad",
+      deleteAd: "Delete Ad",
       all: "All",
       dailyJob: "Daily Jobs",
       fullTime: "Full-Time Jobs",
@@ -628,6 +630,15 @@
   let hasMoreAds = false;
 
   function mapDbAd(dbAd) {
+    const isOwner = !!(state.user && (
+      state.user.role === 'admin' ||
+      String(dbAd.user) === String(state.user.id) ||
+      String(dbAd.user_details?.id) === String(state.user.id) ||
+      (state.user.username && dbAd.user_details?.username === state.user.username) ||
+      (state.user.email && dbAd.user_details?.email && state.user.email.toLowerCase() === dbAd.user_details.email.toLowerCase()) ||
+      (state.user.email && dbAd.user_email && state.user.email.toLowerCase() === dbAd.user_email.toLowerCase())
+    ));
+
     return {
       id: dbAd.id,
       type: dbAd.category,
@@ -643,8 +654,10 @@
       phone: dbAd.contact_phone,
       contactMethod: dbAd.contact_method || "both",
       createdAt: new Date(dbAd.created_at),
-      user_email: dbAd.user_details?.email,
-      mine: !!(state.user && (dbAd.user === state.user.id || dbAd.user_details?.username === state.user.username)),
+      user: dbAd.user || dbAd.user_details?.id,
+      user_details: dbAd.user_details,
+      user_email: dbAd.user_email || dbAd.user_details?.email,
+      mine: isOwner,
       image: dbAd.image ? dbAd.image : 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job',
       extra_images: dbAd.extra_images || [],
       status: dbAd.status || 'approved',
@@ -1950,14 +1963,29 @@
       });
     }
 
-    const deleteAdBtn = document.getElementById("deleteAdBtn");
-    const editAdBtn = document.getElementById("editAdBtn");
-    if (state.user && state.user.email && ad.user_email && state.user.email.toLowerCase() === ad.user_email.toLowerCase()) {
-      if (deleteAdBtn) deleteAdBtn.classList.remove("hidden");
-      if (editAdBtn) editAdBtn.classList.remove("hidden");
+    const isAdOwner = !!(
+      state.user && (
+        state.user.role === 'admin' ||
+        ad.mine ||
+        (ad.user && String(ad.user) === String(state.user.id)) ||
+        (ad.user_details && String(ad.user_details.id) === String(state.user.id)) ||
+        (ad.user_details && ad.user_details.username === state.user.username) ||
+        (ad.user_email && state.user.email && ad.user_email.toLowerCase() === state.user.email.toLowerCase())
+      )
+    );
+
+    const ownerActions = document.getElementById("detailsOwnerActions");
+    const topbarOwner = document.getElementById("topbarOwnerActions");
+    const topbarSpacer = document.getElementById("topbarSpacer");
+
+    if (isAdOwner) {
+      if (ownerActions) ownerActions.classList.remove("hidden");
+      if (topbarOwner) topbarOwner.classList.remove("hidden");
+      if (topbarSpacer) topbarSpacer.classList.add("hidden");
     } else {
-      if (deleteAdBtn) deleteAdBtn.classList.add("hidden");
-      if (editAdBtn) editAdBtn.classList.add("hidden");
+      if (ownerActions) ownerActions.classList.add("hidden");
+      if (topbarOwner) topbarOwner.classList.add("hidden");
+      if (topbarSpacer) topbarSpacer.classList.remove("hidden");
     }
 
     const setTxt = (id, val) => {
@@ -2392,7 +2420,7 @@
   }
 
   function openEdit(adId) {
-    const ad = ads.find(a => a.id === adId);
+    const ad = ads.find(a => String(a.id) === String(adId));
     if (!ad) return;
 
     state.currentEditAdId = ad.id;
@@ -2409,15 +2437,18 @@
 
     const setVal = (id, val) => {
       const el = document.getElementById(id);
-      if (el) el.value = val;
+      if (el) el.value = val || '';
     };
 
-    setVal("fTitle", ad.title.en);
+    const titleVal = (ad.title && (ad.title[state.lang] || ad.title.ar || ad.title.en)) || '';
+    const descVal = (ad.desc && (ad.desc[state.lang] || ad.desc.ar || ad.desc.en)) || '';
+
+    setVal("fTitle", titleVal);
     setVal("fGovernorate", ad.governorate);
     setVal("fCategory", ad.category);
     setVal("fWage", ad.price);
-    setVal("fDetails", ad.desc.en);
-    setVal("fContactMethod", ad.contactMethod);
+    setVal("fDetails", descVal);
+    setVal("fContactMethod", ad.contactMethod || 'both');
     setVal("fPhone", ad.phone);
 
     goToScreen("add");
@@ -2427,6 +2458,21 @@
   if (editAdBtn) {
     editAdBtn.addEventListener("click", () => {
       openEdit(state.currentAdId);
+    });
+  }
+
+  const topbarEditAdBtn = document.getElementById("topbarEditAdBtn");
+  if (topbarEditAdBtn) {
+    topbarEditAdBtn.addEventListener("click", () => {
+      openEdit(state.currentAdId);
+    });
+  }
+
+  const topbarDeleteAdBtn = document.getElementById("topbarDeleteAdBtn");
+  if (topbarDeleteAdBtn) {
+    topbarDeleteAdBtn.addEventListener("click", () => {
+      const deleteAdBtn = document.getElementById("deleteAdBtn");
+      if (deleteAdBtn) deleteAdBtn.click();
     });
   }
 
