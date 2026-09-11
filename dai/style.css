@@ -1740,6 +1740,37 @@ html[dir="rtl"] .drawer-list button {
 .drawer-foot {
   padding: 12px 16px 20px;
   border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.drawer-btn-delete {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 11px 16px;
+  background: #fff;
+  border: 1.5px solid #fee2e2;
+  border-radius: 10px;
+  color: #dc2626;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all .2s ease;
+}
+
+.drawer-btn-delete i {
+  color: #ef4444;
+  font-size: 14px;
+}
+
+.drawer-btn-delete:hover {
+  background: #fef2f2;
+  border-color: #fca5a5;
+  color: #b91c1c;
 }
 
 /* ============================================
@@ -2812,4 +2843,4 @@ html[dir="rtl"] .back-btn i {
 .admin-delete-btn:hover {
   background: #fee2e2;
   border-color: #f87171;
-}
+}

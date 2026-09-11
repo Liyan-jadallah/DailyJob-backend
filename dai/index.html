@@ -17,7 +17,7 @@
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=51">
+  <link rel="stylesheet" href="style.css?v=52">
 </head>
 
 <body>
@@ -579,12 +579,6 @@
             <span data-i18n="changePassword">Change Password</span>
           </button>
         </li>
-        <li class="drawer-auth-item drawer-item-danger hidden">
-          <button type="button" id="deleteAccountBtn">
-            <i class="fa-solid fa-user-xmark"></i>
-            <span data-i18n="deleteAccount">Delete Account Permanently</span>
-          </button>
-        </li>
         <li>
           <button data-nav="contact">
             <i class="fa-solid fa-envelope"></i>
@@ -597,6 +591,10 @@
         <button class="btn-outline btn-block" id="drawerAuthBtn">
           <i class="fa-solid fa-right-to-bracket"></i>
           <span id="drawerAuthLabel" data-i18n="login">Login</span>
+        </button>
+        <button type="button" class="drawer-btn-delete drawer-auth-item hidden" id="deleteAccountBtn">
+          <i class="fa-solid fa-user-xmark"></i>
+          <span data-i18n="deleteAccount">حذف الحساب نهائياً</span>
         </button>
       </div>
     </aside>
@@ -793,7 +791,8 @@
       </div>
 
       <div class="form-error hidden" id="cliqModalError"></div>
-      <button class="btn-primary btn-block" id="confirmCliqBtn" style="margin-top:16px;">
+
+      <button class="btn-primary btn-block" id="confirmCliqBtn" style="margin-top:16px;">
         <i class="fa-solid fa-check-circle"></i>
         <span data-i18n="confirmPaymentAndPublish">Confirm & Publish</span>
       </button>
@@ -910,7 +909,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=51"></script>
+  <script src="script.js?v=52"></script>
 
 </body>
 
