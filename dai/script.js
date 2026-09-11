@@ -572,7 +572,7 @@
       allMarkedRead: "تم تعليم الكل كمقروء",
       sharingNotSupported: "المشاركة غير مدعومة على هذا الجهاز",
       preferredGovUpdated: "تم تحديث المحافظة المفضلة",
-      couponsOffers: "قسائم",
+      couponsOffers: "القسائم",
       referralDesc: "لكل صديق يسجل في التطبيق عن طريق كود الإحالة الخاص بك ويقوم بتفعيل حسابه، ستحصل تلقائياً على قسيمة إعلان مجاني صالحة لمدة 30 يوماً!",
       yourReferralCode: "كود الإحالة الخاص بك هو",
       copyBtn: "نسخ",
