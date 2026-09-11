@@ -181,12 +181,33 @@ class Ad(models.Model):
             except Exception:
                 pass
 
-            # 2. إرسال إشعار عام للجميع (عبر Celery)
-            try:
-                from .tasks import send_global_notification_task
-                send_global_notification_task.delay(self.id, self.title, self.user.id, getattr(self, 'category', ''))
-            except Exception:
-                pass
+            # 2. إرسال إشعار عام للجميع (عبر Celery مع دعم التشغيل الفوري كـ Thread)
+            def _dispatch_global_notification():
+                try:
+                    from .tasks import send_global_notification_task
+                    if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False) or not os.getenv('REDIS_URL'):
+                        import threading
+                        threading.Thread(
+                            target=send_global_notification_task,
+                            args=(self.id, self.title, self.user.id, getattr(self, 'category', '')),
+                            daemon=True
+                        ).start()
+                    else:
+                        send_global_notification_task.delay(self.id, self.title, self.user.id, getattr(self, 'category', ''))
+                except Exception:
+                    try:
+                        import threading
+                        from .tasks import send_global_notification_task
+                        threading.Thread(
+                            target=send_global_notification_task,
+                            args=(self.id, self.title, self.user.id, getattr(self, 'category', '')),
+                            daemon=True
+                        ).start()
+                    except Exception:
+                        pass
+
+            _dispatch_global_notification()
+
 
         if is_newly_rejected:
             # إرسال إشعار شخصي لصاحب الإعلان بالرفض

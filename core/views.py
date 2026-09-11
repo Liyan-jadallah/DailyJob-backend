@@ -978,6 +978,21 @@ class CustomAuthToken(ObtainAuthToken):
         else:
             return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)
 
+class UpdateFCMTokenView(APIView):
+    """
+    POST /api/update-fcm-token/
+    تحديث رمز FCM للمستخدم المسجل حالياً لضمان استلام الإشعارات
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        fcm_token = request.data.get('fcm_token', '').strip()
+        if not fcm_token:
+            return Response({'error': 'fcm_token is required'}, status=status.HTTP_400_BAD_REQUEST)
+        request.user.fcm_token = fcm_token
+        request.user.save(update_fields=['fcm_token'])
+        logger.info(f"FCM token updated successfully for user {request.user.email}")
+        return Response({'status': 'fcm_token_updated', 'user': request.user.email})
 
 
 # ── Notifications ──────────────────────────────────────────────────────────────

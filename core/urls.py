@@ -11,6 +11,7 @@ from .views import (
     PasswordResetConfirmView,
     UserNotificationsView,
     NotificationDetailView,
+    UpdateFCMTokenView,
     AdminAdActionView,
     CouponViewSet,
     ResendOTPView,
@@ -37,6 +38,7 @@ urlpatterns = [
     path('change-password/', ChangePasswordView.as_view(), name='change-password'),
 
     # Notifications
+    path('update-fcm-token/', UpdateFCMTokenView.as_view(), name='update-fcm-token'),
     path('notifications/', UserNotificationsView.as_view(), name='user-notifications'),
     path('notifications/<int:pk>/', NotificationDetailView.as_view(), name='notification-detail'),
 
