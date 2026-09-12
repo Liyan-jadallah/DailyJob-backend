@@ -1,3 +1,4 @@
+import os
 import secrets
 import uuid as uuid_lib
 
@@ -1211,4 +1212,125 @@ class ContactMessageCreateView(APIView):
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+class TestPushNotificationView(APIView):
+    """
+    GET /api/test-push/
+    POST /api/test-push/
+    نقطة فحص وتشخيص واختبار إشعارات Firebase الفورية
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from .firebase_utils import _ensure_firebase_app
+        import firebase_admin
+
+        is_init = _ensure_firebase_app()
+        total_users = User.objects.count()
+        users_with_tokens = User.objects.exclude(fcm_token__isnull=True).exclude(fcm_token='').count()
+        has_env_json = bool(os.getenv('FIREBASE_CREDENTIALS_JSON'))
+        has_cred_path = bool(os.getenv('FIREBASE_CRED_PATH'))
+        has_render_secret = os.path.exists('/etc/secrets/firebase-adminsdk.json')
+        has_local_file = os.path.exists(os.path.join(settings.BASE_DIR, 'firebase-adminsdk.json'))
+
+        user_info = None
+        if request.user and request.user.is_authenticated:
+            user_info = {
+                'id': str(request.user.id),
+                'username': request.user.username,
+                'email': request.user.email,
+                'has_fcm_token': bool(request.user.fcm_token),
+                'fcm_token_preview': (request.user.fcm_token[:25] + '...') if request.user.fcm_token else None,
+                'notifications_enabled': request.user.notifications_enabled,
+                'notify_all_ads': request.user.notify_all_ads,
+                'preferred_categories': request.user.preferred_categories or [],
+                'preferred_governorates': request.user.preferred_governorates or [],
+            }
+
+        return Response({
+            'status': 'ok',
+            'firebase_initialized': is_init,
+            'firebase_apps': [a.name for a in firebase_admin._apps.values()] if firebase_admin._apps else [],
+            'credentials_source': {
+                'env_FIREBASE_CREDENTIALS_JSON': has_env_json,
+                'env_FIREBASE_CRED_PATH': has_cred_path,
+                'render_secret_file': has_render_secret,
+                'local_file': has_local_file,
+            },
+            'database_stats': {
+                'total_users': total_users,
+                'users_with_fcm_token': users_with_tokens,
+            },
+            'current_user': user_info,
+        })
+
+    def post(self, request):
+        from .firebase_utils import send_push_notification, send_topic_notification, send_multicast_push_notification, _ensure_firebase_app
+
+        if not _ensure_firebase_app():
+            return Response({
+                'success': False,
+                'error': 'Firebase Admin SDK is NOT initialized. Check FIREBASE_CREDENTIALS_JSON or firebase-adminsdk.json.',
+            }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+
+        title = request.data.get('title', '🔔 تجربة إشعار فوري من Daily Job')
+        body = request.data.get('body', 'إذا وصلك هذا التنبيه، فهذا يعني أن نظام الإشعارات يعمل بنجاح 100%!')
+        extra_data = {'test': 'true', 'timestamp': str(timezone.now().timestamp())}
+
+        # 1. إرسال إلى Topic معين إذا تم طلبه
+        target_topic = request.data.get('topic')
+        if target_topic:
+            res = send_topic_notification(topic=target_topic, title=title, body=body, data=extra_data)
+            return Response({
+                'success': res,
+                'type': 'topic',
+                'target': target_topic,
+                'message': f"Topic push to '{target_topic}' sent: {res}",
+            })
+
+        # 2. إرسال إلى Token محدد مباشرة
+        target_token = request.data.get('fcm_token')
+        if target_token:
+            res = send_multicast_push_notification(tokens=[target_token], title=title, body=body, data=extra_data)
+            return Response({
+                'success': res,
+                'type': 'token',
+                'target_token_preview': target_token[:25] + '...',
+                'message': f"Direct push to token sent: {res}",
+            })
+
+        # 3. إرسال للمستخدم المسجل الحالي إن كان يمتلك توكن
+        target_user = None
+        if request.user and request.user.is_authenticated:
+            target_user = request.user
+        else:
+            username_or_email = request.data.get('username') or request.data.get('email')
+            if username_or_email:
+                target_user = User.objects.filter(username=username_or_email).first() or User.objects.filter(email=username_or_email).first()
+
+        if target_user:
+            if not target_user.fcm_token:
+                return Response({
+                    'success': False,
+                    'error': f"User '{target_user.username}' does NOT have an FCM token registered.",
+                    'user': target_user.username,
+                }, status=status.HTTP_400_BAD_REQUEST)
+
+            res = send_push_notification(user=target_user, title=title, body=body, data=extra_data)
+            return Response({
+                'success': res,
+                'type': 'user',
+                'user': target_user.username,
+                'fcm_token_preview': target_user.fcm_token[:25] + '...',
+                'message': f"Push notification to user '{target_user.username}' sent: {res}",
+            })
+
+        # 4. إرسال تجريبي عام لموضوع "all" كافتراضي
+        res = send_topic_notification(topic="all", title=title, body=body, data=extra_data)
+        return Response({
+            'success': res,
+            'type': 'default_topic_all',
+            'message': f"Broadcast test push to topic 'all' sent: {res}",
+        })
 

@@ -12,14 +12,27 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
     data = {'ad_id': str(ad_id)}
 
     try:
+        import logging
+        logger = logging.getLogger(__name__)
         from .firebase_utils import send_topic_notification, send_multicast_push_notification
 
-        # 1. إرسال للموضوع العام "all" (يستقبله الزوار ومستخدمو التطبيق غير المسجلين)
+        # 1. إرسال للموضوع العام "all" (يستقبله الزوار ومستخدمو التطبيق المشتركون بالكل)
         try:
             all_success = send_topic_notification(topic="all", title=notification_title, body=notification_body, data=data)
             results.append(f"Global topic 'all': {all_success}")
         except Exception as te:
             results.append(f"Global topic 'all' error: {te}")
+
+        # 1.1 إرسال لموضوع الفئة cat_<category> لضمان وصول الإشعار للمشتركين بتلك الفئة
+        clean_cat = (ad_category or '').strip()
+        clean_gov = (ad_governorate or '').strip()
+        if clean_cat:
+            try:
+                cat_topic = f"cat_{clean_cat}"
+                cat_success = send_topic_notification(topic=cat_topic, title=notification_title, body=notification_body, data=data)
+                results.append(f"Category topic '{cat_topic}': {cat_success}")
+            except Exception as ce:
+                results.append(f"Category topic error: {ce}")
 
         # 2. البحث عن كافة المستخدمين النشطين المفعلين للإشعارات باستثناء صاحب الإعلان
         eligible_users = User.objects.filter(

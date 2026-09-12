@@ -18,6 +18,7 @@ from .views import (
     ResendOTPView,
     ContactMessageCreateView,
     ChangePasswordView,
+    TestPushNotificationView,
 )
 
 router = DefaultRouter()
@@ -43,6 +44,7 @@ urlpatterns = [
     path('update-notification-preferences/', UpdateNotificationPreferencesView.as_view(), name='update-notification-preferences'),
     path('notifications/', UserNotificationsView.as_view(), name='user-notifications'),
     path('notifications/<int:pk>/', NotificationDetailView.as_view(), name='notification-detail'),
+    path('test-push/', TestPushNotificationView.as_view(), name='test-push'),
 
     # Admin actions (approve / reject & delete)
     path('ads/<str:ad_id>/action/', AdminAdActionView.as_view(), name='admin-ad-action'),

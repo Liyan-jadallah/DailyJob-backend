@@ -13,9 +13,19 @@ def _ensure_firebase_app():
     if firebase_admin._apps:
         return True
     try:
-        firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON')
+        firebase_json_env = os.getenv('FIREBASE_CREDENTIALS_JSON', '').strip()
         if firebase_json_env:
-            cred_dict = json.loads(firebase_json_env)
+            try:
+                cred_dict = json.loads(firebase_json_env)
+            except Exception:
+                import base64
+                cred_dict = json.loads(base64.b64decode(firebase_json_env).decode('utf-8'))
+
+            # معالجة مشكلة الـ newlines في private_key إذا تم تمريرها كنص مع \\n
+            if isinstance(cred_dict, dict) and 'private_key' in cred_dict:
+                if '\\n' in cred_dict['private_key']:
+                    cred_dict['private_key'] = cred_dict['private_key'].replace('\\n', '\n')
+
             cred = credentials.Certificate(cred_dict)
             firebase_admin.initialize_app(cred)
             logger.info("Successfully initialized Firebase Admin SDK from FIREBASE_CREDENTIALS_JSON env.")
@@ -23,6 +33,7 @@ def _ensure_firebase_app():
 
         possible_paths = [
             os.getenv('FIREBASE_CRED_PATH', ''),
+            '/etc/secrets/firebase-adminsdk.json',  # مسار Render Secret Files الافتراضي
             os.path.join(settings.BASE_DIR, 'firebase-adminsdk.json'),
             os.path.join(getattr(settings, 'BASE_DIR', ''), 'backend', 'firebase-adminsdk.json'),
             os.path.join(getattr(settings, 'BASE_DIR', '').parent if hasattr(settings.BASE_DIR, 'parent') else '', 'firebase-adminsdk.json'),
@@ -34,10 +45,10 @@ def _ensure_firebase_app():
                 logger.info(f"Successfully initialized Firebase Admin SDK from {path}.")
                 return True
 
-        logger.warning("Firebase credentials not found (checked FIREBASE_CREDENTIALS_JSON and files).")
+        logger.warning("Firebase credentials not found (checked FIREBASE_CREDENTIALS_JSON and all file paths).")
         return False
     except Exception as e:
-        logger.warning(f"Error initializing Firebase Admin: {e}")
+        logger.error(f"Error initializing Firebase Admin: {e}", exc_info=True)
         return False
 
 # محاولة التهيئة عند التحميل
