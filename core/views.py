@@ -995,6 +995,16 @@ class UpdateFCMTokenView(APIView):
         return Response({'status': 'fcm_token_updated', 'user': request.user.email})
 
 
+def _parse_bool(val, default=True):
+    if val is None:
+        return default
+    if isinstance(val, bool):
+        return val
+    if isinstance(val, (int, float)):
+        return bool(val)
+    return str(val).strip().lower() in ('true', '1', 't', 'yes')
+
+
 class UpdateNotificationPreferencesView(APIView):
     """
     POST /api/update-notification-preferences/
@@ -1018,11 +1028,11 @@ class UpdateNotificationPreferencesView(APIView):
 
         update_fields = []
         if 'notifications_enabled' in data:
-            user.notifications_enabled = bool(data['notifications_enabled'])
+            user.notifications_enabled = _parse_bool(data['notifications_enabled'], default=True)
             update_fields.append('notifications_enabled')
 
         if 'notify_all_ads' in data:
-            user.notify_all_ads = bool(data['notify_all_ads'])
+            user.notify_all_ads = _parse_bool(data['notify_all_ads'], default=True)
             update_fields.append('notify_all_ads')
 
         if 'preferred_governorates' in data:

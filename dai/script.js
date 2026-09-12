@@ -2916,6 +2916,21 @@
       if (govSelect) {
         state.settings.preferredGovernorate = govSelect.value;
         localStorage.setItem("dj_settings", JSON.stringify(state.settings));
+        const token = localStorage.getItem("dj_token");
+        if (token) {
+          const chosenGov = govSelect.value;
+          const govsPayload = (chosenGov && chosenGov !== 'all') ? [chosenGov] : [];
+          fetch(`${BASE_URL}/update-notification-preferences/`, {
+            method: "POST",
+            headers: {
+              "Authorization": `Token ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({
+              preferred_governorates: govsPayload
+            })
+          }).catch(err => console.warn("Failed to sync notification preferences:", err));
+        }
       }
 
       updateDrawerUser();
