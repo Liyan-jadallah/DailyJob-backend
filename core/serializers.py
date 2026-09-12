@@ -39,12 +39,18 @@ class AdCategorySerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    password = serializers.CharField(write_only=True)
+    password = serializers.CharField(write_only=True, required=False)
     referred_by_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
 
     class Meta:
         model = User
-        fields = ['id', 'username', 'email', 'password', 'first_name', 'last_name', 'phone_number', 'role', 'referral_code', 'referred_by_code', 'date_joined', 'device_id', 'fcm_token']
+        fields = [
+            'id', 'username', 'email', 'password', 'first_name', 'last_name',
+            'phone_number', 'role', 'referral_code', 'referred_by_code',
+            'date_joined', 'device_id', 'fcm_token',
+            'notifications_enabled', 'notify_all_ads',
+            'preferred_governorates', 'preferred_categories',
+        ]
         read_only_fields = ['id', 'date_joined', 'role', 'referral_code']
 
     def validate_password(self, value):

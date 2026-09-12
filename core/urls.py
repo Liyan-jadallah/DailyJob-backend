@@ -12,6 +12,7 @@ from .views import (
     UserNotificationsView,
     NotificationDetailView,
     UpdateFCMTokenView,
+    UpdateNotificationPreferencesView,
     AdminAdActionView,
     CouponViewSet,
     ResendOTPView,
@@ -39,6 +40,7 @@ urlpatterns = [
 
     # Notifications
     path('update-fcm-token/', UpdateFCMTokenView.as_view(), name='update-fcm-token'),
+    path('update-notification-preferences/', UpdateNotificationPreferencesView.as_view(), name='update-notification-preferences'),
     path('notifications/', UserNotificationsView.as_view(), name='user-notifications'),
     path('notifications/<int:pk>/', NotificationDetailView.as_view(), name='notification-detail'),
 

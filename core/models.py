@@ -44,6 +44,10 @@ class User(AbstractUser):
     referral_code = models.CharField(max_length=50, unique=True, blank=True, null=True)
     device_id = models.CharField(max_length=255, blank=True, null=True)
     fcm_token = models.CharField(max_length=255, blank=True, null=True)
+    notifications_enabled = models.BooleanField(default=True)
+    notify_all_ads = models.BooleanField(default=True)
+    preferred_governorates = models.JSONField(default=list, blank=True)
+    preferred_categories = models.JSONField(default=list, blank=True)
     
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['username']
@@ -185,22 +189,24 @@ class Ad(models.Model):
             def _dispatch_global_notification():
                 try:
                     from .tasks import send_global_notification_task
+                    gov = getattr(self, 'governorate', '')
+                    cat = getattr(self, 'category', '')
                     if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False) or not os.getenv('REDIS_URL'):
                         import threading
                         threading.Thread(
                             target=send_global_notification_task,
-                            args=(self.id, self.title, self.user.id, getattr(self, 'category', '')),
+                            args=(self.id, self.title, self.user.id, cat, gov),
                             daemon=True
                         ).start()
                     else:
-                        send_global_notification_task.delay(self.id, self.title, self.user.id, getattr(self, 'category', ''))
+                        send_global_notification_task.delay(self.id, self.title, self.user.id, cat, gov)
                 except Exception:
                     try:
                         import threading
                         from .tasks import send_global_notification_task
                         threading.Thread(
                             target=send_global_notification_task,
-                            args=(self.id, self.title, self.user.id, getattr(self, 'category', '')),
+                            args=(self.id, self.title, self.user.id, getattr(self, 'category', ''), getattr(self, 'governorate', '')),
                             daemon=True
                         ).start()
                     except Exception:

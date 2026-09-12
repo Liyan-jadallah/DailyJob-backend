@@ -5,21 +5,67 @@ from datetime import timedelta
 from .models import User, Notification
 
 @shared_task
-def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category=''):
+def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', ad_governorate=''):
     results = []
+    notification_title = "إعلان جديد! 📢"
+    notification_body = f"تم نشر إعلان جديد: {ad_title}"
+    data = {'ad_id': str(ad_id)}
+
     try:
-        from .firebase_utils import send_topic_notification
-        notification_title = "إعلان جديد! 📢"
-        notification_body = f"تم نشر إعلان جديد: {ad_title}"
-        data = {'ad_id': str(ad_id)}
+        from .firebase_utils import send_topic_notification, send_multicast_push_notification
 
-        if ad_category and ad_category.strip():
-            cat_topic = f"cat_{ad_category.strip()}"
-            cat_success = send_topic_notification(topic=cat_topic, title=notification_title, body=notification_body, data=data)
-            results.append(f"Category topic '{cat_topic}': {cat_success}")
-
+        # 1. إرسال للموضوع العام "all" (يستقبله الزوار والمستخدمون الذين اختاروا استلام كل الإعلانات)
         all_success = send_topic_notification(topic="all", title=notification_title, body=notification_body, data=data)
         results.append(f"Global topic 'all': {all_success}")
+
+        # 2. البحث عن المستخدمين المخصصين (notifications_enabled=True و notify_all_ads=False)
+        custom_users = User.objects.filter(
+            notifications_enabled=True,
+            notify_all_ads=False,
+            is_active=True
+        ).exclude(id=ad_owner_id)
+
+        matching_tokens = []
+        in_app_notifs = []
+
+        clean_cat = (ad_category or '').strip()
+        clean_gov = (ad_governorate or '').strip()
+
+        for u in custom_users:
+            govs = u.preferred_governorates or []
+            cats = u.preferred_categories or []
+
+            # إذا حدد المستخدم محافظات: يجب أن تكون محافظة الإعلان بينها
+            gov_matches = (not govs) or (clean_gov in govs)
+            # إذا حدد المستخدم أقساماً: يجب أن يكون قسم الإعلان بينها
+            cat_matches = (not cats) or (clean_cat in cats)
+
+            if gov_matches and cat_matches:
+                if u.fcm_token and u.fcm_token.strip():
+                    matching_tokens.append(u.fcm_token.strip())
+                in_app_notifs.append(
+                    Notification(
+                        user=u,
+                        title=notification_title,
+                        message=notification_body,
+                        ad_id=ad_id
+                    )
+                )
+
+        # 3. إرسال Push Notification مباشر للمستخدمين الذين يطابق الإعلان تفضيلاتهم
+        if matching_tokens:
+            direct_success = send_multicast_push_notification(
+                tokens=matching_tokens,
+                title=notification_title,
+                body=notification_body,
+                data=data
+            )
+            results.append(f"Direct push to {len(matching_tokens)} customized users: {direct_success}")
+
+        # 4. حفظ إشعارات داخل التطبيق للمستخدمين المطابقين
+        if in_app_notifs:
+            Notification.objects.bulk_create(in_app_notifs, ignore_conflicts=True)
+            results.append(f"Created {len(in_app_notifs)} in-app notifications")
 
         return f"Notifications sent for Ad {ad_id}: {'; '.join(results)}"
     except Exception as e:

@@ -144,3 +144,56 @@ def send_topic_notification(topic, title, body, data=None, badge_count=1):
         return False
 
 
+def send_multicast_push_notification(tokens, title, body, data=None, badge_count=1):
+    """
+    إرسال إشعار دفع (Push Notification) لمجموعة من التوكنات بكفاءة
+    """
+    if not tokens:
+        return False
+    valid_tokens = list({t.strip() for t in tokens if t and t.strip()})
+    if not valid_tokens:
+        return False
+    if not _ensure_firebase_app():
+        logger.warning("Cannot send multicast push: Firebase Admin is not initialized.")
+        return False
+
+    try:
+        extra_data = data or {}
+        fcm_data = {str(k): str(v) for k, v in extra_data.items()}
+
+        android_cfg = messaging.AndroidConfig(
+            priority='high',
+            notification=messaging.AndroidNotification(
+                channel_id='daily_job_channel',
+                sound='default',
+                default_sound=True,
+                default_vibrate_timings=True,
+            )
+        )
+        apns_cfg = messaging.APNSConfig(
+            payload=messaging.APNSPayload(
+                aps=messaging.Aps(sound='default', badge=badge_count)
+            )
+        )
+
+        chunk_size = 500
+        for i in range(0, len(valid_tokens), chunk_size):
+            chunk = valid_tokens[i:i + chunk_size]
+            multicast_message = messaging.MulticastMessage(
+                notification=messaging.Notification(
+                    title=title,
+                    body=body,
+                ),
+                data=fcm_data,
+                android=android_cfg,
+                apns=apns_cfg,
+                tokens=chunk,
+            )
+            response = messaging.send_each_for_multicast(multicast_message)
+            logger.info(f"FCM multicast sent to {len(chunk)} devices: {response.success_count} success, {response.failure_count} failures.")
+        return True
+    except Exception as e:
+        logger.warning(f"Failed to send FCM multicast message: {e}")
+        return False
+
+

@@ -995,6 +995,60 @@ class UpdateFCMTokenView(APIView):
         return Response({'status': 'fcm_token_updated', 'user': request.user.email})
 
 
+class UpdateNotificationPreferencesView(APIView):
+    """
+    POST /api/update-notification-preferences/
+    GET  /api/update-notification-preferences/
+    تحديث وجلب تفضيلات الإشعارات للمستخدم (المحافظات ونوع الخدمة المفضلة)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({
+            'notifications_enabled': user.notifications_enabled,
+            'notify_all_ads': user.notify_all_ads,
+            'preferred_governorates': user.preferred_governorates or [],
+            'preferred_categories': user.preferred_categories or [],
+        })
+
+    def post(self, request):
+        user = request.user
+        data = request.data
+
+        update_fields = []
+        if 'notifications_enabled' in data:
+            user.notifications_enabled = bool(data['notifications_enabled'])
+            update_fields.append('notifications_enabled')
+
+        if 'notify_all_ads' in data:
+            user.notify_all_ads = bool(data['notify_all_ads'])
+            update_fields.append('notify_all_ads')
+
+        if 'preferred_governorates' in data:
+            govs = data['preferred_governorates']
+            if isinstance(govs, list):
+                user.preferred_governorates = [str(g).strip() for g in govs if str(g).strip()]
+                update_fields.append('preferred_governorates')
+
+        if 'preferred_categories' in data:
+            cats = data['preferred_categories']
+            if isinstance(cats, list):
+                user.preferred_categories = [str(c).strip() for c in cats if str(c).strip()]
+                update_fields.append('preferred_categories')
+
+        if update_fields:
+            user.save(update_fields=update_fields)
+
+        return Response({
+            'status': 'preferences_updated',
+            'notifications_enabled': user.notifications_enabled,
+            'notify_all_ads': user.notify_all_ads,
+            'preferred_governorates': user.preferred_governorates or [],
+            'preferred_categories': user.preferred_categories or [],
+        })
+
+
 # ── Notifications ──────────────────────────────────────────────────────────────
 class UserNotificationsView(APIView):
     permission_classes = [IsAuthenticated]
