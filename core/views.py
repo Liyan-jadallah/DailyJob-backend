@@ -11,6 +11,7 @@ logger = logging.getLogger(__name__)
 
 from django.core.cache import cache
 from rest_framework import viewsets, status, serializers
+from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from rest_framework.authtoken.views import ObtainAuthToken
 from rest_framework.authtoken.models import Token
@@ -848,22 +849,62 @@ class AdViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
         
-        # التحقق من سلامة الصورة الرئيسية وتحديثها
+        # 1. معالجة حذف أو استبدال الصورة الرئيسية
+        delete_main_image_val = self.request.data.get('delete_main_image')
+        should_delete_main = delete_main_image_val in ('true', 'True', True, '1', 1)
+
         main_image = self.request.FILES.get('image')
         if main_image:
             validate_image_file(main_image)
             ad.image = main_image
             ad.save(update_fields=['image'])
+        elif should_delete_main:
+            ad.image = None
+            ad.save(update_fields=['image'])
 
-        # تحديث الصور الإضافية إذا قام المستخدم برفع صور جديدة
+        # 2. معالجة حذف صور إضافية محددة (deleted_image_ids / deleted_images)
+        raw_deleted = self.request.data.getlist('deleted_image_ids') or self.request.data.getlist('deleted_images')
+        if not raw_deleted:
+            single = self.request.data.get('deleted_image_ids') or self.request.data.get('deleted_images')
+            if single:
+                raw_deleted = [single]
+
+        deleted_ids = []
+        for item in raw_deleted:
+            if isinstance(item, list):
+                deleted_ids.extend(item)
+            elif isinstance(item, str):
+                item = item.strip()
+                if item.startswith('[') and item.endswith(']'):
+                    import json
+                    try:
+                        parsed = json.loads(item)
+                        if isinstance(parsed, list):
+                            deleted_ids.extend(parsed)
+                    except Exception:
+                        pass
+                elif ',' in item:
+                    deleted_ids.extend(item.split(','))
+                else:
+                    deleted_ids.append(item)
+            elif isinstance(item, int):
+                deleted_ids.append(item)
+
+        cleaned_ids = []
+        for d_id in deleted_ids:
+            try:
+                cleaned_ids.append(int(d_id))
+            except (ValueError, TypeError):
+                pass
+
+        if cleaned_ids:
+            AdImage.objects.filter(ad=ad, id__in=cleaned_ids).delete()
+
+        # 3. إضافة صور إضافية جديدة (دون مسح الصور القديمة الباقية)
         images = self.request.FILES.getlist('images')
         if images:
             for img in images:
                 validate_image_file(img)
-            # حذف الصور القديمة
-            AdImage.objects.filter(ad=ad).delete()
-            # إضافة الصور الجديدة
-            for img in images:
                 AdImage.objects.create(ad=ad, image=img)
                 
         # تحديث وصل الدفع إن وجد
@@ -877,6 +918,26 @@ class AdViewSet(viewsets.ModelViewSet):
                 user=self.request.user,
                 receipt_image=receipt_image
             )
+
+    @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>\d+)')
+    def delete_extra_image(self, request, pk=None, image_id=None):
+        ad = self.get_object()
+        if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
+            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
+        from .models import AdImage
+        deleted, _ = AdImage.objects.filter(ad=ad, id=image_id).delete()
+        if deleted:
+            return Response({'success': True, 'message': 'تم حذف الصورة بنجاح.'}, status=status.HTTP_200_OK)
+        return Response({'error': 'لم يتم العثور على الصورة المطلوبة.'}, status=status.HTTP_404_NOT_FOUND)
+
+    @action(detail=True, methods=['delete', 'post'], url_path='delete-main-image')
+    def delete_main_image(self, request, pk=None):
+        ad = self.get_object()
+        if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
+            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
+        ad.image = None
+        ad.save(update_fields=['image'])
+        return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
 
 
 # ── Admin Action View ──────────────────────────────────────────────────────────

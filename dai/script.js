@@ -343,6 +343,8 @@
       free: "Free",
       reviewFee: "Review Fee",
       total: "Total",
+      mainImage: "Main",
+      deleteImage: "Delete Image",
       publishAd: "Publish Ad - 1 JOD",
       favorites: "Favorites",
       noFavorites: "You haven't added any favorites yet",
@@ -501,6 +503,8 @@
       free: "مجانية",
       reviewFee: "مراجعة الإعلان",
       total: "المجموع",
+      mainImage: "رئيسية",
+      deleteImage: "حذف الصورة",
       publishAd: "انشر الإعلان - 1 دينار",
       favorites: "المفضلة",
       noFavorites: "لم تضف أي إعلان للمفضلة بعد",
@@ -1140,6 +1144,7 @@
 
     if (dest === "add") {
       state.currentEditAdId = null;
+      if (typeof resetAdImagesState === "function") resetAdImagesState();
       const pSec = document.getElementById("paymentSection");
       const addForm = document.getElementById("addForm");
       const imgPrev = document.getElementById("imagePreviewList");
@@ -2492,6 +2497,30 @@
     state.currentEditAdId = ad.id;
     sessionStorage.setItem("dj_lastEditAdId", ad.id);
 
+    if (typeof resetAdImagesState === "function") resetAdImagesState();
+
+    if (ad.image && typeof ad.image === "string" && !ad.image.includes("placehold.co")) {
+      adImagesState.existingImages.push({
+        id: 'main',
+        url: ad.image,
+        isMain: true
+      });
+    }
+
+    if (ad.extra_images && Array.isArray(ad.extra_images)) {
+      ad.extra_images.forEach(extra => {
+        if (extra && extra.image) {
+          adImagesState.existingImages.push({
+            id: extra.id,
+            url: extra.image,
+            isMain: false
+          });
+        }
+      });
+    }
+
+    if (typeof renderAdImagePreviews === "function") renderAdImagePreviews();
+
     const pSec = document.getElementById("paymentSection");
     if (pSec) pSec.style.display = "none";
 
@@ -2574,14 +2603,31 @@
         formData.append("ad_duration", fAdDuration.value);
       }
       
-      const imagesInput = document.getElementById("fImages");
-      if (imagesInput && imagesInput.files && imagesInput.files.length > 0) {
-        // First image as the main image field
-        formData.append("image", imagesInput.files[0]);
-        // All images as extra images
-        Array.from(imagesInput.files).forEach(file => {
-          formData.append("images", file);
-        });
+      if (state.currentEditAdId) {
+        if (adImagesState.deleteMainImage) {
+          formData.append("delete_main_image", "true");
+        }
+        if (adImagesState.deletedImageIds.length > 0) {
+          formData.append("deleted_image_ids", adImagesState.deletedImageIds.join(","));
+        }
+        const hasMain = adImagesState.existingImages.some(img => img.isMain);
+        let startIndex = 0;
+        if (!hasMain || adImagesState.deleteMainImage) {
+          if (adImagesState.newFiles.length > 0) {
+            formData.append("image", adImagesState.newFiles[0]);
+            startIndex = 1;
+          }
+        }
+        for (let i = startIndex; i < adImagesState.newFiles.length; i++) {
+          formData.append("images", adImagesState.newFiles[i]);
+        }
+      } else {
+        if (adImagesState.newFiles.length > 0) {
+          formData.append("image", adImagesState.newFiles[0]);
+          for (let i = 1; i < adImagesState.newFiles.length; i++) {
+            formData.append("images", adImagesState.newFiles[i]);
+          }
+        }
       }
       
       const receiptInput = document.getElementById("fReceipt");
@@ -2655,6 +2701,7 @@
       
       const addForm = document.getElementById("addForm");
       if (addForm) addForm.reset();
+      if (typeof resetAdImagesState === "function") resetAdImagesState();
       
       const imgPreview = document.getElementById("imagePreviewList");
       if (imgPreview) imgPreview.innerHTML = "";
@@ -3281,6 +3328,95 @@
     setTimeout(() => el.classList.add("hidden"), 4000);
   }
 
+  const adImagesState = {
+    existingImages: [],      // [{ id: 'main', url: '...', isMain: true }, { id: 12, url: '...', isMain: false }]
+    deletedImageIds: [],     // [12, 15]
+    deleteMainImage: false,  // boolean
+    newFiles: []             // [File, File]
+  };
+
+  function resetAdImagesState() {
+    adImagesState.existingImages = [];
+    adImagesState.deletedImageIds = [];
+    adImagesState.deleteMainImage = false;
+    adImagesState.newFiles = [];
+    const previewList = document.getElementById("imagePreviewList");
+    if (previewList) previewList.innerHTML = "";
+    const fImages = document.getElementById("fImages");
+    if (fImages) fImages.value = "";
+  }
+
+  function renderAdImagePreviews() {
+    const previewList = document.getElementById("imagePreviewList");
+    if (!previewList) return;
+    previewList.innerHTML = "";
+
+    // 1. Existing images
+    adImagesState.existingImages.forEach((item, index) => {
+      const el = document.createElement("div");
+      el.className = "image-preview-item";
+      const badgeHtml = item.isMain ? `<span class="image-preview-badge">${t("mainImage") || "رئيسية"}</span>` : "";
+      el.innerHTML = `
+        <img src="${item.url}" alt="Preview">
+        ${badgeHtml}
+        <span class="image-preview-remove" title="${t("deleteImage") || "حذف"}"><i class="fa-solid fa-xmark"></i></span>
+      `;
+      el.querySelector(".image-preview-remove").addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        if (item.isMain) {
+          adImagesState.deleteMainImage = true;
+        } else {
+          adImagesState.deletedImageIds.push(item.id);
+        }
+        adImagesState.existingImages.splice(index, 1);
+        renderAdImagePreviews();
+      });
+      previewList.appendChild(el);
+    });
+
+    // 2. Newly selected files
+    adImagesState.newFiles.forEach((file, index) => {
+      const el = document.createElement("div");
+      el.className = "image-preview-item";
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        el.innerHTML = `
+          <img src="${e.target.result}" alt="Preview">
+          <span class="image-preview-remove" title="${t("deleteImage") || "حذف"}"><i class="fa-solid fa-xmark"></i></span>
+        `;
+        el.querySelector(".image-preview-remove").addEventListener("click", (ev) => {
+          ev.stopPropagation();
+          adImagesState.newFiles.splice(index, 1);
+          renderAdImagePreviews();
+        });
+      };
+      reader.readAsDataURL(file);
+      previewList.appendChild(el);
+    });
+  }
+
+  function setupAdImageUploader() {
+    const fileInput = document.getElementById("fImages");
+    const btn = document.getElementById("imageUploadBtn");
+
+    if (btn && fileInput) {
+      btn.addEventListener("click", () => fileInput.click());
+    }
+
+    if (fileInput) {
+      fileInput.addEventListener("change", () => {
+        const files = Array.from(fileInput.files);
+        files.forEach((file) => {
+          if (file.type.startsWith("image/")) {
+            adImagesState.newFiles.push(file);
+          }
+        });
+        fileInput.value = "";
+        renderAdImagePreviews();
+      });
+    }
+  }
+
   function handleImagePreview(inputId, btnId, previewListId) {
     const fileInput = document.getElementById(inputId);
     const btn = document.getElementById(btnId);
@@ -3374,7 +3510,7 @@
     if (langToggleBtn) langToggleBtn.textContent = state.lang === "en" ? "عربي" : "EN";
 
     populateFormSelects();
-    handleImagePreview("fImages", "imageUploadBtn", "imagePreviewList");
+    setupAdImageUploader();
     handleImagePreview("fReceipt", "receiptUploadBtn", "receiptPreviewList");
 
     updateAllText();

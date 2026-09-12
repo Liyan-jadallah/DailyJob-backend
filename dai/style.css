@@ -1560,15 +1560,17 @@ textarea.form-input {
   width: 20px;
   height: 20px;
   border-radius: 50%;
-  background: rgba(230, 57, 70, .9);
+  background: rgba(230, 57, 70, .95);
   color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
   font-size: 11px;
   cursor: pointer;
-  opacity: 0;
-  transition: opacity .2s ease;
+  opacity: 0.9;
+  transition: opacity .2s ease, transform .2s ease;
+  z-index: 2;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.3);
 }
 
 html[dir="rtl"] .image-preview-remove {
@@ -1576,8 +1578,29 @@ html[dir="rtl"] .image-preview-remove {
   left: 2px;
 }
 
-.image-preview-item:hover .image-preview-remove {
+.image-preview-item:hover .image-preview-remove,
+.image-preview-remove:hover {
   opacity: 1;
+  transform: scale(1.1);
+}
+
+.image-preview-badge {
+  position: absolute;
+  bottom: 2px;
+  right: 2px;
+  background: #ff6a00;
+  color: #fff;
+  font-size: 9px;
+  font-weight: bold;
+  padding: 1px 4px;
+  border-radius: 4px;
+  z-index: 1;
+  line-height: 1.2;
+}
+
+html[dir="rtl"] .image-preview-badge {
+  right: auto;
+  left: 2px;
 }
 
 /* ============================================
