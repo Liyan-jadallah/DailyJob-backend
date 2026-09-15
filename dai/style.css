@@ -1530,52 +1530,6 @@ textarea.form-input {
   font-size: 16px;
 }
 
-/* Sub-actions for camera and gallery under main upload button */
-.image-upload-btn-group {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.image-upload-sub-actions {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
-}
-
-.sub-action-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 1px solid var(--ink-200);
-  background: #fff;
-  color: var(--ink-700);
-  font-size: 12.5px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all .2s ease;
-}
-
-.sub-action-btn:hover {
-  border-color: var(--orange-500);
-  color: var(--orange-600);
-  background: var(--orange-tint);
-  transform: translateY(-1px);
-}
-
-.sub-action-btn.camera-action-btn i {
-  color: var(--orange-600);
-  font-size: 14px;
-}
-
-.sub-action-btn.gallery-action-btn i {
-  color: #2563eb;
-  font-size: 14px;
-}
-
 /* Image source picker modal */
 .image-source-sheet {
   max-width: 390px;

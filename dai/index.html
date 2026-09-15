@@ -305,22 +305,10 @@
         <div class="image-upload-area">
           <input class="image-file-input hidden" id="fImages" type="file" accept="image/*" multiple>
           <input class="image-file-input hidden" id="fCamera" type="file" accept="image/*" capture="environment">
-          <div class="image-upload-btn-group">
-            <button type="button" class="image-upload-btn" id="imageUploadBtn">
-              <i class="fa-solid fa-cloud-arrow-up"></i>
-              <span data-i18n="selectImages">إضافة صور (معرض أو كاميرا)</span>
-            </button>
-            <div class="image-upload-sub-actions">
-              <button type="button" class="sub-action-btn camera-action-btn" id="quickCameraBtn">
-                <i class="fa-solid fa-camera"></i>
-                <span data-i18n="takeWithCameraShort">تصوير بالكاميرا</span>
-              </button>
-              <button type="button" class="sub-action-btn gallery-action-btn" id="quickGalleryBtn">
-                <i class="fa-solid fa-images"></i>
-                <span data-i18n="chooseFromGalleryShort">من المعرض</span>
-              </button>
-            </div>
-          </div>
+          <button type="button" class="image-upload-btn" id="imageUploadBtn">
+            <i class="fa-solid fa-cloud-arrow-up"></i>
+            <span data-i18n="selectImages">إضافة صورة</span>
+          </button>
           <div class="image-preview-list" id="imagePreviewList"></div>
         </div>
 
@@ -1016,7 +1004,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=57"></script>
+  <script src="script.js?v=58"></script>
 
 </body>
 

@@ -3506,8 +3506,6 @@
     const fileInput = document.getElementById("fImages");
     const cameraInput = document.getElementById("fCamera");
     const btn = document.getElementById("imageUploadBtn");
-    const quickCameraBtn = document.getElementById("quickCameraBtn");
-    const quickGalleryBtn = document.getElementById("quickGalleryBtn");
     const modalClose = document.getElementById("imageSourceModalClose");
     const modalOverlay = document.getElementById("imageSourceModalOverlay");
     const btnSourceCamera = document.getElementById("btnSourceCamera");
@@ -3539,14 +3537,6 @@
     }
     if (btnSourceGallery) {
       btnSourceGallery.addEventListener("click", handleGalleryTrigger);
-    }
-
-    // Quick action buttons under upload button
-    if (quickCameraBtn) {
-      quickCameraBtn.addEventListener("click", handleCameraTrigger);
-    }
-    if (quickGalleryBtn) {
-      quickGalleryBtn.addEventListener("click", handleGalleryTrigger);
     }
 
     // Webcam modal handlers
