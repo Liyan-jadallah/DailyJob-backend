@@ -16,8 +16,85 @@
     href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="icon" type="image/x-icon" href="favicon.ico">
-  <link rel="stylesheet" href="style.css?v=56">
+  <link rel="stylesheet" href="style.css?v=60">
+  <style>
+    .image-source-sheet {
+      max-width: 380px !important;
+      padding: 26px 20px !important;
+      border-radius: 24px !important;
+      text-align: center;
+    }
+    .image-source-grid {
+      display: grid !important;
+      grid-template-columns: 1fr 1fr !important;
+      gap: 14px !important;
+      margin-top: 18px !important;
+    }
+    .image-source-card {
+      display: flex !important;
+      flex-direction: column !important;
+      align-items: center !important;
+      justify-content: center !important;
+      gap: 10px !important;
+      padding: 20px 12px !important;
+      border: 1.5px solid #e2e8f0 !important;
+      border-radius: 18px !important;
+      background: #ffffff !important;
+      cursor: pointer !important;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+      width: 100% !important;
+      box-sizing: border-box !important;
+    }
+    .image-source-card:hover {
+      transform: translateY(-3px) !important;
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08) !important;
+    }
+    .image-source-card:active {
+      transform: scale(0.97) !important;
+    }
+    .image-source-card#btnSourceCamera:hover {
+      border-color: #ff6a00 !important;
+      background: #fff8f3 !important;
+    }
+    .image-source-card#btnSourceGallery:hover {
+      border-color: #2563eb !important;
+      background: #f0f7ff !important;
+    }
+    .source-card-icon {
+      width: 54px !important;
+      height: 54px !important;
+      border-radius: 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-size: 24px !important;
+      transition: transform 0.2s ease !important;
+    }
+    .image-source-card:hover .source-card-icon {
+      transform: scale(1.08) !important;
+    }
+    .camera-card-icon {
+      background: rgba(255, 106, 0, 0.12) !important;
+      color: #ff6a00 !important;
+    }
+    .gallery-card-icon {
+      background: rgba(37, 99, 235, 0.12) !important;
+      color: #2563eb !important;
+    }
+    .source-card-title {
+      font-size: 14px !important;
+      font-weight: 800 !important;
+      color: #0f172a !important;
+      text-align: center !important;
+      line-height: 1.4 !important;
+    }
+    .image-source-card#btnSourceCamera:hover .source-card-title {
+      color: #ff6a00 !important;
+    }
+    .image-source-card#btnSourceGallery:hover .source-card-title {
+      color: #2563eb !important;
+    }
+  </style>
 </head>
 
 <body>
@@ -953,10 +1030,7 @@
           <div class="source-card-icon camera-card-icon">
             <i class="fa-solid fa-camera"></i>
           </div>
-          <div class="source-card-text">
-            <strong data-i18n="takeWithCamera">التقاط بالكاميرا</strong>
-          </div>
-          <i class="fa-solid fa-chevron-left source-arrow"></i>
+          <span class="source-card-title" data-i18n="takeWithCamera">التقاط بالكاميرا</span>
         </button>
 
         <!-- Option 2: Gallery / Files -->
@@ -964,10 +1038,7 @@
           <div class="source-card-icon gallery-card-icon">
             <i class="fa-solid fa-images"></i>
           </div>
-          <div class="source-card-text">
-            <strong data-i18n="chooseFromGallery">معرض الصور / الملفات</strong>
-          </div>
-          <i class="fa-solid fa-chevron-left source-arrow"></i>
+          <span class="source-card-title" data-i18n="chooseFromGallery">معرض الصور</span>
         </button>
       </div>
     </div>
@@ -1001,7 +1072,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=59"></script>
+  <script src="script.js?v=60"></script>
 
 </body>
 
