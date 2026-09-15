@@ -351,28 +351,40 @@ class PasswordResetRequestView(APIView):
     throttle_classes = [OTPThrottle]
     
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
-        user = User.objects.filter(email__iexact=email).first()
+        raw_email = request.data.get('email') or request.data.get('username') or ''
+        email = raw_email.strip().lower()
+        if not email:
+            return Response(
+                {'error': 'الرجاء إدخال البريد الإلكتروني.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+        if not user:
+            return Response(
+                {'error': 'الحساب غير موجود.'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         
-        if user:
-            # توليد رمز آمن للاستعادة
-            otp_code = generate_secure_otp()
-            cache.set(f'reset_{user.email}', otp_code, timeout=600)
+        # توليد رمز آمن للاستعادة
+        otp_code = generate_secure_otp()
+        cache.set(f'reset_{email}', otp_code, timeout=600)
+        if user.email and user.email.lower() != email:
+            cache.set(f'reset_{user.email.lower()}', otp_code, timeout=600)
             
-            email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
-            try:
-                send_mail(
-                    'إعادة تعيين كلمة المرور - Daily Job',
-                    f'مرحباً،\nلقد طلبت إعادة تعيين كلمة المرور.\n\nرمز التحقق الخاص بك هو: {otp_code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.',
-                    email_sender,
-                    [user.email],
-                    fail_silently=False,
-                )
-            except Exception as e:
-                logger.warning(f"[RESET] Password reset email failed: {e}")
+        email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+        try:
+            send_mail(
+                'إعادة تعيين كلمة المرور - Daily Job',
+                f'مرحباً،\nلقد طلبت إعادة تعيين كلمة المرور.\n\nرمز التحقق الخاص بك هو: {otp_code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.',
+                email_sender,
+                [user.email],
+                fail_silently=False,
+            )
+        except Exception as e:
+            logger.warning(f"[RESET] Password reset email failed: {e}")
             
-        # نرجع رسالة نجاح دائماً لدواعي أمنية ولمنع الخطأ 500
-        return Response({'message': 'إذا كان البريد مسجلاً لدينا، سيصلك رمز التحقق قريباً.'})
+        return Response({'message': 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.'})
 
 
 class PasswordResetConfirmView(APIView):
@@ -382,20 +394,21 @@ class PasswordResetConfirmView(APIView):
     # ── helper: توليد رمز استعادة جديد وإرساله تلقائياً ──
     @staticmethod
     def _auto_resend_reset_otp(email):
+        clean_email = (email or '').strip().lower()
         otp_code = generate_secure_otp()
-        cache.set(f'reset_{email}', otp_code, timeout=600)
-        cache.delete(f'reset_attempts_{email}')
-        email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+        cache.set(f'reset_{clean_email}', otp_code, timeout=600)
+        cache.delete(f'reset_attempts_{clean_email}')
+        email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
         send_mail(
             'رمز استعادة جديد - Daily Job',
             f'مرحباً،\n\nتم إرسال رمز استعادة جديد لأنك تجاوزت عدد المحاولات المسموحة أو انتهت صلاحية الرمز السابق.\n\nرمزك الجديد هو: {otp_code}\n\nهذا الرمز صالح لمدة 10 دقائق فقط.',
             email_sender,
-            [email],
+            [clean_email],
             fail_silently=True,
         )
 
     def post(self, request):
-        email = request.data.get('email')
+        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
         entered_otp = request.data.get('otp')
         new_password = request.data.get('new_password')
 
@@ -410,7 +423,7 @@ class PasswordResetConfirmView(APIView):
             )
 
         if str(cached_otp) == str(entered_otp):
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
             if user:
                 if not new_password or len(new_password) < 6:
                     return Response(
@@ -437,7 +450,11 @@ class PasswordResetConfirmView(APIView):
 
                 # حذف الرمز وعداد المحاولات من الكاش
                 cache.delete(f'reset_{email}')
+                if user.email:
+                    cache.delete(f'reset_{user.email.lower()}')
                 cache.delete(f'reset_attempts_{email}')
+                if user.email:
+                    cache.delete(f'reset_attempts_{user.email.lower()}')
 
                 return Response({'message': 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.'})
 

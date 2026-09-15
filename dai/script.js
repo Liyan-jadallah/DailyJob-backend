@@ -444,7 +444,19 @@
       signInToSeeMore: "Sign in to see more",
       whatsapp: "WhatsApp",
       call: "Phone Call",
-      both: "Call or WhatsApp"
+      both: "Call or WhatsApp",
+      chooseImageSource: "Add Ad Image",
+      chooseImageSourceSub: "Choose how to add your photo",
+      takeWithCamera: "Take with Camera",
+      takeWithCameraDesc: "Snap a photo using your camera",
+      takeWithCameraShort: "Camera",
+      chooseFromGallery: "Gallery / Files",
+      chooseFromGalleryDesc: "Choose one or more images from device",
+      chooseFromGalleryShort: "From Gallery",
+      cameraCaptureTitle: "Take Photo with Camera",
+      cameraCaptureSub: "Aim camera at item then click snap",
+      snapPhoto: "Take Photo",
+      selectImages: "Add Images (Gallery or Camera)"
     },
     ar: {
       contactUs: "اتصل بنا",
@@ -604,7 +616,19 @@
       both: "اتصال أو واتساب",
       showAllAds: "عرض كل الإعلانات",
       loadMoreAds: "تحميل المزيد من الإعلانات",
-      loading: "جاري التحميل..."
+      loading: "جاري التحميل...",
+      chooseImageSource: "إضافة صورة للإعلان",
+      chooseImageSourceSub: "اختر طريقة إضافة الصورة التي تفضلها",
+      takeWithCamera: "التقاط بالكاميرا",
+      takeWithCameraDesc: "تصوير فوري بكاميرا الجهاز",
+      takeWithCameraShort: "تصوير بالكاميرا",
+      chooseFromGallery: "معرض الصور / الملفات",
+      chooseFromGalleryDesc: "اختيار صورة أو عدة صور من جهازك",
+      chooseFromGalleryShort: "من المعرض",
+      cameraCaptureTitle: "التقاط صورة بالكاميرا",
+      cameraCaptureSub: "وجه الكاميرا نحو الغرض ثم اضغط زر الالتقاط",
+      snapPhoto: "التقاط الصورة",
+      selectImages: "إضافة صور (معرض أو كاميرا)"
     }
   };
 
@@ -3344,6 +3368,10 @@
     if (previewList) previewList.innerHTML = "";
     const fImages = document.getElementById("fImages");
     if (fImages) fImages.value = "";
+    const fCamera = document.getElementById("fCamera");
+    if (fCamera) fCamera.value = "";
+    if (typeof stopWebcam === "function") stopWebcam();
+    if (typeof closeImageSourceModal === "function") closeImageSourceModal();
   }
 
   function renderAdImagePreviews() {
@@ -3395,14 +3423,146 @@
     });
   }
 
+  let webcamStream = null;
+
+  function stopWebcam() {
+    if (webcamStream) {
+      webcamStream.getTracks().forEach(track => track.stop());
+      webcamStream = null;
+    }
+    const overlay = document.getElementById("webcamModalOverlay");
+    if (overlay) overlay.classList.remove("open");
+    const video = document.getElementById("webcamVideo");
+    if (video) video.srcObject = null;
+  }
+
+  async function openWebcam() {
+    const overlay = document.getElementById("webcamModalOverlay");
+    const video = document.getElementById("webcamVideo");
+    if (!video || !overlay) return;
+
+    try {
+      webcamStream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode: "environment", width: { ideal: 1920 }, height: { ideal: 1080 } },
+        audio: false
+      });
+      video.srcObject = webcamStream;
+      overlay.classList.add("open");
+    } catch (err) {
+      console.warn("Webcam access error, falling back to camera input:", err);
+      const fCamera = document.getElementById("fCamera");
+      if (fCamera) fCamera.click();
+    }
+  }
+
+  function snapWebcamPhoto() {
+    const video = document.getElementById("webcamVideo");
+    const canvas = document.getElementById("webcamCanvas");
+    if (!video || !canvas) return;
+
+    canvas.width = video.videoWidth || 640;
+    canvas.height = video.videoHeight || 480;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const file = new File([blob], `camera_${Date.now()}.jpg`, { type: "image/jpeg" });
+        adImagesState.newFiles.push(file);
+        renderAdImagePreviews();
+      }
+      stopWebcam();
+    }, "image/jpeg", 0.9);
+  }
+
+  function openImageSourceModal() {
+    const overlay = document.getElementById("imageSourceModalOverlay");
+    if (overlay) overlay.classList.add("open");
+  }
+
+  function closeImageSourceModal() {
+    const overlay = document.getElementById("imageSourceModalOverlay");
+    if (overlay) overlay.classList.remove("open");
+  }
+
+  function handleCameraTrigger() {
+    closeImageSourceModal();
+    const isMobile = /Android|iPhone|iPad|iPod|Windows Phone/i.test(navigator.userAgent);
+    if (isMobile || !navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      const fCamera = document.getElementById("fCamera");
+      if (fCamera) fCamera.click();
+    } else {
+      openWebcam();
+    }
+  }
+
+  function handleGalleryTrigger() {
+    closeImageSourceModal();
+    const fImages = document.getElementById("fImages");
+    if (fImages) fImages.click();
+  }
+
   function setupAdImageUploader() {
     const fileInput = document.getElementById("fImages");
+    const cameraInput = document.getElementById("fCamera");
     const btn = document.getElementById("imageUploadBtn");
+    const quickCameraBtn = document.getElementById("quickCameraBtn");
+    const quickGalleryBtn = document.getElementById("quickGalleryBtn");
+    const modalClose = document.getElementById("imageSourceModalClose");
+    const modalOverlay = document.getElementById("imageSourceModalOverlay");
+    const btnSourceCamera = document.getElementById("btnSourceCamera");
+    const btnSourceGallery = document.getElementById("btnSourceGallery");
 
-    if (btn && fileInput) {
-      btn.addEventListener("click", () => fileInput.click());
+    // Webcam modal elements
+    const webcamClose = document.getElementById("webcamModalClose");
+    const webcamOverlay = document.getElementById("webcamModalOverlay");
+    const btnSnapPhoto = document.getElementById("btnSnapPhoto");
+
+    // Main button opens the choice modal
+    if (btn) {
+      btn.addEventListener("click", () => openImageSourceModal());
     }
 
+    // Modal close & click outside
+    if (modalClose) {
+      modalClose.addEventListener("click", () => closeImageSourceModal());
+    }
+    if (modalOverlay) {
+      modalOverlay.addEventListener("click", (e) => {
+        if (e.target === modalOverlay) closeImageSourceModal();
+      });
+    }
+
+    // Modal options
+    if (btnSourceCamera) {
+      btnSourceCamera.addEventListener("click", handleCameraTrigger);
+    }
+    if (btnSourceGallery) {
+      btnSourceGallery.addEventListener("click", handleGalleryTrigger);
+    }
+
+    // Quick action buttons under upload button
+    if (quickCameraBtn) {
+      quickCameraBtn.addEventListener("click", handleCameraTrigger);
+    }
+    if (quickGalleryBtn) {
+      quickGalleryBtn.addEventListener("click", handleGalleryTrigger);
+    }
+
+    // Webcam modal handlers
+    if (webcamClose) {
+      webcamClose.addEventListener("click", stopWebcam);
+    }
+    if (webcamOverlay) {
+      webcamOverlay.addEventListener("click", (e) => {
+        if (e.target === webcamOverlay) stopWebcam();
+      });
+    }
+    if (btnSnapPhoto) {
+      btnSnapPhoto.addEventListener("click", snapWebcamPhoto);
+    }
+
+    // Gallery file input change handler
     if (fileInput) {
       fileInput.addEventListener("change", () => {
         const files = Array.from(fileInput.files);
@@ -3412,6 +3572,20 @@
           }
         });
         fileInput.value = "";
+        renderAdImagePreviews();
+      });
+    }
+
+    // Camera file input change handler
+    if (cameraInput) {
+      cameraInput.addEventListener("change", () => {
+        const files = Array.from(cameraInput.files);
+        files.forEach((file) => {
+          if (file.type.startsWith("image/")) {
+            adImagesState.newFiles.push(file);
+          }
+        });
+        cameraInput.value = "";
         renderAdImagePreviews();
       });
     }
@@ -3748,6 +3922,7 @@
         
       } catch (error) {
         showFormError(errorEl, error.message);
+        showToast(error.message, "error");
       } finally {
         forgotSubmitBtn.innerHTML = originalText;
         forgotSubmitBtn.disabled = false;

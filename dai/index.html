@@ -304,10 +304,23 @@
         <label class="form-label" data-i18n="uploadImages">Upload Images (Required)</label>
         <div class="image-upload-area">
           <input class="image-file-input hidden" id="fImages" type="file" accept="image/*" multiple>
-          <button type="button" class="image-upload-btn" id="imageUploadBtn">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <span data-i18n="selectImages">Select Images</span>
-          </button>
+          <input class="image-file-input hidden" id="fCamera" type="file" accept="image/*" capture="environment">
+          <div class="image-upload-btn-group">
+            <button type="button" class="image-upload-btn" id="imageUploadBtn">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span data-i18n="selectImages">إضافة صور (معرض أو كاميرا)</span>
+            </button>
+            <div class="image-upload-sub-actions">
+              <button type="button" class="sub-action-btn camera-action-btn" id="quickCameraBtn">
+                <i class="fa-solid fa-camera"></i>
+                <span data-i18n="takeWithCameraShort">تصوير بالكاميرا</span>
+              </button>
+              <button type="button" class="sub-action-btn gallery-action-btn" id="quickGalleryBtn">
+                <i class="fa-solid fa-images"></i>
+                <span data-i18n="chooseFromGalleryShort">من المعرض</span>
+              </button>
+            </div>
+          </div>
           <div class="image-preview-list" id="imagePreviewList"></div>
         </div>
 
@@ -936,10 +949,74 @@
     </div>
   </div>
 
+  <!-- ============ IMAGE SOURCE PICKER MODAL ============ -->
+  <div class="modal-overlay" id="imageSourceModalOverlay">
+    <div class="modal-sheet image-source-sheet">
+      <button class="modal-close" id="imageSourceModalClose" type="button">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-icon" style="background:var(--orange-tint); color:var(--orange-600);"><i class="fa-solid fa-camera-retro"></i></div>
+      <h2 class="modal-title" data-i18n="chooseImageSource">إضافة صورة للإعلان</h2>
+      <p class="modal-sub" data-i18n="chooseImageSourceSub">اختر طريقة إضافة الصورة التي تفضلها</p>
+
+      <div class="image-source-grid">
+        <!-- Option 1: Camera -->
+        <button type="button" class="image-source-card" id="btnSourceCamera">
+          <div class="source-card-icon camera-card-icon">
+            <i class="fa-solid fa-camera"></i>
+          </div>
+          <div class="source-card-text">
+            <strong data-i18n="takeWithCamera">التقاط بالكاميرا</strong>
+            <span data-i18n="takeWithCameraDesc">تصوير فوري بكاميرا الجهاز</span>
+          </div>
+          <i class="fa-solid fa-chevron-left source-arrow"></i>
+        </button>
+
+        <!-- Option 2: Gallery / Files -->
+        <button type="button" class="image-source-card" id="btnSourceGallery">
+          <div class="source-card-icon gallery-card-icon">
+            <i class="fa-solid fa-images"></i>
+          </div>
+          <div class="source-card-text">
+            <strong data-i18n="chooseFromGallery">معرض الصور / الملفات</strong>
+            <span data-i18n="chooseFromGalleryDesc">اختيار صورة أو عدة صور من جهازك</span>
+          </div>
+          <i class="fa-solid fa-chevron-left source-arrow"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ============ WEBCAM LIVE MODAL ============ -->
+  <div class="modal-overlay" id="webcamModalOverlay">
+    <div class="modal-sheet" style="max-width:440px; text-align:center;">
+      <button class="modal-close" id="webcamModalClose" type="button">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-icon" style="background:var(--orange-tint); color:var(--orange-600);"><i class="fa-solid fa-camera"></i></div>
+      <h2 class="modal-title" data-i18n="cameraCaptureTitle">التقاط صورة بالكاميرا</h2>
+      <p class="modal-sub" data-i18n="cameraCaptureSub">وجه الكاميرا نحو الغرض ثم اضغط زر الالتقاط</p>
+
+      <div class="webcam-viewport">
+        <video id="webcamVideo" autoplay playsinline></video>
+        <canvas id="webcamCanvas" style="display:none;"></canvas>
+      </div>
+
+      <div style="display:flex; gap:10px; margin-top:14px;">
+        <button type="button" class="btn-primary btn-block" id="btnSnapPhoto">
+          <i class="fa-solid fa-circle-dot"></i>
+          <span data-i18n="snapPhoto">التقاط الصورة</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=56"></script>
+  <script src="script.js?v=57"></script>
 
 </body>
 
