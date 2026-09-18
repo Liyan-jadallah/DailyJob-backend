@@ -191,10 +191,18 @@ class Ad(models.Model):
                     from .tasks import send_global_notification_task
                     gov = getattr(self, 'governorate', '')
                     cat = getattr(self, 'category', '')
+                    
+                    def task_wrapper(*args):
+                        try:
+                            send_global_notification_task(*args)
+                        finally:
+                            from django.db import connection
+                            connection.close()
+                            
                     if getattr(settings, 'CELERY_TASK_ALWAYS_EAGER', False) or not os.getenv('REDIS_URL'):
                         import threading
                         threading.Thread(
-                            target=send_global_notification_task,
+                            target=task_wrapper,
                             args=(self.id, self.title, self.user.id, cat, gov),
                             daemon=True
                         ).start()
@@ -204,8 +212,16 @@ class Ad(models.Model):
                     try:
                         import threading
                         from .tasks import send_global_notification_task
+                        
+                        def task_wrapper_fallback(*args):
+                            try:
+                                send_global_notification_task(*args)
+                            finally:
+                                from django.db import connection
+                                connection.close()
+                                
                         threading.Thread(
-                            target=send_global_notification_task,
+                            target=task_wrapper_fallback,
                             args=(self.id, self.title, self.user.id, getattr(self, 'category', ''), getattr(self, 'governorate', '')),
                             daemon=True
                         ).start()

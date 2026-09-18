@@ -11,6 +11,12 @@
   <meta property="og:description" content="ابحث عن وظائف يومية أو انشر إعلاناتك بكل سهولة وأمان في الأردن.">
   <meta property="og:image" content="app_logo.png">
   <meta property="og:type" content="website">
+  <meta property="og:url" content="/">
+  <meta property="og:locale" content="ar_JO">
+  <meta name="theme-color" content="#0B0F1E">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="Daily Job - منصة التوظيف والإعلانات في الأردن">
+  <meta name="twitter:description" content="منصة أردنية لنشر إعلانات العمل اليومي والوظائف والخدمات">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,7 +24,7 @@
     href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=60">
+  <link rel="stylesheet" href="style.css?v=61">
   <style>
     .image-source-sheet {
       max-width: 380px !important;
@@ -400,6 +406,24 @@
 
         <label class="form-label" data-i18n="phoneNumber">Phone Number</label>
         <input class="form-input" id="fPhone" type="tel" placeholder="07X XXX XXXX" maxlength="10" minlength="10" required>
+
+        <!-- ACTIVE COUPONS OPTION -->
+        <div id="addCouponSection" class="hidden" style="margin-bottom: 16px; padding: 14px 16px; background: #ecfdf5; border: 1.5px solid #10b981; border-radius: 14px;">
+          <label style="display: flex; align-items: center; gap: 10px; cursor: pointer; font-weight: 700; color: #065f46; font-size: 14px;">
+            <input type="checkbox" id="useCouponCheckbox" style="width: 18px; height: 18px; accent-color: #10b981; cursor: pointer;">
+            <span style="display: flex; align-items: center; gap: 6px;">
+              <i class="fa-solid fa-ticket" style="color: #10b981; font-size: 16px;"></i>
+              <span id="couponCheckboxLabel">استخدام قسيمة إعلان مجاني (متوفرة بحسابك)</span>
+            </span>
+          </label>
+          <div id="addCouponDetails" class="hidden" style="margin-top: 10px; padding-top: 10px; border-top: 1px dashed #a7f3d0; font-size: 12.5px; color: #047857;">
+            <div style="display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;">
+              <span>كود القسيمة: <strong id="activeCouponCodeBadge" style="background: #10b981; color: white; padding: 2px 8px; border-radius: 6px; font-family: monospace;">---</strong></span>
+              <span style="color: #059669; font-weight: 600;">(صالح لغاية 30 يوم)</span>
+            </div>
+            <p style="margin: 6px 0 0 0; font-size: 11.5px; opacity: 0.9;">سيتم نشر الإعلان فوراً وبشكل مجاني دون الحاجة لتحويل كليك أو رفع إيصال!</p>
+          </div>
+        </div>
 
         <!-- DIGITAL PAYMENT METHODS ONLY -->
         <label class="form-label" data-i18n="paymentMethod">Payment Method</label>
@@ -940,6 +964,15 @@
       <h2 class="modal-title" data-i18n="confirmPayment">Confirm Payment</h2>
       <p class="modal-sub" data-i18n-html="cliqTransferMsg">Please transfer 1 JOD to CliQ Account - Dinarak Wallet (Alias: <strong>DAILYJOB1</strong>) and upload the receipt below.</p>
 
+      <div id="cliqCouponNotice" class="hidden" style="margin: 12px 0; padding: 10px 14px; background: #ecfdf5; border: 1.5px dashed #10b981; border-radius: 10px; font-size: 13px; color: #065f46; text-align: center;">
+        <span>🎉 لديك قسيمة إعلان مجاني متوفرة!</span>
+        <div style="margin-top: 6px;">
+          <button type="button" id="cliqUseCouponQuickBtn" style="background: #10b981; color: white; border: none; padding: 6px 14px; border-radius: 6px; font-weight: 700; font-size: 12px; cursor: pointer;">
+            استخدام القسيمة الآن بدلاً من كليك
+          </button>
+        </div>
+      </div>
+
       <div class="image-upload-area">
         <input class="hidden" id="fReceipt" type="file" accept="image/*">
         <button type="button" class="image-upload-btn" id="receiptUploadBtn">
@@ -965,21 +998,8 @@
         <i class="fa-solid fa-xmark"></i>
       </button>
 
-      <div class="profile-avatar-wrapper" style="position:relative; width:84px; height:84px; margin:0 auto 12px;">
-        <div class="profile-avatar-box" id="profileAvatarBox" style="width:84px; height:84px; border-radius:50%; background:var(--orange-tint, #fff4ed); border:3px solid var(--orange-500, #ff6a00); display:flex; align-items:center; justify-content:center; overflow:hidden; cursor:pointer; position:relative; box-shadow:0 4px 14px rgba(255,106,0,0.18); transition:all .2s ease;">
-          <img id="profileAvatarImg" src="" alt="Avatar" class="hidden" style="width:100%; height:100%; object-fit:cover;">
-          <i id="profileAvatarPlaceholder" class="fa-solid fa-user" style="font-size:36px; color:var(--orange-500, #ff6a00);"></i>
-        </div>
-        <button type="button" id="profileAvatarUploadBtn" class="profile-avatar-badge" title="تغيير الصورة الشخصية" aria-label="Upload Avatar" style="position:absolute; bottom:2px; right:2px; width:28px; height:28px; border-radius:50%; background:var(--orange-500, #ff6a00); color:#fff; border:2px solid #fff; display:flex; align-items:center; justify-content:center; cursor:pointer; font-size:12px; box-shadow:0 2px 6px rgba(0,0,0,0.2); transition:all .2s ease;">
-          <i class="fa-solid fa-camera"></i>
-        </button>
-        <input type="file" id="profileAvatarFileInput" accept="image/*" class="hidden">
-      </div>
-      <div id="profileAvatarActions" class="hidden" style="display:flex; justify-content:center; gap:10px; margin-bottom:12px;">
-        <button type="button" id="removeAvatarBtn" style="background:none; border:none; color:#ef4444; font-size:11.5px; cursor:pointer; font-weight:600; display:inline-flex; align-items:center; gap:4px;">
-          <i class="fa-regular fa-trash-can"></i>
-          <span data-i18n="removeAvatar">إزالة الصورة</span>
-        </button>
+      <div style="width:72px; height:72px; margin:0 auto 14px; border-radius:50%; background:var(--orange-tint, #fff4ed); border:2.5px solid var(--orange-500, #ff6a00); display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(255,106,0,0.15);">
+        <i class="fa-solid fa-user-gear" style="font-size:32px; color:var(--orange-500, #ff6a00);"></i>
       </div>
 
       <h2 class="modal-title" data-i18n="editProfile" style="margin-bottom: 16px;">الملف الشخصي</h2>
@@ -1123,7 +1143,7 @@
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=60"></script>
+  <script src="script.js?v=61"></script>
 
 </body>
 

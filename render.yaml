@@ -43,3 +43,12 @@ services:
           type: web
           name: dailyjob-backend
           envVarKey: DATABASE_URL
+
+  - type: cron
+    name: dailyjob-auto-approve
+    runtime: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: python manage.py auto_approve_ads
+    schedule: "0 */6 * * *"
+    envVars:
+      - fromGroup: dailyjob-env

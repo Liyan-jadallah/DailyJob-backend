@@ -133,6 +133,11 @@
     </style>
 </head>
 <body>
+    <div style="max-width: 680px; margin: 0 auto 12px; padding: 0 0 0;">
+        <a href="/" style="display: inline-flex; align-items: center; gap: 8px; color: var(--primary); text-decoration: none; font-size: 14px; font-weight: 600; padding: 8px 0;">
+            <span style="font-size: 18px;">→</span> العودة إلى الصفحة الرئيسية
+        </a>
+    </div>
     <div class="container">
         <div class="header">
             <h1>طلب حذف الحساب والبيانات (Delete Account)</h1>
@@ -154,17 +159,67 @@
         </div>
 
         <h3 style="color: #F8FAFC; margin-bottom: 12px; font-size: 16px;">أو تقديم طلب حذف عبر الويب (في حال عدم تثبيت التطبيق):</h3>
-        <form onsubmit="event.preventDefault(); alert('تم استلام طلبكم وسيتم مراجعته والتواصل معكم لحذف الحساب نهائياً.');">
-            <div class="form-group">
-                <label>رقم الهاتف أو البريد الإلكتروني المسجل به الحساب:</label>
-                <input type="text" required placeholder="مثال: 0912345678 أو email@example.com">
-            </div>
-            <div class="form-group">
-                <label>سبب الحذف (اختياري):</label>
-                <textarea rows="3" placeholder="أخبرنا عن سبب رغبتك بالحذف لتحسين خدماتنا..."></textarea>
-            </div>
-            <button type="submit">إرسال طلب حذف الحساب</button>
+        <form id="deletionForm">
+          <div class="form-group">
+            <label>البريد الإلكتروني المسجل في التطبيق *</label>
+            <input type="email" id="delEmail" placeholder="example@email.com" required>
+          </div>
+          <div class="form-group">
+            <label>رقم الهاتف (اختياري)</label>
+            <input type="tel" id="delPhone" placeholder="مثال: 0791234567">
+          </div>
+          <div class="form-group">
+            <label>سبب طلب الحذف (اختياري)</label>
+            <textarea id="delReason" rows="3" placeholder="اكتب السبب هنا..."></textarea>
+          </div>
+          <button type="submit" id="delSubmitBtn">إرسال طلب الحذف</button>
         </form>
+        <div id="delResultMsg" style="margin-top: 16px; text-align: center; font-weight: 600;"></div>
+
+        <script>
+        document.getElementById('deletionForm').addEventListener('submit', async (e) => {
+          e.preventDefault();
+          const btn = document.getElementById('delSubmitBtn');
+          const msgDiv = document.getElementById('delResultMsg');
+          const email = document.getElementById('delEmail').value.trim();
+          const phone = document.getElementById('delPhone').value.trim();
+          const reason = document.getElementById('delReason').value.trim();
+
+          if(!email) {
+            msgDiv.innerText = 'يرجى إدخال البريد الإلكتروني';
+            msgDiv.style.color = 'red';
+            return;
+          }
+
+          btn.disabled = true;
+          btn.innerText = 'جاري الإرسال...';
+          msgDiv.innerText = '';
+
+          try {
+            const apiBase = window.location.origin;
+            const res = await fetch(apiBase + '/api/account-deletion-request/', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ email, phone, reason })
+            });
+            const data = await res.json();
+            if(res.ok) {
+              msgDiv.innerText = '\u2705 ' + (data.message || 'تم استلام طلبكم وسيتم مراجعته خلال 48 ساعة');
+              msgDiv.style.color = '#10b981';
+              document.getElementById('deletionForm').reset();
+            } else {
+              msgDiv.innerText = '\u274C ' + (data.error || 'حدث خطأ، يرجى المحاولة لاحقاً');
+              msgDiv.style.color = 'red';
+            }
+          } catch(err) {
+            msgDiv.innerText = '\u274C خطأ في الاتصال بالسيرفر، يرجى المحاولة لاحقاً';
+            msgDiv.style.color = 'red';
+          } finally {
+            btn.disabled = false;
+            btn.innerText = 'إرسال طلب الحذف';
+          }
+        });
+        </script>
 
         <div class="footer">
             <p><a href="privacy.html">العودة إلى سياسة الخصوصية</a> | © 2026 Daily Job</p>

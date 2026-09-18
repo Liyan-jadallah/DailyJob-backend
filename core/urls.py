@@ -20,6 +20,7 @@ from .views import (
     ChangePasswordView,
     TestPushNotificationView,
     AdminGrantCouponsView,
+    AccountDeletionRequestView,
 )
 
 router = DefaultRouter()
@@ -53,4 +54,5 @@ urlpatterns = [
 
     # Contact Us
     path('contact/', ContactMessageCreateView.as_view(), name='contact-us'),
+    path('account-deletion-request/', AccountDeletionRequestView.as_view(), name='account-deletion-request'),
 ]

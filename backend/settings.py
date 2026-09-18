@@ -154,7 +154,7 @@ _redis_url = os.getenv('REDIS_URL', '')
 if _redis_url:
     CACHES = {
         'default': {
-            'BACKEND': 'django.core.cache.backends.redis.RedisCache',
+            'BACKEND': 'django_redis.cache.RedisCache',
             'LOCATION': _redis_url,
             'OPTIONS': {'CLIENT_CLASS': 'django_redis.client.DefaultClient'},
             'KEY_PREFIX': 'dailyjob',
@@ -290,7 +290,7 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '100/day',
+        'anon': '60/min',
         'user': '1000/day',
     },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',

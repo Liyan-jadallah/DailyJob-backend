@@ -9,7 +9,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 from django.core.cache import cache
-from rest_framework import viewsets, status, serializers
+from rest_framework import viewsets, status, serializers, mixins
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticatedOrReadOnly, IsAuthenticated, AllowAny
 from rest_framework.authtoken.views import ObtainAuthToken
@@ -51,7 +51,7 @@ class UserViewSet(viewsets.ModelViewSet):
             q = self.request.query_params.get('search', None)
             if q:
                 from django.db.models import Q
-                qs = qs.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(phone__icontains=q))
+                qs = qs.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(phone_number__icontains=q))
             return qs
         return User.objects.filter(id=user.id)
 
@@ -187,7 +187,7 @@ class VerifyEmailView(APIView):
         )
 
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('email', '').strip().lower()
         entered_otp = request.data.get('otp')
 
         # _____ ________ _________ ______ ___________
@@ -319,7 +319,7 @@ class ResendOTPView(APIView):
     throttle_classes = [OTPThrottle]
 
     def post(self, request):
-        email = request.data.get('email')
+        email = request.data.get('email', '').strip().lower()
         if not email:
             return Response({'error': '___________ _________ ___________ _________________'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -355,8 +355,7 @@ class PasswordResetRequestView(APIView):
     throttle_classes = [OTPThrottle]
     
     def post(self, request):
-        raw_email = request.data.get('email') or request.data.get('username') or ''
-        email = raw_email.strip().lower()
+        email = request.data.get('email', '').strip().lower()
         if not email:
             return Response(
                 {'error': '___________ _________ ___________ _________________.'},
@@ -412,7 +411,7 @@ class PasswordResetConfirmView(APIView):
         )
 
     def post(self, request):
-        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
+        email = request.data.get('email', '').strip().lower()
         entered_otp = request.data.get('otp')
         new_password = request.data.get('new_password')
 
@@ -503,7 +502,7 @@ class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     permission_classes = [AllowAny]
 
 
-class TransactionViewSet(viewsets.ModelViewSet):
+class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
@@ -550,6 +549,13 @@ class AdViewSet(viewsets.ModelViewSet):
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+
+    def destroy(self, request, *args, **kwargs):
+        instance = self.get_object()
+        instance.is_deleted = True
+        instance.deleted_at = timezone.now()
+        instance.save(update_fields=['is_deleted', 'deleted_at'])
+        return Response(status=status.HTTP_204_NO_CONTENT)
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -1464,3 +1470,38 @@ class AdminGrantCouponsView(APIView):
         Notification.objects.bulk_create(notifications_to_create)
 
         return Response({"message": f"Successfully granted {count} coupons to {len(users_to_grant)} users.", "users_count": len(users_to_grant)})
+
+class AccountDeletionRequestView(APIView):
+    permission_classes = [AllowAny]
+    throttle_classes = [OTPThrottle]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        phone = request.data.get('phone', '').strip()
+        reason = request.data.get('reason', '').strip()
+        
+        if not email:
+            return Response({'error': 'البريد الإلكتروني مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
+        
+        # Save the request to ContactMessage
+        from .models import ContactMessage
+        ContactMessage.objects.create(
+            name=f'طلب حذف حساب - {email}',
+            email=email,
+            phone=phone,
+            message=f'طلب حذف حساب\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}'
+        )
+        
+        # Send email notification to admin
+        try:
+            send_mail(
+                subject=f'طلب حذف حساب - {email}',
+                message=f'تم استلام طلب حذف حساب:\n\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}',
+                from_email=settings.DEFAULT_FROM_EMAIL,
+                recipient_list=[settings.DEFAULT_FROM_EMAIL],
+                fail_silently=True
+            )
+        except Exception:
+            pass
+        
+        return Response({'message': 'تم استلام طلبكم وسيتم مراجعته خلال 48 ساعة'}, status=status.HTTP_200_OK)
