@@ -613,7 +613,7 @@ html[dir="rtl"] .results-count {
 }
 
 html[dir="rtl"] .ad-meta-row {
-  flex-direction: row-reverse;
+  flex-direction: row;
 }
 
 .ad-meta-row i {
@@ -1949,9 +1949,50 @@ html[dir="rtl"] .drawer-panel {
   transition: all .2s ease;
 }
 
-html[dir="rtl"] .drawer-list button {
+.drawer-list button,
+.drawer-list a {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 13px 18px;
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--ink-900);
+  text-decoration: none;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all .2s ease;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+html[dir="rtl"] .drawer-list button,
+html[dir="rtl"] .drawer-list a {
   text-align: right;
-  flex-direction: row-reverse;
+  flex-direction: row;
+}
+
+html[dir="ltr"] .drawer-list button,
+html[dir="ltr"] .drawer-list a {
+  text-align: left;
+  flex-direction: row;
+}
+
+.drawer-list button:hover,
+.drawer-list a:hover {
+  background: var(--gray-tint);
+  color: var(--orange-600);
+}
+
+.drawer-list button i,
+.drawer-list a i {
+  font-size: 16px;
+  color: var(--orange-600);
+  flex-shrink: 0;
+  width: 22px;
+  text-align: center;
 }
 
 .drawer-list button:hover {

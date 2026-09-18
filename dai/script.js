@@ -575,6 +575,9 @@
     en: {
 
       contactUs: "Contact Us",
+      adminPanel: "Admin Panel",
+      privacyPolicy: "Privacy Policy",
+      deleteAccountPage: "Delete Account Request",
 
       contactName: "Name",
 
@@ -921,6 +924,9 @@
     ar: {
 
       contactUs: "اتصل بنا",
+      adminPanel: "لوحة الإدارة",
+      privacyPolicy: "سياسة الخصوصية",
+      deleteAccountPage: "طلب حذف الحساب",
 
       contactName: "الاسم",
 
