@@ -19,6 +19,7 @@ from .views import (
     ContactMessageCreateView,
     ChangePasswordView,
     TestPushNotificationView,
+    AdminGrantCouponsView,
 )
 
 router = DefaultRouter()
@@ -48,6 +49,7 @@ urlpatterns = [
 
     # Admin actions (approve / reject & delete)
     path('ads/<str:ad_id>/action/', AdminAdActionView.as_view(), name='admin-ad-action'),
+    path('admin/grant-coupons/', AdminGrantCouponsView.as_view(), name='admin-grant-coupons'),
 
     # Contact Us
     path('contact/', ContactMessageCreateView.as_view(), name='contact-us'),
