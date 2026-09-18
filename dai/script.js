@@ -1,4 +1,4 @@
-﻿/**
+/**
 
  * ============================================
 
@@ -1325,6 +1325,8 @@
 
 
   let ads = [];
+
+  let selectedAdCouponId = null;
 
   let currentAdsPage = 1;
 
@@ -5519,6 +5521,122 @@
 
 
 
+  // ── تهيئة قسائم الإعلانات المجانية عند فتح نموذج النشر ──────────────
+
+  async function checkAndPrepareCouponsForAdd() {
+
+    const couponSec = document.getElementById("addCouponSection");
+
+    const couponCheckbox = document.getElementById("useCouponCheckbox");
+
+    const couponDetails = document.getElementById("addCouponDetails");
+
+    const couponBadge = document.getElementById("activeCouponCodeBadge");
+
+    const paymentSec = document.getElementById("paymentSection");
+
+    const paymentLabel = paymentSec ? paymentSec.previousElementSibling : null;
+
+    const submitBtnSpan = document.querySelector("#submitAdBtn span");
+
+
+
+    if (!couponSec) return;
+
+
+
+    selectedAdCouponId = null;
+
+    if (couponCheckbox) couponCheckbox.checked = false;
+
+    if (couponDetails) couponDetails.classList.add("hidden");
+
+    couponSec.classList.add("hidden");
+
+
+
+    if (paymentSec) paymentSec.style.display = "block";
+
+    if (paymentLabel && paymentLabel.classList.contains("form-label")) {
+
+      paymentLabel.style.display = "block";
+
+    }
+
+    if (submitBtnSpan) {
+
+      submitBtnSpan.setAttribute("data-i18n", "publishAd");
+
+      submitBtnSpan.textContent = t("publishAd");
+
+    }
+
+
+
+    if (state.currentEditAdId) return;
+
+
+
+    const token = localStorage.getItem("dj_token");
+
+    if (!token) return;
+
+
+
+    try {
+
+      const coupons = await Api.getCoupons(token);
+
+      const now = new Date();
+
+      const active = (coupons || []).filter(c => !c.is_used && !c.is_expired && (!c.expires_at || new Date(c.expires_at) > now));
+
+
+
+      if (active.length > 0) {
+
+        selectedAdCouponId = active[0].id;
+
+        if (couponBadge) couponBadge.textContent = active[0].code || "---";
+
+        couponSec.classList.remove("hidden");
+
+
+
+        if (couponCheckbox) {
+
+          couponCheckbox.checked = true;
+
+          if (couponDetails) couponDetails.classList.remove("hidden");
+
+          if (paymentSec) paymentSec.style.display = "none";
+
+          if (paymentLabel && paymentLabel.classList.contains("form-label")) {
+
+            paymentLabel.style.display = "none";
+
+          }
+
+          if (submitBtnSpan) {
+
+            submitBtnSpan.textContent = state.lang === "ar" ? "نشر الإعلان مجاناً بالقسيمة" : "Publish Ad Free with Coupon";
+
+          }
+
+        }
+
+      }
+
+    } catch (e) {
+
+      console.warn("Failed to check active coupons:", e);
+
+    }
+
+  }
+
+
+
   const addFormEl = document.getElementById("addForm");
 
   if (addFormEl) {
@@ -5583,6 +5701,37 @@
 
     if (fAdDuration) fAdDuration.addEventListener("change", updateWagePolicyBox);
 
+    const couponCheckbox = document.getElementById("useCouponCheckbox");
+    if (couponCheckbox) {
+      couponCheckbox.addEventListener("change", (e) => {
+        const couponDetails = document.getElementById("addCouponDetails");
+        const paymentSec = document.getElementById("paymentSection");
+        const paymentLabel = paymentSec ? paymentSec.previousElementSibling : null;
+        const submitBtnSpan = document.querySelector("#submitAdBtn span");
+
+        if (e.target.checked) {
+          if (couponDetails) couponDetails.classList.remove("hidden");
+          if (paymentSec) paymentSec.style.display = "none";
+          if (paymentLabel && paymentLabel.classList.contains("form-label")) {
+            paymentLabel.style.display = "none";
+          }
+          if (submitBtnSpan) {
+            submitBtnSpan.textContent = state.lang === "ar" ? "نشر الإعلان مجاناً بالقسيمة" : "Publish Ad Free with Coupon";
+          }
+        } else {
+          if (couponDetails) couponDetails.classList.add("hidden");
+          if (paymentSec) paymentSec.style.display = "block";
+          if (paymentLabel && paymentLabel.classList.contains("form-label")) {
+            paymentLabel.style.display = "block";
+          }
+          if (submitBtnSpan) {
+            submitBtnSpan.setAttribute("data-i18n", "publishAd");
+            submitBtnSpan.textContent = t("publishAd");
+          }
+        }
+      });
+    }
+
     setTimeout(updateWagePolicyBox, 100); // تهيئة أولية
 
 
@@ -5630,6 +5779,10 @@
         await performSave();
 
       } else if (category === "free" || category === "ads") {
+
+        await performSave();
+
+      } else if (document.getElementById("useCouponCheckbox")?.checked && selectedAdCouponId) {
 
         await performSave();
 

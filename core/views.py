@@ -1488,7 +1488,7 @@ class AccountDeletionRequestView(APIView):
         ContactMessage.objects.create(
             name=f'طلب حذف حساب - {email}',
             email=email,
-            phone=phone,
+            subject='طلب حذف حساب',
             message=f'طلب حذف حساب\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}'
         )
         
