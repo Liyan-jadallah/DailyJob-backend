@@ -1,4 +1,4 @@
-/**
+﻿/**
  * ============================================
  * DAILY JOB - Jordan Job Posting Platform
  * Complete Production-Ready JavaScript (Fixed & Optimized)
@@ -20,7 +20,7 @@
         body: JSON.stringify({ email, otp })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "الرمز غير صحيح");
+      if (!res.ok) throw new Error(data.error || "Ø§Ù„Ø±Ù…Ø² ØºÙŠØ± ØµØ­ÙŠØ­");
       return data;
     },
     requestPasswordReset: async (email) => {
@@ -33,9 +33,9 @@
       try {
         data = await res.json();
       } catch (_) {
-        throw new Error("تعذر الاتصال بخدمة استعادة كلمة المرور، يرجى المحاولة لاحقاً.");
+        throw new Error("ØªØ¹Ø°Ø± Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø®Ø¯Ù…Ø© Ø§Ø³ØªØ¹Ø§Ø¯Ø© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹.");
       }
-      if (!res.ok) throw new Error(data.error || "حدث خطأ أثناء الإرسال");
+      if (!res.ok) throw new Error(data.error || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø¥Ø±Ø³Ø§Ù„");
       return data;
     },
     confirmPasswordReset: async (email, otp, new_password) => {
@@ -45,7 +45,7 @@
         body: JSON.stringify({ email, otp, new_password })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "الرابط غير صالح أو منتهي الصلاحية");
+      if (!res.ok) throw new Error(data.error || "Ø§Ù„Ø±Ø§Ø¨Ø· ØºÙŠØ± ØµØ§Ù„Ø­ Ø£Ùˆ Ù…Ù†ØªÙ‡ÙŠ Ø§Ù„ØµÙ„Ø§Ø­ÙŠØ©");
       return data;
     },
     login: async (email, password) => {
@@ -55,8 +55,8 @@
         body: JSON.stringify({ username: email, password: password })
       });
       const data = await res.json();
-      if (res.status === 403) throw new Error(data.error || "الحساب غير مفعّل. يرجى تأكيد بريدك الإلكتروني أولاً.");
-      if (!res.ok) throw new Error(data.error || "بيانات الدخول غير صحيحة");
+      if (res.status === 403) throw new Error(data.error || "Ø§Ù„Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…ÙØ¹Ù‘Ù„. ÙŠØ±Ø¬Ù‰ ØªØ£ÙƒÙŠØ¯ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ø£ÙˆÙ„Ø§Ù‹.");
+      if (!res.ok) throw new Error(data.error || "Ø¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ø¯Ø®ÙˆÙ„ ØºÙŠØ± ØµØ­ÙŠØ­Ø©");
       return {
         token: data.token,
         user: { 
@@ -87,20 +87,20 @@
       try {
         data = await res.json();
       } catch (_) {
-        throw new Error("حدث خطأ في استجابة الخادم، يرجى المحاولة لاحقاً.");
+        throw new Error("Ø­Ø¯Ø« Ø®Ø·Ø£ ÙÙŠ Ø§Ø³ØªØ¬Ø§Ø¨Ø© Ø§Ù„Ø®Ø§Ø¯Ù…ØŒ ÙŠØ±Ø¬Ù‰ Ø§Ù„Ù…Ø­Ø§ÙˆÙ„Ø© Ù„Ø§Ø­Ù‚Ø§Ù‹.");
       }
       
       if (!res.ok) {
-        if (data && (data.code === 'inactive_account_otp_sent' || (data.error && data.error.includes('غير مفع')))) {
+        if (data && (data.code === 'inactive_account_otp_sent' || (data.error && data.error.includes('ØºÙŠØ± Ù…ÙØ¹')))) {
           return data;
         }
-        let errorMsg = data.email?.[0] || data.username?.[0] || data.error || data.detail || "فشل في إنشاء الحساب، تحقق من البيانات.";
+        let errorMsg = data.email?.[0] || data.username?.[0] || data.error || data.detail || "ÙØ´Ù„ ÙÙŠ Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ØŒ ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.";
         
         // Translate common Django DRF errors
         if (state.lang === 'ar') {
-          if (errorMsg.includes("username already exists")) errorMsg = "اسم المستخدم هذا مسجل مسبقاً.";
-          else if (errorMsg.includes("email already exists")) errorMsg = "هذا البريد الإلكتروني مسجل مسبقاً.";
-          else if (errorMsg.includes("valid username")) errorMsg = "اسم المستخدم يجب أن يحتوي على أحرف وأرقام فقط.";
+          if (errorMsg.includes("username already exists")) errorMsg = "Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ù‡Ø°Ø§ Ù…Ø³Ø¬Ù„ Ù…Ø³Ø¨Ù‚Ø§Ù‹.";
+          else if (errorMsg.includes("email already exists")) errorMsg = "Ù‡Ø°Ø§ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù…Ø³Ø¬Ù„ Ù…Ø³Ø¨Ù‚Ø§Ù‹.";
+          else if (errorMsg.includes("valid username")) errorMsg = "Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ Ø£Ø­Ø±Ù ÙˆØ£Ø±Ù‚Ø§Ù… ÙÙ‚Ø·.";
         }
         
         throw new Error(errorMsg);
@@ -128,12 +128,12 @@
         headers: { 'Authorization': `Token ${token}` }
       });
       if (res.status === 401) { logout(); throw new Error('Session expired'); }
-      if (!res.ok) throw new Error("حدث خطأ أثناء حذف الإعلان.");
+      if (!res.ok) throw new Error("Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†.");
       return true;
     },
     deleteAccount: async (userId, token, password) => {
       if (!userId || userId === 'undefined' || userId === 'null') {
-        throw new Error("معرّف المستخدم غير موجود. يرجى تسجيل الخروج وإعادة الدخول.");
+        throw new Error("Ù…Ø¹Ø±Ù‘Ù Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ØºÙŠØ± Ù…ÙˆØ¬ÙˆØ¯. ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬ ÙˆØ¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø¯Ø®ÙˆÙ„.");
       }
       const res = await fetch(`${BASE_URL}/users/${userId}/`, {
         method: 'DELETE',
@@ -143,12 +143,12 @@
       if (res.status === 401) { logout(); throw new Error('Session expired'); }
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
-        throw new Error(data.error || "حدث خطأ أثناء حذف الحساب.");
+        throw new Error(data.error || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨.");
       }
       return true;
     },
     getCoupons: async (token) => {
-      // (اقتراح #5) جلب القسائم من الـ API
+      // (Ø§Ù‚ØªØ±Ø§Ø­ #5) Ø¬Ù„Ø¨ Ø§Ù„Ù‚Ø³Ø§Ø¦Ù… Ù…Ù† Ø§Ù„Ù€ API
       const res = await fetch(`${BASE_URL}/coupons/`, {
         headers: { 'Authorization': `Token ${token}` }
       });
@@ -164,11 +164,11 @@
         body: JSON.stringify({ email })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل إعادة إرسال الرمز");
+      if (!res.ok) throw new Error(data.error || "ÙØ´Ù„ Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ù…Ø²");
       return data;
     },
     markNotificationRead: async (notifId, token) => {
-      // تعديل 4: حفظ حالة القراءة في السيرفر
+      // ØªØ¹Ø¯ÙŠÙ„ 4: Ø­ÙØ¸ Ø­Ø§Ù„Ø© Ø§Ù„Ù‚Ø±Ø§Ø¡Ø© ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±
       try {
         await fetch(`${BASE_URL}/notifications/`, {
           method: 'PATCH',
@@ -178,7 +178,7 @@
       } catch (e) { /* silent fail */ }
     },
     markAllNotificationsRead: async (token) => {
-      // تعديل 4: تعليم كل الإشعارات مقروءة في السيرفر
+      // ØªØ¹Ø¯ÙŠÙ„ 4: ØªØ¹Ù„ÙŠÙ… ÙƒÙ„ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ù…Ù‚Ø±ÙˆØ¡Ø© ÙÙŠ Ø§Ù„Ø³ÙŠØ±ÙØ±
       try {
         await fetch(`${BASE_URL}/notifications/`, {
           method: 'PATCH',
@@ -201,7 +201,7 @@
       }
     },
     getAdsSilent: async (page = 1) => {
-      // تعديل 3: جلب صامت للإعلانات بدون throwing
+      // ØªØ¹Ø¯ÙŠÙ„ 3: Ø¬Ù„Ø¨ ØµØ§Ù…Øª Ù„Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ø¨Ø¯ÙˆÙ† throwing
       try {
         const res = await fetch(`${BASE_URL}/ads/?page=${page}`);
         if (!res.ok) return null;
@@ -215,7 +215,7 @@
       const headers = token ? { 'Authorization': `Token ${token}` } : {};
       const res = await fetch(`${BASE_URL}/ads/${id}/`, { headers });
       if (res.status === 401 && token) { logout(); throw new Error('Session expired'); }
-      if (!res.ok) throw new Error("الإعلان غير متوفر أو تم حذفه");
+      if (!res.ok) throw new Error("Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† ØºÙŠØ± Ù…ØªÙˆÙØ± Ø£Ùˆ ØªÙ… Ø­Ø°ÙÙ‡");
       return await res.json();
     },
     changePassword: async (oldPassword, newPassword, token) => {
@@ -225,50 +225,50 @@
         body: JSON.stringify({ old_password: oldPassword, new_password: newPassword })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "فشل تغيير كلمة المرور");
+      if (!res.ok) throw new Error(data.error || "ÙØ´Ù„ ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±");
       return data;
     }
   };
 
 
   const GOVERNORATES = [
-    { key: "amman", ar: "عمّان", en: "Amman" },
-    { key: "zarqa", ar: "الزرقاء", en: "Zarqa" },
-    { key: "irbid", ar: "إربد", en: "Irbid" },
-    { key: "balqa", ar: "البلقاء", en: "Balqa" },
-    { key: "madaba", ar: "مادبا", en: "Madaba" },
-    { key: "karak", ar: "الكرك", en: "Karak" },
-    { key: "tafilah", ar: "الطفيلة", en: "Tafilah" },
-    { key: "maan", ar: "معان", en: "Ma'an" },
-    { key: "aqaba", ar: "العقبة", en: "Aqaba" },
-    { key: "jerash", ar: "جرش", en: "Jerash" },
-    { key: "ajloun", ar: "عجلون", en: "Ajloun" },
-    { key: "mafraq", ar: "المفرق", en: "Mafraq" }
+    { key: "amman", ar: "Ø¹Ù…Ù‘Ø§Ù†", en: "Amman" },
+    { key: "zarqa", ar: "Ø§Ù„Ø²Ø±Ù‚Ø§Ø¡", en: "Zarqa" },
+    { key: "irbid", ar: "Ø¥Ø±Ø¨Ø¯", en: "Irbid" },
+    { key: "balqa", ar: "Ø§Ù„Ø¨Ù„Ù‚Ø§Ø¡", en: "Balqa" },
+    { key: "madaba", ar: "Ù…Ø§Ø¯Ø¨Ø§", en: "Madaba" },
+    { key: "karak", ar: "Ø§Ù„ÙƒØ±Ùƒ", en: "Karak" },
+    { key: "tafilah", ar: "Ø§Ù„Ø·ÙÙŠÙ„Ø©", en: "Tafilah" },
+    { key: "maan", ar: "Ù…Ø¹Ø§Ù†", en: "Ma'an" },
+    { key: "aqaba", ar: "Ø§Ù„Ø¹Ù‚Ø¨Ø©", en: "Aqaba" },
+    { key: "jerash", ar: "Ø¬Ø±Ø´", en: "Jerash" },
+    { key: "ajloun", ar: "Ø¹Ø¬Ù„ÙˆÙ†", en: "Ajloun" },
+    { key: "mafraq", ar: "Ø§Ù„Ù…ÙØ±Ù‚", en: "Mafraq" }
   ];
 
   const GOV_MAP = Object.fromEntries(GOVERNORATES.map((g) => [g.key, g]));
 
   const CATEGORIES = [
-    { key: "daily", ar: "عمل يومي", en: "Daily Jobs", icon: "fa-bolt", color: "#FF6A00" },
-    { key: "fulltime", ar: "وظائف دوام كامل", en: "Full-Time Jobs", icon: "fa-briefcase", color: "#1967D2" },
-    { key: "ads", ar: "إعلانات وأخبار", en: "Ads & News", icon: "fa-rectangle-ad", color: "#C2185B" },
-    { key: "services", ar: "خدمات", en: "Services", icon: "fa-hand-holding-hand", color: "#1565C0" },
-    { key: "used", ar: "أشياء مستعملة", en: "Used Items", icon: "fa-comment-dots", color: "#546E7A" },
-    { key: "free", ar: "هدايا مجانية", en: "Freebies", icon: "fa-gift", color: "#2E7D32" },
-    { key: "real_estate", ar: "عقارات", en: "Real Estate", icon: "fa-building", color: "#6A1B9A" },
-    { key: "rentals", ar: "إيجار", en: "Rentals", icon: "fa-key", color: "#00838F" },
-    { key: "cars", ar: "سيارات", en: "Cars", icon: "fa-car", color: "#E65100" },
-    { key: "construction", ar: "أعمال بناء", en: "Construction & Building", parent: "services" },
-    { key: "delivery", ar: "توصيل", en: "Delivery & Courier", parent: "services" },
-    { key: "cleaning", ar: "نظافة", en: "Housekeeping & Cleaning", parent: "services" },
-    { key: "moving", ar: "نقل وأثاث", en: "Moving & Packing", parent: "services" },
-    { key: "plumbing", ar: "سباكة وتدفئة", en: "Plumbing & Heating", parent: "services" },
-    { key: "electrical", ar: "كهرباء", en: "Electrical Work", parent: "services" },
-    { key: "hospitality", ar: "ضيافة ومطاعم", en: "Restaurants & Catering", parent: "services" },
-    { key: "caregiving", ar: "رعاية أطفال", en: "Babysitting & Care", parent: "services" },
-    { key: "electronics", ar: "إلكترونيات مستعملة", en: "Used Electronics", parent: "used" },
-    { key: "furniture", ar: "أثاث مستعمل", en: "Used Furniture", parent: "used" },
-    { key: "other", ar: "أخرى", en: "Other" }
+    { key: "daily", ar: "Ø¹Ù…Ù„ ÙŠÙˆÙ…ÙŠ", en: "Daily Jobs", icon: "fa-bolt", color: "#FF6A00" },
+    { key: "fulltime", ar: "ÙˆØ¸Ø§Ø¦Ù Ø¯ÙˆØ§Ù… ÙƒØ§Ù…Ù„", en: "Full-Time Jobs", icon: "fa-briefcase", color: "#1967D2" },
+    { key: "ads", ar: "Ø¥Ø¹Ù„Ø§Ù†Ø§Øª ÙˆØ£Ø®Ø¨Ø§Ø±", en: "Ads & News", icon: "fa-rectangle-ad", color: "#C2185B" },
+    { key: "services", ar: "Ø®Ø¯Ù…Ø§Øª", en: "Services", icon: "fa-hand-holding-hand", color: "#1565C0" },
+    { key: "used", ar: "Ø£Ø´ÙŠØ§Ø¡ Ù…Ø³ØªØ¹Ù…Ù„Ø©", en: "Used Items", icon: "fa-comment-dots", color: "#546E7A" },
+    { key: "free", ar: "Ù‡Ø¯Ø§ÙŠØ§ Ù…Ø¬Ø§Ù†ÙŠØ©", en: "Freebies", icon: "fa-gift", color: "#2E7D32" },
+    { key: "real_estate", ar: "Ø¹Ù‚Ø§Ø±Ø§Øª", en: "Real Estate", icon: "fa-building", color: "#6A1B9A" },
+    { key: "rentals", ar: "Ø¥ÙŠØ¬Ø§Ø±", en: "Rentals", icon: "fa-key", color: "#00838F" },
+    { key: "cars", ar: "Ø³ÙŠØ§Ø±Ø§Øª", en: "Cars", icon: "fa-car", color: "#E65100" },
+    { key: "construction", ar: "Ø£Ø¹Ù…Ø§Ù„ Ø¨Ù†Ø§Ø¡", en: "Construction & Building", parent: "services" },
+    { key: "delivery", ar: "ØªÙˆØµÙŠÙ„", en: "Delivery & Courier", parent: "services" },
+    { key: "cleaning", ar: "Ù†Ø¸Ø§ÙØ©", en: "Housekeeping & Cleaning", parent: "services" },
+    { key: "moving", ar: "Ù†Ù‚Ù„ ÙˆØ£Ø«Ø§Ø«", en: "Moving & Packing", parent: "services" },
+    { key: "plumbing", ar: "Ø³Ø¨Ø§ÙƒØ© ÙˆØªØ¯ÙØ¦Ø©", en: "Plumbing & Heating", parent: "services" },
+    { key: "electrical", ar: "ÙƒÙ‡Ø±Ø¨Ø§Ø¡", en: "Electrical Work", parent: "services" },
+    { key: "hospitality", ar: "Ø¶ÙŠØ§ÙØ© ÙˆÙ…Ø·Ø§Ø¹Ù…", en: "Restaurants & Catering", parent: "services" },
+    { key: "caregiving", ar: "Ø±Ø¹Ø§ÙŠØ© Ø£Ø·ÙØ§Ù„", en: "Babysitting & Care", parent: "services" },
+    { key: "electronics", ar: "Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠØ§Øª Ù…Ø³ØªØ¹Ù…Ù„Ø©", en: "Used Electronics", parent: "used" },
+    { key: "furniture", ar: "Ø£Ø«Ø§Ø« Ù…Ø³ØªØ¹Ù…Ù„", en: "Used Furniture", parent: "used" },
+    { key: "other", ar: "Ø£Ø®Ø±Ù‰", en: "Other" }
   ];
 
   const CAT_MAP = Object.fromEntries(CATEGORIES.map((c) => [c.key, c]));
@@ -459,176 +459,176 @@
       selectImages: "Add Images (Gallery or Camera)"
     },
     ar: {
-      contactUs: "اتصل بنا",
-      contactName: "الاسم",
-      contactEmail: "البريد الإلكتروني",
-      contactSubject: "الموضوع",
-      contactMessage: "الرسالة",
-      send: "إرسال",
+      contactUs: "Ø§ØªØµÙ„ Ø¨Ù†Ø§",
+      contactName: "Ø§Ù„Ø§Ø³Ù…",
+      contactEmail: "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ",
+      contactSubject: "Ø§Ù„Ù…ÙˆØ¶ÙˆØ¹",
+      contactMessage: "Ø§Ù„Ø±Ø³Ø§Ù„Ø©",
+      send: "Ø¥Ø±Ø³Ø§Ù„",
 
-      forgotPassword: "نسيت كلمة المرور؟",
-      editProfile: "تعديل الملف الشخصي",
-      profileSaved: "تم تحديث الملف الشخصي بنجاح",
-      removeAvatar: "إزالة الصورة",
-      changeAvatar: "تغيير الصورة",
-      changePassword: "تغيير كلمة المرور",
-      changePasswordBtn: "تغيير كلمة المرور",
-      currentPassword: "كلمة المرور الحالية",
-      newPassword: "كلمة المرور الجديدة",
-      confirmNewPassword: "تأكيد كلمة المرور الجديدة",
-      saveNewPassword: "حفظ كلمة المرور الجديدة",
-      passwordChanged: "تم تغيير كلمة المرور بنجاح",
-      cliqAccount: "حساب كليك - محفظة دينارك (اسم مستعار: DAILYJOB1)",
-      cliqTransferMsg: "يرجى تحويل 1 دينار إلى حساب كليك - محفظة دينارك (اسم مستعار: DAILYJOB1) وتحميل صورة الإيصال أدناه:",
-      uploadReceipt: "تحميل الإيصال",
-      confirmPaymentAndPublish: "تأكيد الدفع والنشر",
-      receiptRequired: "الرجاء رفع صورة إيصال الدفع",
-      postAd: "أنشر إعلانك الآن",
-      all: "الكل",
-      dailyJob: "شغل يومي",
-      fullTime: "وظائف دوام كامل",
-      announcements: "إعلانات وأخبار",
-      services: "خدمات",
-      usedGoods: "أغراض مستعملة",
-      freebies: "هدايا مجانية",
-      realEstate: "عقارات",
-      rentals: "إيجار",
-      cars: "سيارات",
-      activeAds: "إعلانات نشطة",
-      noResults: "لا توجد نتائج مطابقة لبحثك",
-      adDetails: "تفاصيل الإعلان",
-      jobDesc: "وصف العمل",
-      contactWhatsapp: "اتصال أو واتساب",
-      loginRequiredContact: "يرجى تسجيل الدخول أو إنشاء حساب للتواصل مع صاحب الإعلان",
-      loginRequiredCall: "يرجى تسجيل الدخول أو إنشاء حساب للاتصال بصاحب الإعلان",
-      loginToViewPhone: "تسجيل الدخول لإظهار الرقم",
-      abuDinar: "أبو الدينار",
-      abuDinarSub: "أفضل طريقة لتوصيل خدمتك بالمعلن والمستخدم",
-      adTitle: "عنوان الإعلان",
-      governorate: "المحافظة",
-      category: "الفئة",
-      dailyWage: "الأجر اليومي / السعر (د.أ)",
-      details: "التفاصيل",
-      contactMethod: "طريقة التواصل المباشر",
-      phoneNumber: "رقم التواصل",
-      postingFee: "رسوم نشر الإعلان",
-      free: "مجانية",
-      reviewFee: "مراجعة الإعلان",
-      total: "المجموع",
-      mainImage: "رئيسية",
-      deleteImage: "حذف الصورة",
-      publishAd: "انشر الإعلان - 1 دينار",
-      favorites: "المفضلة",
-      noFavorites: "لم تضف أي إعلان للمفضلة بعد",
-      myAds: "إعلاناتي",
-      noAdsYet: "لم تنشر أي إعلان بعد",
-      postFirstAd: "انشر أول إعلان",
-      notifications: "الإشعارات",
-      markAllRead: "تعليم الكل كمقروء",
-      deleteAll: "حذف الكل",
-      confirmDeleteAllNotifs: "هل أنت متأكد من حذف جميع الإشعارات؟",
-      confirmDeleteNotif: "هل أنت متأكد من حذف هذا الإشعار؟",
-      allNotifsDeleted: "تم حذف جميع الإشعارات بنجاح",
-      notifDeleted: "تم حذف الإشعار بنجاح",
-      views: "المشاهدات",
-      viewsCount: "مشاهدة",
-      noNotifications: "لا توجد إشعارات حالياً",
-      settings: "الإعدادات",
-      accountInfo: "معلومات الحساب",
-      email: "البريد الإلكتروني",
-      username: "اسم المستخدم",
-      saveChanges: "حفظ التغييرات",
-      notificationPrefs: "تفضيلات الإشعارات",
-      generalNotifs: "إشعارات عامة",
-      generalNotifsDesc: "تنبيهات حول نشاط حسابك",
-      newMessages: "رسائل جديدة",
-      newMessagesDesc: "عندما تتلقى رسالة من مستخدم",
-      offersNews: "العروض والأخبار",
-      offersNewsDesc: "العروض والتحديثات من دايلي جوب",
-      preferredGov: "المحافظة المفضلة",
-      chooseGovDefault: "اختر المحافظة الافتراضية لعرض الإعلانات",
-      deleteAccount: "حذف الحساب نهائياً",
-      confirmDeleteAd: "هل أنت متأكد أنك تريد حذف هذا الإعلان نهائياً؟",
-      confirmDeleteAccount: "هل أنت متأكد من حذف حسابك نهائياً؟ لا يمكن التراجع عن هذا الإجراء وسيتم حذف جميع إعلاناتك.",
-      language: "اللغة",
-      directionHint: "يتغير الاتجاه تلقائياً (RTL/LTR)",
-      accountActions: "إجراءات الحساب",
-      logout: "تسجيل الخروج",
-      home: "الرئيسية",
-      favorites: "المفضلة",
-      myAds: "إعلاناتي",
-      myCoupons: "قسائمي",
-      settings: "الإعدادات",
-      login: "تسجيل الدخول",
-      register: "إنشاء حساب",
-      loginSub: "أدخل بريدك الإلكتروني وكلمة المرور للمتابعة",
-      password: "كلمة المرور",
-      createAccount: "إنشاء حساب جديد",
-      registerSub: "أنشئ حسابك خلال ثوانٍ - نحتاج هذه الحقول فقط",
-      confirmPassword: "تأكيد كلمة المرور",
-      filterResults: "تصفية النتائج",
-      reset: "إعادة تعيين",
-      apply: "تطبيق",
-      abuDinarCta: "أبو الدينار - أضف إعلان",
-      searchPlaceholder: "ابحث عن شغلة عامل أو عرض مستعمل...",
-      minsAgo: "دقيقة مضت",
-      hoursAgo: "ساعة مضت",
-      daysAgo: "أيام مضت",
-      loginSuccess: "تم تسجيل الدخول بنجاح",
-      registerSuccess: "تم إنشاء الحساب بنجاح",
-      logoutSuccess: "تم تسجيل الخروج",
-      adPublished: "شكراً، سيتم نشر الإعلان بعد 10 دقائق",
-      settingsSaved: "تم حفظ الإعدادات",
-      fillAllFields: "الرجاء تعبئة جميع الحقول",
-      passwordsMismatch: "كلمتا المرور غير متطابقتين",
-      invalidEmail: "البريد الإلكتروني غير صالح",
-      invalidPhone: "رقم الهاتف يجب أن يبدأ بـ 07 ويتكون من 10 أرقام (مثال: 07XXXXXXXX)",
-      titleRequired: "العنوان مطلوب",
-      wageRequired: "الأجر مطلوب",
-      phoneRequired: "رقم التواصل مطلوب",
-      contact: "تواصل",
-      myAd: "إعلاني",
-      removedFromFav: "تم الإزالة من المفضلة",
-      addedToFav: "تمت الإضافة إلى المفضلة",
-      filtersApplied: "تم تطبيق الفلاتر",
-      filtersReset: "تم إعادة تعيين الفلاتر",
-      allMarkedRead: "تم تعليم الكل كمقروء",
-      sharingNotSupported: "المشاركة غير مدعومة على هذا الجهاز",
-      preferredGovUpdated: "تم تحديث المحافظة المفضلة",
-      couponsOffers: "القسائم",
-      referralDesc: "لكل صديق يسجل في التطبيق عن طريق كود الإحالة الخاص بك ويقوم بتفعيل حسابه، ستحصل تلقائياً على قسيمة إعلان مجاني صالحة لمدة 30 يوماً!",
-      yourReferralCode: "كود الإحالة الخاص بك هو",
-      copyBtn: "نسخ",
-      shareReferralBtn: "مشاركة كود الإحالة مع الأصدقاء",
-      activeCoupons: "قسائمك النشطة",
-      noActiveCoupons: "لا توجد قسائم نشطة حالياً. شارك كود الإحالة مع أصدقائك للحصول على قسائم جديدة!",
-      couponsHistory: "سجل القسائم",
-      couponsHistoryEmpty: "سجل القسائم فارغ.",
-      referralCode: "كود الإحالة (اختياري)",
-      shareMsg: "سجل في تطبيق Daily Job وابحث عن وظائف يومية أو انشر إعلاناتك مجاناً! استخدم كود الإحالة الخاص بي: {code} عند التسجيل للحصول على هدية ترحيبية!",
-      shareSuccessToast: "تم نسخ رسالة المشاركة بنجاح!",
-      usernameMinLength: "يجب أن يكون اسم المستخدم 3 أحرف على الأقل",
-      passwordMinLength: "يجب أن تكون كلمة المرور 6 أحرف على الأقل",
-      guest: "زائر",
-      signInToSeeMore: "سجّل دخولك لرؤية المزيد",
-      whatsapp: "واتساب",
-      call: "اتصال",
-      both: "اتصال أو واتساب",
-      showAllAds: "عرض كل الإعلانات",
-      loadMoreAds: "تحميل المزيد من الإعلانات",
-      loading: "جاري التحميل...",
-      chooseImageSource: "إضافة صورة للإعلان",
-      chooseImageSourceSub: "اختر طريقة إضافة الصورة التي تفضلها",
-      takeWithCamera: "التقاط بالكاميرا",
-      takeWithCameraDesc: "تصوير فوري بكاميرا الجهاز",
-      takeWithCameraShort: "تصوير بالكاميرا",
-      chooseFromGallery: "معرض الصور / الملفات",
-      chooseFromGalleryDesc: "اختيار صورة أو عدة صور من جهازك",
-      chooseFromGalleryShort: "من المعرض",
-      cameraCaptureTitle: "التقاط صورة بالكاميرا",
-      cameraCaptureSub: "وجه الكاميرا نحو الغرض ثم اضغط زر الالتقاط",
-      snapPhoto: "التقاط الصورة",
-      selectImages: "إضافة صور (معرض أو كاميرا)"
+      forgotPassword: "Ù†Ø³ÙŠØª ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±ØŸ",
+      editProfile: "ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ",
+      profileSaved: "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ù„Ù Ø§Ù„Ø´Ø®ØµÙŠ Ø¨Ù†Ø¬Ø§Ø­",
+      removeAvatar: "Ø¥Ø²Ø§Ù„Ø© Ø§Ù„ØµÙˆØ±Ø©",
+      changeAvatar: "ØªØºÙŠÙŠØ± Ø§Ù„ØµÙˆØ±Ø©",
+      changePassword: "ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±",
+      changePasswordBtn: "ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±",
+      currentPassword: "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø­Ø§Ù„ÙŠØ©",
+      newPassword: "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©",
+      confirmNewPassword: "ØªØ£ÙƒÙŠØ¯ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©",
+      saveNewPassword: "Ø­ÙØ¸ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø©",
+      passwordChanged: "ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­",
+      cliqAccount: "Ø­Ø³Ø§Ø¨ ÙƒÙ„ÙŠÙƒ - Ù…Ø­ÙØ¸Ø© Ø¯ÙŠÙ†Ø§Ø±Ùƒ (Ø§Ø³Ù… Ù…Ø³ØªØ¹Ø§Ø±: DAILYJOB1)",
+      cliqTransferMsg: "ÙŠØ±Ø¬Ù‰ ØªØ­ÙˆÙŠÙ„ 1 Ø¯ÙŠÙ†Ø§Ø± Ø¥Ù„Ù‰ Ø­Ø³Ø§Ø¨ ÙƒÙ„ÙŠÙƒ - Ù…Ø­ÙØ¸Ø© Ø¯ÙŠÙ†Ø§Ø±Ùƒ (Ø§Ø³Ù… Ù…Ø³ØªØ¹Ø§Ø±: DAILYJOB1) ÙˆØªØ­Ù…ÙŠÙ„ ØµÙˆØ±Ø© Ø§Ù„Ø¥ÙŠØµØ§Ù„ Ø£Ø¯Ù†Ø§Ù‡:",
+      uploadReceipt: "ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¥ÙŠØµØ§Ù„",
+      confirmPaymentAndPublish: "ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¯ÙØ¹ ÙˆØ§Ù„Ù†Ø´Ø±",
+      receiptRequired: "Ø§Ù„Ø±Ø¬Ø§Ø¡ Ø±ÙØ¹ ØµÙˆØ±Ø© Ø¥ÙŠØµØ§Ù„ Ø§Ù„Ø¯ÙØ¹",
+      postAd: "Ø£Ù†Ø´Ø± Ø¥Ø¹Ù„Ø§Ù†Ùƒ Ø§Ù„Ø¢Ù†",
+      all: "Ø§Ù„ÙƒÙ„",
+      dailyJob: "Ø´ØºÙ„ ÙŠÙˆÙ…ÙŠ",
+      fullTime: "ÙˆØ¸Ø§Ø¦Ù Ø¯ÙˆØ§Ù… ÙƒØ§Ù…Ù„",
+      announcements: "Ø¥Ø¹Ù„Ø§Ù†Ø§Øª ÙˆØ£Ø®Ø¨Ø§Ø±",
+      services: "Ø®Ø¯Ù…Ø§Øª",
+      usedGoods: "Ø£ØºØ±Ø§Ø¶ Ù…Ø³ØªØ¹Ù…Ù„Ø©",
+      freebies: "Ù‡Ø¯Ø§ÙŠØ§ Ù…Ø¬Ø§Ù†ÙŠØ©",
+      realEstate: "Ø¹Ù‚Ø§Ø±Ø§Øª",
+      rentals: "Ø¥ÙŠØ¬Ø§Ø±",
+      cars: "Ø³ÙŠØ§Ø±Ø§Øª",
+      activeAds: "Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ù†Ø´Ø·Ø©",
+      noResults: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù†ØªØ§Ø¦Ø¬ Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„Ø¨Ø­Ø«Ùƒ",
+      adDetails: "ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      jobDesc: "ÙˆØµÙ Ø§Ù„Ø¹Ù…Ù„",
+      contactWhatsapp: "Ø§ØªØµØ§Ù„ Ø£Ùˆ ÙˆØ§ØªØ³Ø§Ø¨",
+      loginRequiredContact: "ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£Ùˆ Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨ Ù„Ù„ØªÙˆØ§ØµÙ„ Ù…Ø¹ ØµØ§Ø­Ø¨ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      loginRequiredCall: "ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£Ùˆ Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨ Ù„Ù„Ø§ØªØµØ§Ù„ Ø¨ØµØ§Ø­Ø¨ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      loginToViewPhone: "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù„Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ø±Ù‚Ù…",
+      abuDinar: "Ø£Ø¨Ùˆ Ø§Ù„Ø¯ÙŠÙ†Ø§Ø±",
+      abuDinarSub: "Ø£ÙØ¶Ù„ Ø·Ø±ÙŠÙ‚Ø© Ù„ØªÙˆØµÙŠÙ„ Ø®Ø¯Ù…ØªÙƒ Ø¨Ø§Ù„Ù…Ø¹Ù„Ù† ÙˆØ§Ù„Ù…Ø³ØªØ®Ø¯Ù…",
+      adTitle: "Ø¹Ù†ÙˆØ§Ù† Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      governorate: "Ø§Ù„Ù…Ø­Ø§ÙØ¸Ø©",
+      category: "Ø§Ù„ÙØ¦Ø©",
+      dailyWage: "Ø§Ù„Ø£Ø¬Ø± Ø§Ù„ÙŠÙˆÙ…ÙŠ / Ø§Ù„Ø³Ø¹Ø± (Ø¯.Ø£)",
+      details: "Ø§Ù„ØªÙØ§ØµÙŠÙ„",
+      contactMethod: "Ø·Ø±ÙŠÙ‚Ø© Ø§Ù„ØªÙˆØ§ØµÙ„ Ø§Ù„Ù…Ø¨Ø§Ø´Ø±",
+      phoneNumber: "Ø±Ù‚Ù… Ø§Ù„ØªÙˆØ§ØµÙ„",
+      postingFee: "Ø±Ø³ÙˆÙ… Ù†Ø´Ø± Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      free: "Ù…Ø¬Ø§Ù†ÙŠØ©",
+      reviewFee: "Ù…Ø±Ø§Ø¬Ø¹Ø© Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      total: "Ø§Ù„Ù…Ø¬Ù…ÙˆØ¹",
+      mainImage: "Ø±Ø¦ÙŠØ³ÙŠØ©",
+      deleteImage: "Ø­Ø°Ù Ø§Ù„ØµÙˆØ±Ø©",
+      publishAd: "Ø§Ù†Ø´Ø± Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† - 1 Ø¯ÙŠÙ†Ø§Ø±",
+      favorites: "Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      noFavorites: "Ù„Ù… ØªØ¶Ù Ø£ÙŠ Ø¥Ø¹Ù„Ø§Ù† Ù„Ù„Ù…ÙØ¶Ù„Ø© Ø¨Ø¹Ø¯",
+      myAds: "Ø¥Ø¹Ù„Ø§Ù†Ø§ØªÙŠ",
+      noAdsYet: "Ù„Ù… ØªÙ†Ø´Ø± Ø£ÙŠ Ø¥Ø¹Ù„Ø§Ù† Ø¨Ø¹Ø¯",
+      postFirstAd: "Ø§Ù†Ø´Ø± Ø£ÙˆÙ„ Ø¥Ø¹Ù„Ø§Ù†",
+      notifications: "Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª",
+      markAllRead: "ØªØ¹Ù„ÙŠÙ… Ø§Ù„ÙƒÙ„ ÙƒÙ…Ù‚Ø±ÙˆØ¡",
+      deleteAll: "Ø­Ø°Ù Ø§Ù„ÙƒÙ„",
+      confirmDeleteAllNotifs: "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§ØªØŸ",
+      confirmDeleteNotif: "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±ØŸ",
+      allNotifsDeleted: "ØªÙ… Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¨Ù†Ø¬Ø§Ø­",
+      notifDeleted: "ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¥Ø´Ø¹Ø§Ø± Ø¨Ù†Ø¬Ø§Ø­",
+      views: "Ø§Ù„Ù…Ø´Ø§Ù‡Ø¯Ø§Øª",
+      viewsCount: "Ù…Ø´Ø§Ù‡Ø¯Ø©",
+      noNotifications: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø­Ø§Ù„ÙŠØ§Ù‹",
+      settings: "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
+      accountInfo: "Ù…Ø¹Ù„ÙˆÙ…Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨",
+      email: "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ",
+      username: "Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…",
+      saveChanges: "Ø­ÙØ¸ Ø§Ù„ØªØºÙŠÙŠØ±Ø§Øª",
+      notificationPrefs: "ØªÙØ¶ÙŠÙ„Ø§Øª Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª",
+      generalNotifs: "Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¹Ø§Ù…Ø©",
+      generalNotifsDesc: "ØªÙ†Ø¨ÙŠÙ‡Ø§Øª Ø­ÙˆÙ„ Ù†Ø´Ø§Ø· Ø­Ø³Ø§Ø¨Ùƒ",
+      newMessages: "Ø±Ø³Ø§Ø¦Ù„ Ø¬Ø¯ÙŠØ¯Ø©",
+      newMessagesDesc: "Ø¹Ù†Ø¯Ù…Ø§ ØªØªÙ„Ù‚Ù‰ Ø±Ø³Ø§Ù„Ø© Ù…Ù† Ù…Ø³ØªØ®Ø¯Ù…",
+      offersNews: "Ø§Ù„Ø¹Ø±ÙˆØ¶ ÙˆØ§Ù„Ø£Ø®Ø¨Ø§Ø±",
+      offersNewsDesc: "Ø§Ù„Ø¹Ø±ÙˆØ¶ ÙˆØ§Ù„ØªØ­Ø¯ÙŠØ«Ø§Øª Ù…Ù† Ø¯Ø§ÙŠÙ„ÙŠ Ø¬ÙˆØ¨",
+      preferredGov: "Ø§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      chooseGovDefault: "Ø§Ø®ØªØ± Ø§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø§Ù„Ø§ÙØªØ±Ø§Ø¶ÙŠØ© Ù„Ø¹Ø±Ø¶ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª",
+      deleteAccount: "Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨ Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹",
+      confirmDeleteAd: "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ø£Ù†Ùƒ ØªØ±ÙŠØ¯ Ø­Ø°Ù Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ØŸ",
+      confirmDeleteAccount: "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ø­Ø³Ø§Ø¨Ùƒ Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ØŸ Ù„Ø§ ÙŠÙ…ÙƒÙ† Ø§Ù„ØªØ±Ø§Ø¬Ø¹ Ø¹Ù† Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¬Ø±Ø§Ø¡ ÙˆØ³ÙŠØªÙ… Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø¥Ø¹Ù„Ø§Ù†Ø§ØªÙƒ.",
+      language: "Ø§Ù„Ù„ØºØ©",
+      directionHint: "ÙŠØªØºÙŠØ± Ø§Ù„Ø§ØªØ¬Ø§Ù‡ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ (RTL/LTR)",
+      accountActions: "Ø¥Ø¬Ø±Ø§Ø¡Ø§Øª Ø§Ù„Ø­Ø³Ø§Ø¨",
+      logout: "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬",
+      home: "Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©",
+      favorites: "Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      myAds: "Ø¥Ø¹Ù„Ø§Ù†Ø§ØªÙŠ",
+      myCoupons: "Ù‚Ø³Ø§Ø¦Ù…ÙŠ",
+      settings: "Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
+      login: "ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„",
+      register: "Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨",
+      loginSub: "Ø£Ø¯Ø®Ù„ Ø¨Ø±ÙŠØ¯Ùƒ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ÙˆÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ù„Ù„Ù…ØªØ§Ø¨Ø¹Ø©",
+      password: "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±",
+      createAccount: "Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨ Ø¬Ø¯ÙŠØ¯",
+      registerSub: "Ø£Ù†Ø´Ø¦ Ø­Ø³Ø§Ø¨Ùƒ Ø®Ù„Ø§Ù„ Ø«ÙˆØ§Ù†Ù - Ù†Ø­ØªØ§Ø¬ Ù‡Ø°Ù‡ Ø§Ù„Ø­Ù‚ÙˆÙ„ ÙÙ‚Ø·",
+      confirmPassword: "ØªØ£ÙƒÙŠØ¯ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±",
+      filterResults: "ØªØµÙÙŠØ© Ø§Ù„Ù†ØªØ§Ø¦Ø¬",
+      reset: "Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ†",
+      apply: "ØªØ·Ø¨ÙŠÙ‚",
+      abuDinarCta: "Ø£Ø¨Ùˆ Ø§Ù„Ø¯ÙŠÙ†Ø§Ø± - Ø£Ø¶Ù Ø¥Ø¹Ù„Ø§Ù†",
+      searchPlaceholder: "Ø§Ø¨Ø­Ø« Ø¹Ù† Ø´ØºÙ„Ø© Ø¹Ø§Ù…Ù„ Ø£Ùˆ Ø¹Ø±Ø¶ Ù…Ø³ØªØ¹Ù…Ù„...",
+      minsAgo: "Ø¯Ù‚ÙŠÙ‚Ø© Ù…Ø¶Øª",
+      hoursAgo: "Ø³Ø§Ø¹Ø© Ù…Ø¶Øª",
+      daysAgo: "Ø£ÙŠØ§Ù… Ù…Ø¶Øª",
+      loginSuccess: "ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø¨Ù†Ø¬Ø§Ø­",
+      registerSuccess: "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ù†Ø¬Ø§Ø­",
+      logoutSuccess: "ØªÙ… ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø®Ø±ÙˆØ¬",
+      adPublished: "Ø´ÙƒØ±Ø§Ù‹ØŒ Ø³ÙŠØªÙ… Ù†Ø´Ø± Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ø¨Ø¹Ø¯ 10 Ø¯Ù‚Ø§Ø¦Ù‚",
+      settingsSaved: "ØªÙ… Ø­ÙØ¸ Ø§Ù„Ø¥Ø¹Ø¯Ø§Ø¯Ø§Øª",
+      fillAllFields: "Ø§Ù„Ø±Ø¬Ø§Ø¡ ØªØ¹Ø¨Ø¦Ø© Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø­Ù‚ÙˆÙ„",
+      passwordsMismatch: "ÙƒÙ„Ù…ØªØ§ Ø§Ù„Ù…Ø±ÙˆØ± ØºÙŠØ± Ù…ØªØ·Ø§Ø¨Ù‚ØªÙŠÙ†",
+      invalidEmail: "Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØºÙŠØ± ØµØ§Ù„Ø­",
+      invalidPhone: "Ø±Ù‚Ù… Ø§Ù„Ù‡Ø§ØªÙ ÙŠØ¬Ø¨ Ø£Ù† ÙŠØ¨Ø¯Ø£ Ø¨Ù€ 07 ÙˆÙŠØªÙƒÙˆÙ† Ù…Ù† 10 Ø£Ø±Ù‚Ø§Ù… (Ù…Ø«Ø§Ù„: 07XXXXXXXX)",
+      titleRequired: "Ø§Ù„Ø¹Ù†ÙˆØ§Ù† Ù…Ø·Ù„ÙˆØ¨",
+      wageRequired: "Ø§Ù„Ø£Ø¬Ø± Ù…Ø·Ù„ÙˆØ¨",
+      phoneRequired: "Ø±Ù‚Ù… Ø§Ù„ØªÙˆØ§ØµÙ„ Ù…Ø·Ù„ÙˆØ¨",
+      contact: "ØªÙˆØ§ØµÙ„",
+      myAd: "Ø¥Ø¹Ù„Ø§Ù†ÙŠ",
+      removedFromFav: "ØªÙ… Ø§Ù„Ø¥Ø²Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      addedToFav: "ØªÙ…Øª Ø§Ù„Ø¥Ø¶Ø§ÙØ© Ø¥Ù„Ù‰ Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      filtersApplied: "ØªÙ… ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ÙÙ„Ø§ØªØ±",
+      filtersReset: "ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© ØªØ¹ÙŠÙŠÙ† Ø§Ù„ÙÙ„Ø§ØªØ±",
+      allMarkedRead: "ØªÙ… ØªØ¹Ù„ÙŠÙ… Ø§Ù„ÙƒÙ„ ÙƒÙ…Ù‚Ø±ÙˆØ¡",
+      sharingNotSupported: "Ø§Ù„Ù…Ø´Ø§Ø±ÙƒØ© ØºÙŠØ± Ù…Ø¯Ø¹ÙˆÙ…Ø© Ø¹Ù„Ù‰ Ù‡Ø°Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø²",
+      preferredGovUpdated: "ØªÙ… ØªØ­Ø¯ÙŠØ« Ø§Ù„Ù…Ø­Ø§ÙØ¸Ø© Ø§Ù„Ù…ÙØ¶Ù„Ø©",
+      couponsOffers: "Ø§Ù„Ù‚Ø³Ø§Ø¦Ù…",
+      referralDesc: "Ù„ÙƒÙ„ ØµØ¯ÙŠÙ‚ ÙŠØ³Ø¬Ù„ ÙÙŠ Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ Ø¹Ù† Ø·Ø±ÙŠÙ‚ ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ ÙˆÙŠÙ‚ÙˆÙ… Ø¨ØªÙØ¹ÙŠÙ„ Ø­Ø³Ø§Ø¨Ù‡ØŒ Ø³ØªØ­ØµÙ„ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ø¹Ù„Ù‰ Ù‚Ø³ÙŠÙ…Ø© Ø¥Ø¹Ù„Ø§Ù† Ù…Ø¬Ø§Ù†ÙŠ ØµØ§Ù„Ø­Ø© Ù„Ù…Ø¯Ø© 30 ÙŠÙˆÙ…Ø§Ù‹!",
+      yourReferralCode: "ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø§Øµ Ø¨Ùƒ Ù‡Ùˆ",
+      copyBtn: "Ù†Ø³Ø®",
+      shareReferralBtn: "Ù…Ø´Ø§Ø±ÙƒØ© ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ù…Ø¹ Ø§Ù„Ø£ØµØ¯Ù‚Ø§Ø¡",
+      activeCoupons: "Ù‚Ø³Ø§Ø¦Ù…Ùƒ Ø§Ù„Ù†Ø´Ø·Ø©",
+      noActiveCoupons: "Ù„Ø§ ØªÙˆØ¬Ø¯ Ù‚Ø³Ø§Ø¦Ù… Ù†Ø´Ø·Ø© Ø­Ø§Ù„ÙŠØ§Ù‹. Ø´Ø§Ø±Ùƒ ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ù…Ø¹ Ø£ØµØ¯Ù‚Ø§Ø¦Ùƒ Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ù‚Ø³Ø§Ø¦Ù… Ø¬Ø¯ÙŠØ¯Ø©!",
+      couponsHistory: "Ø³Ø¬Ù„ Ø§Ù„Ù‚Ø³Ø§Ø¦Ù…",
+      couponsHistoryEmpty: "Ø³Ø¬Ù„ Ø§Ù„Ù‚Ø³Ø§Ø¦Ù… ÙØ§Ø±Øº.",
+      referralCode: "ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© (Ø§Ø®ØªÙŠØ§Ø±ÙŠ)",
+      shareMsg: "Ø³Ø¬Ù„ ÙÙŠ ØªØ·Ø¨ÙŠÙ‚ Daily Job ÙˆØ§Ø¨Ø­Ø« Ø¹Ù† ÙˆØ¸Ø§Ø¦Ù ÙŠÙˆÙ…ÙŠØ© Ø£Ùˆ Ø§Ù†Ø´Ø± Ø¥Ø¹Ù„Ø§Ù†Ø§ØªÙƒ Ù…Ø¬Ø§Ù†Ø§Ù‹! Ø§Ø³ØªØ®Ø¯Ù… ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø§Øµ Ø¨ÙŠ: {code} Ø¹Ù†Ø¯ Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ù‡Ø¯ÙŠØ© ØªØ±Ø­ÙŠØ¨ÙŠØ©!",
+      shareSuccessToast: "ØªÙ… Ù†Ø³Ø® Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø´Ø§Ø±ÙƒØ© Ø¨Ù†Ø¬Ø§Ø­!",
+      usernameMinLength: "ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… 3 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„",
+      passwordMinLength: "ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± 6 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„",
+      guest: "Ø²Ø§Ø¦Ø±",
+      signInToSeeMore: "Ø³Ø¬Ù‘Ù„ Ø¯Ø®ÙˆÙ„Ùƒ Ù„Ø±Ø¤ÙŠØ© Ø§Ù„Ù…Ø²ÙŠØ¯",
+      whatsapp: "ÙˆØ§ØªØ³Ø§Ø¨",
+      call: "Ø§ØªØµØ§Ù„",
+      both: "Ø§ØªØµØ§Ù„ Ø£Ùˆ ÙˆØ§ØªØ³Ø§Ø¨",
+      showAllAds: "Ø¹Ø±Ø¶ ÙƒÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª",
+      loadMoreAds: "ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù…Ø²ÙŠØ¯ Ù…Ù† Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª",
+      loading: "Ø¬Ø§Ø±ÙŠ Ø§Ù„ØªØ­Ù…ÙŠÙ„...",
+      chooseImageSource: "Ø¥Ø¶Ø§ÙØ© ØµÙˆØ±Ø© Ù„Ù„Ø¥Ø¹Ù„Ø§Ù†",
+      chooseImageSourceSub: "Ø§Ø®ØªØ± Ø·Ø±ÙŠÙ‚Ø© Ø¥Ø¶Ø§ÙØ© Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„ØªÙŠ ØªÙØ¶Ù„Ù‡Ø§",
+      takeWithCamera: "Ø§Ù„ØªÙ‚Ø§Ø· Ø¨Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§",
+      takeWithCameraDesc: "ØªØµÙˆÙŠØ± ÙÙˆØ±ÙŠ Ø¨ÙƒØ§Ù…ÙŠØ±Ø§ Ø§Ù„Ø¬Ù‡Ø§Ø²",
+      takeWithCameraShort: "ØªØµÙˆÙŠØ± Ø¨Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§",
+      chooseFromGallery: "Ù…Ø¹Ø±Ø¶ Ø§Ù„ØµÙˆØ± / Ø§Ù„Ù…Ù„ÙØ§Øª",
+      chooseFromGalleryDesc: "Ø§Ø®ØªÙŠØ§Ø± ØµÙˆØ±Ø© Ø£Ùˆ Ø¹Ø¯Ø© ØµÙˆØ± Ù…Ù† Ø¬Ù‡Ø§Ø²Ùƒ",
+      chooseFromGalleryShort: "Ù…Ù† Ø§Ù„Ù…Ø¹Ø±Ø¶",
+      cameraCaptureTitle: "Ø§Ù„ØªÙ‚Ø§Ø· ØµÙˆØ±Ø© Ø¨Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§",
+      cameraCaptureSub: "ÙˆØ¬Ù‡ Ø§Ù„ÙƒØ§Ù…ÙŠØ±Ø§ Ù†Ø­Ùˆ Ø§Ù„ØºØ±Ø¶ Ø«Ù… Ø§Ø¶ØºØ· Ø²Ø± Ø§Ù„Ø§Ù„ØªÙ‚Ø§Ø·",
+      snapPhoto: "Ø§Ù„ØªÙ‚Ø§Ø· Ø§Ù„ØµÙˆØ±Ø©",
+      selectImages: "Ø¥Ø¶Ø§ÙØ© ØµÙˆØ± (Ù…Ø¹Ø±Ø¶ Ø£Ùˆ ÙƒØ§Ù…ÙŠØ±Ø§)"
     }
   };
 
@@ -743,15 +743,15 @@
     }
   };
 
-  // تعديل 3: Background polling - تحديث صامت كل 45 ثانية
+  // ØªØ¹Ø¯ÙŠÙ„ 3: Background polling - ØªØ­Ø¯ÙŠØ« ØµØ§Ù…Øª ÙƒÙ„ 45 Ø«Ø§Ù†ÙŠØ©
   let _pollingInterval = null;
   function startSilentPolling() {
-    if (_pollingInterval) return; // تجنب التكرار
+    if (_pollingInterval) return; // ØªØ¬Ù†Ø¨ Ø§Ù„ØªÙƒØ±Ø§Ø±
     _pollingInterval = setInterval(async () => {
-      // توفير موارد السيرفر وبيانات المستخدم إذا كان التبويب مصغراً أو في الخلفية
+      // ØªÙˆÙÙŠØ± Ù…ÙˆØ§Ø±Ø¯ Ø§Ù„Ø³ÙŠØ±ÙØ± ÙˆØ¨ÙŠØ§Ù†Ø§Øª Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø¥Ø°Ø§ ÙƒØ§Ù† Ø§Ù„ØªØ¨ÙˆÙŠØ¨ Ù…ØµØºØ±Ø§Ù‹ Ø£Ùˆ ÙÙŠ Ø§Ù„Ø®Ù„ÙÙŠØ©
       if (document.hidden) return;
 
-      // لا نحدث إذا كان المستخدم في منتصف نموذج أو شاشة تفاصيل
+      // Ù„Ø§ Ù†Ø­Ø¯Ø« Ø¥Ø°Ø§ ÙƒØ§Ù† Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙÙŠ Ù…Ù†ØªØµÙ Ù†Ù…ÙˆØ°Ø¬ Ø£Ùˆ Ø´Ø§Ø´Ø© ØªÙØ§ØµÙŠÙ„
       const activeScreen = document.querySelector('.screen.active, .screen[style*="display: block"]');
       const activeScreenId = activeScreen?.id || '';
       if (['screen-add', 'screen-edit', 'screen-details'].includes(activeScreenId)) return;
@@ -762,15 +762,15 @@
       const freshIds = new Set(freshData.results.map(a => a.id));
       const currentIds = new Set(ads.map(a => a.id));
 
-      // هل هناك إعلانات جديدة أو محذوفة؟
+      // Ù‡Ù„ Ù‡Ù†Ø§Ùƒ Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ø¬Ø¯ÙŠØ¯Ø© Ø£Ùˆ Ù…Ø­Ø°ÙˆÙØ©ØŸ
       const hasChanges = freshData.results.some(a => !currentIds.has(a.id)) ||
                          ads.some(a => a.status === 'approved' && !freshIds.has(a.id));
 
       if (hasChanges) {
-        // تحديث صامت: دمج الجديد مع الموجود بدون إعادة رسم كاملة
+        // ØªØ­Ø¯ÙŠØ« ØµØ§Ù…Øª: Ø¯Ù…Ø¬ Ø§Ù„Ø¬Ø¯ÙŠØ¯ Ù…Ø¹ Ø§Ù„Ù…ÙˆØ¬ÙˆØ¯ Ø¨Ø¯ÙˆÙ† Ø¥Ø¹Ø§Ø¯Ø© Ø±Ø³Ù… ÙƒØ§Ù…Ù„Ø©
         const newMapped = freshData.results.map(mapDbAd);
 
-        // الاحتفاظ بالصفحات الإضافية المحملة وإضافة الجديدة في البداية
+        // Ø§Ù„Ø§Ø­ØªÙØ§Ø¸ Ø¨Ø§Ù„ØµÙØ­Ø§Øª Ø§Ù„Ø¥Ø¶Ø§ÙÙŠØ© Ø§Ù„Ù…Ø­Ù…Ù„Ø© ÙˆØ¥Ø¶Ø§ÙØ© Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© ÙÙŠ Ø§Ù„Ø¨Ø¯Ø§ÙŠØ©
         const page2PlusAds = ads.filter(a => !currentIds.has(a.id) || 
           !freshData.results.find(f => f.id === a.id));
         ads = [...newMapped, ...page2PlusAds.filter(a => !freshIds.has(a.id))];
@@ -780,7 +780,7 @@
         renderAds();
       }
 
-      // تحديث صامت للإشعارات كذلك
+      // ØªØ­Ø¯ÙŠØ« ØµØ§Ù…Øª Ù„Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª ÙƒØ°Ù„Ùƒ
       if (state.isAuthenticated) {
         const token = localStorage.getItem("dj_token");
         if (token) {
@@ -791,7 +791,7 @@
           } catch(e) { /* silent */ }
         }
       }
-    }, 45000); // كل 45 ثانية
+    }, 45000); // ÙƒÙ„ 45 Ø«Ø§Ù†ÙŠØ©
   }
 
   function stopSilentPolling() {
@@ -937,8 +937,8 @@
         }
 
       } catch (error) {
-        if (error.message.includes("الحساب غير مفعّل")) {
-          errorEl.innerHTML = `${error.message} <br><a href="#" id="resendOtpLoginBtn" style="color:#FF6A00; text-decoration:underline; font-weight:bold;">إرسال رمز التفعيل مجدداً</a>`;
+        if (error.message.includes("Ø§Ù„Ø­Ø³Ø§Ø¨ ØºÙŠØ± Ù…ÙØ¹Ù‘Ù„")) {
+          errorEl.innerHTML = `${error.message} <br><a href="#" id="resendOtpLoginBtn" style="color:#FF6A00; text-decoration:underline; font-weight:bold;">Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªÙØ¹ÙŠÙ„ Ù…Ø¬Ø¯Ø¯Ø§Ù‹</a>`;
           errorEl.classList.remove("hidden");
           setTimeout(() => {
             const resendBtn = document.getElementById("resendOtpLoginBtn");
@@ -952,12 +952,12 @@
                   state.tempPassword = password;
                   sessionStorage.setItem('dj_tempEmail', email);
                   // Password no longer stored in sessionStorage for security
-                  showToast("تم إرسال رمز التفعيل لبريدك!", "success");
+                  showToast("ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªÙØ¹ÙŠÙ„ Ù„Ø¨Ø±ÙŠØ¯Ùƒ!", "success");
                   document.querySelectorAll('.auth-step').forEach(s => s.classList.add('hidden'));
                   document.getElementById('authStepVerify').classList.remove('hidden');
                 } catch(err) {
                   showToast(err.message, "error");
-                  resendBtn.innerHTML = 'إرسال رمز التفعيل مجدداً';
+                  resendBtn.innerHTML = 'Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªÙØ¹ÙŠÙ„ Ù…Ø¬Ø¯Ø¯Ø§Ù‹';
                 }
               });
             }
@@ -1016,7 +1016,7 @@
 
       const originalText = registerSubmitBtn.innerHTML;
       try {
-        registerSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري الإنشاء...</span>';
+        registerSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> <span>Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø¥Ù†Ø´Ø§Ø¡...</span>';
         registerSubmitBtn.disabled = true;
 
         const regRes = await Api.register(email, username, password, referralCode);
@@ -1034,7 +1034,7 @@
           localStorage.setItem("dj_token", regRes.token);
           closeAuth();
           updateDrawerUser();
-          showToast(regRes.message || "تم إنشاء الحساب بنجاح! مرحباً بك 🎉", "success");
+          showToast(regRes.message || "ØªÙ… Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ø­Ø³Ø§Ø¨ Ø¨Ù†Ø¬Ø§Ø­! Ù…Ø±Ø­Ø¨Ø§Ù‹ Ø¨Ùƒ ðŸŽ‰", "success");
           fetchNotifications();
 
           if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
@@ -1054,7 +1054,7 @@
         sessionStorage.setItem('dj_tempEmail', email);
         // Password no longer stored in sessionStorage for security
 
-        showToast("تم إرسال رمز التأكيد لبريدك!", "success");
+        showToast("ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ£ÙƒÙŠØ¯ Ù„Ø¨Ø±ÙŠØ¯Ùƒ!", "success");
         
         document.querySelectorAll('.auth-step').forEach(s => s.classList.add('hidden'));
         document.getElementById('authStepVerify').classList.remove('hidden');
@@ -1104,7 +1104,7 @@
     const targetScreen = document.getElementById("screen-" + name);
     if (targetScreen) targetScreen.classList.add("active");
 
-    // حفظ الشاشة الحالية في sessionStorage لكي لا تضيع عند التحديث
+    // Ø­ÙØ¸ Ø§Ù„Ø´Ø§Ø´Ø© Ø§Ù„Ø­Ø§Ù„ÙŠØ© ÙÙŠ sessionStorage Ù„ÙƒÙŠ Ù„Ø§ ØªØ¶ÙŠØ¹ Ø¹Ù†Ø¯ Ø§Ù„ØªØ­Ø¯ÙŠØ«
     sessionStorage.setItem("dj_lastScreen", name);
     if (name === "details" && state.currentAdId) {
       sessionStorage.setItem("dj_lastAdId", state.currentAdId);
@@ -1116,7 +1116,7 @@
       }
     }
 
-    // دعم سجل المتصفح (Browser History) للتنقل السلس بأزرار الرجوع والتقدم
+    // Ø¯Ø¹Ù… Ø³Ø¬Ù„ Ø§Ù„Ù…ØªØµÙØ­ (Browser History) Ù„Ù„ØªÙ†Ù‚Ù„ Ø§Ù„Ø³Ù„Ø³ Ø¨Ø£Ø²Ø±Ø§Ø± Ø§Ù„Ø±Ø¬ÙˆØ¹ ÙˆØ§Ù„ØªÙ‚Ø¯Ù…
     if (pushState && window.history && window.history.pushState) {
       const stateObj = {
         screen: name,
@@ -1146,7 +1146,7 @@
     closeDrawer();
   }
 
-  // الاستماع لزر الرجوع والتقدم في المتصفح
+  // Ø§Ù„Ø§Ø³ØªÙ…Ø§Ø¹ Ù„Ø²Ø± Ø§Ù„Ø±Ø¬ÙˆØ¹ ÙˆØ§Ù„ØªÙ‚Ø¯Ù… ÙÙŠ Ø§Ù„Ù…ØªØµÙØ­
   window.addEventListener("popstate", (e) => {
     if (e.state && e.state.screen) {
       if (e.state.screen === "details" && e.state.adId) {
@@ -1270,7 +1270,7 @@
     if (ad.price === 0 || ad.type === "free") {
       priceDisplay = `<span class="ad-price free-price"><small>${t("free")}</small></span>`;
     } else {
-      priceDisplay = `<span class="ad-price">${escapeHtml(String(ad.price))} <small>${ad.currency ? escapeHtml(ad.currency) : (state.lang === 'ar' ? 'د.أ' : 'JOD')}</small></span>`;
+      priceDisplay = `<span class="ad-price">${escapeHtml(String(ad.price))} <small>${ad.currency ? escapeHtml(ad.currency) : (state.lang === 'ar' ? 'Ø¯.Ø£' : 'JOD')}</small></span>`;
     }
     
     return `
@@ -1278,7 +1278,7 @@
         <div class="ad-image-wrapper">
           <img src="${ad.image ? escapeHtml(ad.image) : 'https://placehold.co/400x300/e9ecef/495057?text=Daily+Job'}" alt="Ad Cover" onerror="this.onerror=null; this.src='https://placehold.co/400x300/e9ecef/495057?text=Daily+Job';">
         </div>
-        ${ad.mine ? `<span class="ad-mine-tag" style="${ad.status === 'pending' ? 'background:orange;' : (ad.status === 'rejected' ? 'background:red;' : '')}">${ad.status === 'pending' ? (state.lang === 'ar' ? 'قيد المراجعة' : 'Pending') : (ad.status === 'rejected' ? (state.lang === 'ar' ? 'مرفوض' : 'Rejected') : t("myAd"))}</span>` : ''}
+        ${ad.mine ? `<span class="ad-mine-tag" style="${ad.status === 'pending' ? 'background:orange;' : (ad.status === 'rejected' ? 'background:red;' : '')}">${ad.status === 'pending' ? (state.lang === 'ar' ? 'Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©' : 'Pending') : (ad.status === 'rejected' ? (state.lang === 'ar' ? 'Ù…Ø±ÙÙˆØ¶' : 'Rejected') : t("myAd"))}</span>` : ''}
         <div class="ad-card-top">
           <span class="ad-badge ${badgeClass}">${catName}</span>
           <h3 class="ad-title">${escapeHtml(ad.title[state.lang])}</h3>
@@ -1337,9 +1337,9 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // لوحة تحكم الأدمن (مطابقة لتقسيمات التطبيق: 4 تبويبات)
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ù„ÙˆØ­Ø© ØªØ­ÙƒÙ… Ø§Ù„Ø£Ø¯Ù…Ù† (Ù…Ø·Ø§Ø¨Ù‚Ø© Ù„ØªÙ‚Ø³ÙŠÙ…Ø§Øª Ø§Ù„ØªØ·Ø¨ÙŠÙ‚: 4 ØªØ¨ÙˆÙŠØ¨Ø§Øª)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   let _adminActiveTab = 'pending';
   let _adminTabsInitialized = false;
 
@@ -1370,7 +1370,8 @@
       pending: "adminTabPending",
       published: "adminTabPublished",
       users: "adminTabUsers",
-      auto: "adminTabAuto"
+      auto: "adminTabAuto",
+      coupons: "adminTabCoupons"
     };
 
     Object.keys(tabMap).forEach(key => {
@@ -1391,7 +1392,7 @@
     setupAdminTabs();
 
     if (!state.isAuthenticated || state.user?.role !== 'admin') {
-      showToast("ليس لديك صلاحية الوصول للوحة الأدمن", "error");
+      showToast("Ù„ÙŠØ³ Ù„Ø¯ÙŠÙƒ ØµÙ„Ø§Ø­ÙŠØ© Ø§Ù„ÙˆØµÙˆÙ„ Ù„Ù„ÙˆØ­Ø© Ø§Ù„Ø£Ø¯Ù…Ù†", "error");
       goToScreen("home");
       return;
     }
@@ -1410,12 +1411,12 @@
     if (autoList) autoList.innerHTML = loadingHtml;
 
     try {
-      // 1. جلب كل الإعلانات للأدمن (مع admin_all=true لتجاوز فلترة الإعلانات المقبولة فقط)
+      // 1. Ø¬Ù„Ø¨ ÙƒÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ù„Ù„Ø£Ø¯Ù…Ù† (Ù…Ø¹ admin_all=true Ù„ØªØ¬Ø§ÙˆØ² ÙÙ„ØªØ±Ø© Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ø§Ù„Ù…Ù‚Ø¨ÙˆÙ„Ø© ÙÙ‚Ø·)
       const adsPromise = fetch(`${BASE_URL}/ads/?admin_all=true`, {
         headers: { 'Authorization': 'Token ' + token }
       }).then(r => r.json());
 
-      // 2. جلب كل المستخدمين
+      // 2. Ø¬Ù„Ø¨ ÙƒÙ„ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†
       const usersPromise = fetch(`${BASE_URL}/users/`, {
         headers: { 'Authorization': 'Token ' + token }
       }).then(r => r.json());
@@ -1429,7 +1430,7 @@
       const publishedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved !== true);
       const autoApprovedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved === true);
 
-      // تحديث شارات العدادات
+      // ØªØ­Ø¯ÙŠØ« Ø´Ø§Ø±Ø§Øª Ø§Ù„Ø¹Ø¯Ø§Ø¯Ø§Øª
       const bPending = document.getElementById("adminPendingBadge");
       const bPublished = document.getElementById("adminPublishedBadge");
       const bUsers = document.getElementById("adminUsersBadge");
@@ -1440,20 +1441,20 @@
       if (bUsers) bUsers.textContent = allUsers.length;
       if (bAuto) bAuto.textContent = autoApprovedAds.length;
 
-      // 1. تبويب طلبات النشر
+      // 1. ØªØ¨ÙˆÙŠØ¨ Ø·Ù„Ø¨Ø§Øª Ø§Ù„Ù†Ø´Ø±
       renderAdminPendingTab(pendingAds, token);
 
-      // 2. تبويب كل الإعلانات
+      // 2. ØªØ¨ÙˆÙŠØ¨ ÙƒÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª
       renderAdminPublishedTab(publishedAds, token);
 
-      // 3. تبويب المستخدمين
+      // 3. ØªØ¨ÙˆÙŠØ¨ Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù…ÙŠÙ†
       renderAdminUsersTab(allUsers);
 
-      // 4. تبويب نُشر تلقائياً
+      // 4. ØªØ¨ÙˆÙŠØ¨ Ù†ÙØ´Ø± ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
       renderAdminAutoTab(autoApprovedAds, token);
 
     } catch (err) {
-      if (pendingList) pendingList.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message || 'حدث خطأ أثناء تحميل البيانات'}</div>`;
+      if (pendingList) pendingList.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message || 'Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª'}</div>`;
     }
   }
 
@@ -1493,7 +1494,7 @@
           <div class="ad-card-top" style="padding:15px; display:flex; justify-content:space-between; align-items:flex-start;">
             <div style="flex:1; min-width:0;">
               <div style="margin-bottom:6px;">
-                <span class="badge" style="background:#FFF0E4; color:#FF6A00; font-weight:bold; font-size:11px; padding:3px 8px; border-radius:6px;">قيد المراجعة</span>
+                <span class="badge" style="background:#FFF0E4; color:#FF6A00; font-weight:bold; font-size:11px; padding:3px 8px; border-radius:6px;">Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©</span>
               </div>
               <h3 class="ad-title" style="margin-bottom:5px; font-size:16px;">${escapeHtml(adTitle)}</h3>
               <div style="font-size:12px; color:var(--ink-500); margin-bottom:6px;">
@@ -1504,36 +1505,36 @@
               <div class="tag-row" style="margin-bottom:8px; display:flex; flex-wrap:wrap; gap:6px;">
                 <span class="badge badge-other">${escapeHtml(ad.category || '')}</span>
                 <span class="badge badge-other"><i class="fa-solid fa-location-dot"></i> ${escapeHtml(ad.governorate || '')}</span>
-                <span class="badge" style="background:#fff3e0; color:#e65100; font-weight:bold;">${escapeHtml(String(ad.price || '0'))} دينار</span>
+                <span class="badge" style="background:#fff3e0; color:#e65100; font-weight:bold;">${escapeHtml(String(ad.price || '0'))} Ø¯ÙŠÙ†Ø§Ø±</span>
               </div>
             </div>
             
             ${ad.receipt_image ? `
               <div style="margin-inline-start: 12px; flex-shrink:0; text-align:center;">
-                <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">إيصال الدفع</p>
+                <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">Ø¥ÙŠØµØ§Ù„ Ø§Ù„Ø¯ÙØ¹</p>
                 <div onclick="openLightbox(['${escapeHtml(ad.receipt_image)}'], 0);" style="cursor:pointer; position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--orange-500);">
                   <img src="${escapeHtml(ad.receipt_image)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover; display:block;">
-                  <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 0;">تكبير <i class="fa-solid fa-magnifying-glass-plus"></i></div>
+                  <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 0;">ØªÙƒØ¨ÙŠØ± <i class="fa-solid fa-magnifying-glass-plus"></i></div>
                 </div>
               </div>` : `
               <div style="margin-inline-start: 12px; flex-shrink:0; text-align:center; padding:10px; background:#fff3cd; border-radius:8px;">
                 <i class="fa-solid fa-triangle-exclamation" style="color:#d97706; font-size:18px;"></i>
-                <p style="color:#92400e; font-size:10px; margin:4px 0 0 0; font-weight:bold;">لا يوجد وصل</p>
+                <p style="color:#92400e; font-size:10px; margin:4px 0 0 0; font-weight:bold;">Ù„Ø§ ÙŠÙˆØ¬Ø¯ ÙˆØµÙ„</p>
               </div>`}
           </div>
           <div class="ad-bottom" style="display:flex; gap:10px; padding:12px 15px; border-top:1px solid var(--line);">
-            <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#2E9E5B;border:none;flex:1;font-weight:bold;"><i class="fa-solid fa-check"></i> قبول ونشر</button>
-            <button class="btn-outline admin-reject-btn" data-id="${ad.id}" style="color:#e63946;border-color:#e63946;flex:1;font-weight:bold;"><i class="fa-solid fa-xmark"></i> رفض</button>
+            <button class="btn-primary admin-approve-btn" data-id="${ad.id}" style="background:#2E9E5B;border:none;flex:1;font-weight:bold;"><i class="fa-solid fa-check"></i> Ù‚Ø¨ÙˆÙ„ ÙˆÙ†Ø´Ø±</button>
+            <button class="btn-outline admin-reject-btn" data-id="${ad.id}" style="color:#e63946;border-color:#e63946;flex:1;font-weight:bold;"><i class="fa-solid fa-xmark"></i> Ø±ÙØ¶</button>
           </div>
         </div>`;
     }).join("");
 
-    // ربط أزرار القبول والرفض
+    // Ø±Ø¨Ø· Ø£Ø²Ø±Ø§Ø± Ø§Ù„Ù‚Ø¨ÙˆÙ„ ÙˆØ§Ù„Ø±ÙØ¶
     list.querySelectorAll(".admin-approve-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
         const card = btn.closest(".ad-card");
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري القبول...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ø¬Ø§Ø±ÙŠ Ø§Ù„Ù‚Ø¨ÙˆÙ„...';
         try {
           const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
             method: 'POST',
@@ -1541,27 +1542,27 @@
             body: JSON.stringify({ action: 'approve' })
           });
           if (r.ok) {
-            showToast("تم قبول الإعلان ونشره بنجاح ✅", "success");
+            showToast("ØªÙ… Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† ÙˆÙ†Ø´Ø±Ù‡ Ø¨Ù†Ø¬Ø§Ø­ âœ…", "success");
             if (card) card.remove();
             renderAdminAds();
           } else {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.error || "فشل قبول الإعلان");
+            throw new Error(errData.error || "ÙØ´Ù„ Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†");
           }
         } catch(e) {
-          showToast(e.message || "حدث خطأ أثناء قبول الإعلان", "error");
+          showToast(e.message || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ù‚Ø¨ÙˆÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†", "error");
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-check"></i> قبول ونشر';
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> Ù‚Ø¨ÙˆÙ„ ÙˆÙ†Ø´Ø±';
         }
       });
     });
 
     list.querySelectorAll(".admin-reject-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
-        if (!confirm("هل أنت متأكد من رفض هذا الإعلان؟")) return;
+        if (!confirm("Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø±ÙØ¶ Ù‡Ø°Ø§ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†ØŸ")) return;
         const card = btn.closest(".ad-card");
         btn.disabled = true;
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الرفض...';
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø±ÙØ¶...';
         try {
           const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
             method: 'POST',
@@ -1569,17 +1570,17 @@
             body: JSON.stringify({ action: 'reject' })
           });
           if (r.ok) {
-            showToast("تم رفض الإعلان ❌", "success");
+            showToast("ØªÙ… Ø±ÙØ¶ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† âŒ", "success");
             if (card) card.remove();
             renderAdminAds();
           } else {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.error || "فشل رفض الإعلان");
+            throw new Error(errData.error || "ÙØ´Ù„ Ø±ÙØ¶ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†");
           }
         } catch(e) {
-          showToast(e.message || "حدث خطأ أثناء رفض الإعلان", "error");
+          showToast(e.message || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø±ÙØ¶ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†", "error");
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-xmark"></i> رفض';
+          btn.innerHTML = '<i class="fa-solid fa-xmark"></i> Ø±ÙØ¶';
         }
       });
     });
@@ -1605,12 +1606,12 @@
             <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
             <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
               <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
-              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} دينار</span>
+              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} Ø¯ÙŠÙ†Ø§Ø±</span>
               <span><i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}</span>
             </div>
           </div>
           <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}">
-            <i class="fa-solid fa-trash-can"></i> حذف
+            <i class="fa-solid fa-trash-can"></i> Ø­Ø°Ù
           </button>
         </div>
       `;
@@ -1619,7 +1620,7 @@
     list.querySelectorAll(".admin-delete-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
         const title = btn.dataset.title;
-        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
+        if (!confirm(`Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† "${title}" Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ØŸ`)) return;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         try {
@@ -1629,17 +1630,17 @@
             body: JSON.stringify({ action: 'delete' })
           });
           if (r.ok) {
-            showToast("تم حذف الإعلان نهائياً ❌", "success");
+            showToast("ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ âŒ", "success");
             btn.closest(".admin-published-card")?.remove();
             renderAdminAds();
           } else {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.error || "فشل حذف الإعلان");
+            throw new Error(errData.error || "ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†");
           }
         } catch(e) {
-          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
+          showToast(e.message || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø­Ø°Ù", "error");
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Ø­Ø°Ù';
         }
       });
     });
@@ -1665,12 +1666,12 @@
             <i class="fa-solid ${isAdmin ? 'fa-shield-halved' : 'fa-user'}"></i>
           </div>
           <div class="admin-user-info">
-            <div class="admin-user-name">${escapeHtml(user.username || 'مستخدم')}</div>
+            <div class="admin-user-name">${escapeHtml(user.username || 'Ù…Ø³ØªØ®Ø¯Ù…')}</div>
             <div class="admin-user-email">${escapeHtml(user.email || '')}</div>
             ${user.phone_number ? `<div style="font-size:11px; color:var(--ink-400);"><i class="fa-solid fa-phone"></i> ${escapeHtml(user.phone_number)}</div>` : ''}
           </div>
           <span class="admin-user-badge ${isAdmin ? 'admin' : 'user'}">
-            ${isAdmin ? 'أدمن' : 'مستخدم'}
+            ${isAdmin ? 'Ø£Ø¯Ù…Ù†' : 'Ù…Ø³ØªØ®Ø¯Ù…'}
           </span>
         </div>
       `;
@@ -1696,18 +1697,18 @@
           <div class="admin-published-info">
             <div style="margin-bottom:4px;">
               <span class="badge" style="background:#E8F5E9; color:#2E9E5B; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
-                <i class="fa-solid fa-bolt"></i> نُشر تلقائياً
+                <i class="fa-solid fa-bolt"></i> Ù†ÙØ´Ø± ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
               </span>
             </div>
             <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
             <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
               <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
-              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} دينار</span>
+              <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} Ø¯ÙŠÙ†Ø§Ø±</span>
               <span><i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}</span>
             </div>
           </div>
           <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}">
-            <i class="fa-solid fa-trash-can"></i> حذف
+            <i class="fa-solid fa-trash-can"></i> Ø­Ø°Ù
           </button>
         </div>
       `;
@@ -1716,7 +1717,7 @@
     list.querySelectorAll(".admin-delete-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
         const title = btn.dataset.title;
-        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
+        if (!confirm(`Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† "${title}" Ù†Ù‡Ø§Ø¦ÙŠØ§Ù‹ØŸ`)) return;
         btn.disabled = true;
         btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         try {
@@ -1726,17 +1727,17 @@
             body: JSON.stringify({ action: 'delete' })
           });
           if (r.ok) {
-            showToast("تم حذف الإعلان ❌", "success");
+            showToast("ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† âŒ", "success");
             btn.closest(".admin-published-card")?.remove();
             renderAdminAds();
           } else {
             const errData = await r.json().catch(() => ({}));
-            throw new Error(errData.error || "فشل حذف الإعلان");
+            throw new Error(errData.error || "ÙØ´Ù„ Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†");
           }
         } catch(e) {
-          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
+          showToast(e.message || "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ø­Ø°Ù", "error");
           btn.disabled = false;
-          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> Ø­Ø°Ù';
         }
       });
     });
@@ -1752,7 +1753,7 @@
     updateActiveFiltersDisplay();
   }
 
-  // ===== تعديل 5: Lightbox =====
+  // ===== ØªØ¹Ø¯ÙŠÙ„ 5: Lightbox =====
   let _lightboxImages = [];
   let _lightboxIdx = 0;
   let _lightboxZoom = 1;
@@ -1762,7 +1763,7 @@
     _lightboxIdx = startIdx;
     _lightboxZoom = 1;
 
-    // إنشاء الـ Lightbox إذا لم يكن موجوداً
+    // Ø¥Ù†Ø´Ø§Ø¡ Ø§Ù„Ù€ Lightbox Ø¥Ø°Ø§ Ù„Ù… ÙŠÙƒÙ† Ù…ÙˆØ¬ÙˆØ¯Ø§Ù‹
     let lb = document.getElementById("lbOverlay");
     if (!lb) {
       lb = document.createElement("div");
@@ -1775,16 +1776,16 @@
       lb.innerHTML = `
         <button id="lbClose" style="position:absolute;top:16px;right:16px;background:rgba(255,255,255,0.15);border:none;
           color:#fff;font-size:24px;width:44px;height:44px;border-radius:50%;cursor:pointer;z-index:1;
-          display:flex;align-items:center;justify-content:center;">✕</button>
+          display:flex;align-items:center;justify-content:center;">âœ•</button>
         <button id="lbPrev" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);
           border:none;color:#fff;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;z-index:1;
-          display:flex;align-items:center;justify-content:center;">‹</button>
+          display:flex;align-items:center;justify-content:center;">â€¹</button>
         <div id="lbImgWrap" style="max-width:95vw;max-height:85vh;overflow:hidden;display:flex;align-items:center;justify-content:center;">
           <img id="lbImg" style="max-width:95vw;max-height:85vh;object-fit:contain;transition:transform 0.2s;transform-origin:center;cursor:zoom-in;border-radius:6px;">
         </div>
         <button id="lbNext" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);background:rgba(255,255,255,0.15);
           border:none;color:#fff;font-size:26px;width:44px;height:44px;border-radius:50%;cursor:pointer;z-index:1;
-          display:flex;align-items:center;justify-content:center;">›</button>
+          display:flex;align-items:center;justify-content:center;">â€º</button>
         <div id="lbCounter" style="position:absolute;bottom:20px;color:#fff;font-size:13px;opacity:0.7;"></div>
       `;
       document.body.appendChild(lb);
@@ -1794,7 +1795,7 @@
       document.getElementById("lbPrev").addEventListener("click", e => { e.stopPropagation(); lbNav(-1); });
       document.getElementById("lbNext").addEventListener("click", e => { e.stopPropagation(); lbNav(1); });
 
-      // Zoom بالضغط على الصورة
+      // Zoom Ø¨Ø§Ù„Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„ØµÙˆØ±Ø©
       document.getElementById("lbImg").addEventListener("click", e => {
         e.stopPropagation();
         _lightboxZoom = _lightboxZoom > 1 ? 1 : 2.5;
@@ -1853,19 +1854,19 @@
     if (lb) lb.style.display = "none";
     _lightboxZoom = 1;
   }
-  // ===== نهاية Lightbox =====
+  // ===== Ù†Ù‡Ø§ÙŠØ© Lightbox =====
 
   function showDetailsLoading() {
     const titleEl = document.getElementById("detailsTitle");
-    if (titleEl) titleEl.textContent = state.lang === 'ar' ? "جاري تحميل تفاصيل الإعلان..." : "Loading ad details...";
+    if (titleEl) titleEl.textContent = state.lang === 'ar' ? "Ø¬Ø§Ø±ÙŠ ØªØ­Ù…ÙŠÙ„ ØªÙØ§ØµÙŠÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†..." : "Loading ad details...";
     const descEl = document.getElementById("descText");
     if (descEl) descEl.textContent = "";
     const tagsContainer = document.getElementById("detailsTags");
     if (tagsContainer) tagsContainer.innerHTML = "";
     const priceBig = document.getElementById("priceBig");
-    if (priceBig) priceBig.textContent = "—";
+    if (priceBig) priceBig.textContent = "â€”";
     const phoneVal = document.getElementById("phoneValue");
-    if (phoneVal) phoneVal.textContent = "—";
+    if (phoneVal) phoneVal.textContent = "â€”";
     const detailsCard = document.querySelector(".details-card");
     if (detailsCard) {
       const oldImg = detailsCard.querySelector(".ad-details-image-wrapper");
@@ -1884,7 +1885,7 @@
       goToScreen("details");
     }
 
-    // جلب الإعلان من السيرفر لتسجيل المشاهدة وتحديث العداد في الوقت الفعلي
+    // Ø¬Ù„Ø¨ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ù…Ù† Ø§Ù„Ø³ÙŠØ±ÙØ± Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ù…Ø´Ø§Ù‡Ø¯Ø© ÙˆØªØ­Ø¯ÙŠØ« Ø§Ù„Ø¹Ø¯Ø§Ø¯ ÙÙŠ Ø§Ù„ÙˆÙ‚Øª Ø§Ù„ÙØ¹Ù„ÙŠ
     try {
       const dbAd = await Api.getAd(adId);
       if (dbAd) {
@@ -1900,7 +1901,7 @@
     } catch (err) {
       console.warn("Could not refresh ad details", err);
       if (!existingAd) {
-        showToast(state.lang === 'ar' ? "الإعلان غير متوفر أو تم حذفه" : "Ad is no longer available or deleted", "error");
+        showToast(state.lang === 'ar' ? "Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† ØºÙŠØ± Ù…ØªÙˆÙØ± Ø£Ùˆ ØªÙ… Ø­Ø°ÙÙ‡" : "Ad is no longer available or deleted", "error");
         const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
         goToScreen(lastScreen !== "details" ? lastScreen : "home");
       }
@@ -1930,23 +1931,23 @@
         });
       }
 
-      // تعديل 5: Lightbox — معرض صور مع تكبير عند الضغط
-      // === تصميم: صورة رئيسية + مصغرات مربعة ===
+      // ØªØ¹Ø¯ÙŠÙ„ 5: Lightbox â€” Ù…Ø¹Ø±Ø¶ ØµÙˆØ± Ù…Ø¹ ØªÙƒØ¨ÙŠØ± Ø¹Ù†Ø¯ Ø§Ù„Ø¶ØºØ·
+      // === ØªØµÙ…ÙŠÙ…: ØµÙˆØ±Ø© Ø±Ø¦ÙŠØ³ÙŠØ© + Ù…ØµØºØ±Ø§Øª Ù…Ø±Ø¨Ø¹Ø© ===
       const mainSrc = allImages[0] || 'https://placehold.co/800x400/e9ecef/495057?text=Daily+Job';
 
       let imgHtml = `
         <div class="ad-details-image-wrapper" id="adGalleryWrapper">
-          <!-- الصورة الرئيسية -->
+          <!-- Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© -->
           <img id="adMainImage"
             src="${mainSrc}"
-            alt="الصورة الرئيسية"
+            alt="Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©"
             onerror="this.onerror=null; this.src='https://placehold.co/800x400/e9ecef/495057?text=Daily+Job';"
             data-lightbox-src="${mainSrc}"
             data-lightbox-idx="0"
             style="width:100%; height:280px; object-fit:cover; cursor:zoom-in; display:block; border-radius:12px 12px 0 0;">
 
           ${allImages.length > 1 ? `
-          <!-- المصغرات -->
+          <!-- Ø§Ù„Ù…ØµØºØ±Ø§Øª -->
           <div id="adThumbnails" style="
             display:flex; gap:6px; padding:8px 10px;
             background:#f8f9fa; border-radius:0 0 12px 12px;
@@ -1955,7 +1956,7 @@
             ${allImages.map((src, i) => `
               <img
                 src="${src}"
-                alt="صورة ${i+1}"
+                alt="ØµÙˆØ±Ø© ${i+1}"
                 onerror="this.onerror=null; this.src='https://placehold.co/100x100/e9ecef/495057?text=Daily+Job';"
                 class="ad-thumb ${i === 0 ? 'thumb-active' : ''}"
                 data-idx="${i}"
@@ -1972,11 +1973,11 @@
 
       detailsCard.insertAdjacentHTML("afterbegin", imgHtml);
 
-      // === ربط أحداث المعرض ===
+      // === Ø±Ø¨Ø· Ø£Ø­Ø¯Ø§Ø« Ø§Ù„Ù…Ø¹Ø±Ø¶ ===
       const mainImg = detailsCard.querySelector("#adMainImage");
       const thumbs  = detailsCard.querySelectorAll(".ad-thumb");
 
-      // Lightbox عند الضغط على الصورة الرئيسية
+      // Lightbox Ø¹Ù†Ø¯ Ø§Ù„Ø¶ØºØ· Ø¹Ù„Ù‰ Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ©
       if (mainImg) {
         mainImg.addEventListener("click", () => {
           const idx = parseInt(mainImg.getAttribute("data-lightbox-idx") || "0");
@@ -1984,7 +1985,7 @@
         });
       }
 
-      // تبديل الصورة الرئيسية عند الضغط على مصغرة
+      // ØªØ¨Ø¯ÙŠÙ„ Ø§Ù„ØµÙˆØ±Ø© Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø¹Ù†Ø¯ Ø§Ù„Ø¶ØºØ· Ø¹Ù„Ù‰ Ù…ØµØºØ±Ø©
       thumbs.forEach(thumb => {
         thumb.addEventListener("click", () => {
           const idx = parseInt(thumb.dataset.idx);
@@ -2038,7 +2039,7 @@
     setTxt("detailsTitle", ad.title[state.lang]);
     setTxt("metaTime", formatRelative(ad.createdAt));
     setTxt("metaLoc", `${govName} - ${ad.area[state.lang]}`);
-    setTxt("metaViews", `${ad.views || 0} ${state.lang === 'ar' ? 'مشاهدة' : 'views'}`);
+    setTxt("metaViews", `${ad.views || 0} ${state.lang === 'ar' ? 'Ù…Ø´Ø§Ù‡Ø¯Ø©' : 'views'}`);
     setTxt("metaCat", catName);
     setTxt("descText", ad.desc[state.lang]);
     setTxt("priceCurrency", ad.currency);
@@ -2064,9 +2065,9 @@
     if (tagsContainer) {
       let statusPill = "";
       if (ad.status === 'pending') {
-        statusPill = `<span class="pill" style="background:#f59e0b; color:#fff;">${state.lang === 'ar' ? '⏳ قيد المراجعة' : '⏳ Pending Review'}</span>`;
+        statusPill = `<span class="pill" style="background:#f59e0b; color:#fff;">${state.lang === 'ar' ? 'â³ Ù‚ÙŠØ¯ Ø§Ù„Ù…Ø±Ø§Ø¬Ø¹Ø©' : 'â³ Pending Review'}</span>`;
       } else if (ad.status === 'rejected') {
-        statusPill = `<span class="pill" style="background:#ef4444; color:#fff;">${state.lang === 'ar' ? '❌ مرفوض' : '❌ Rejected'}</span>`;
+        statusPill = `<span class="pill" style="background:#ef4444; color:#fff;">${state.lang === 'ar' ? 'âŒ Ù…Ø±ÙÙˆØ¶' : 'âŒ Rejected'}</span>`;
       }
       tagsContainer.innerHTML = `
         <span class="pill pill-orange">${catName}</span>
@@ -2170,7 +2171,7 @@
     if (ad.contactMethod === "whatsapp" || ad.contactMethod === "both") {
       const title = (ad.title && typeof ad.title === 'object') ? (ad.title[state.lang] || ad.title.ar || '') : (ad.title || '');
       const greeting = state.lang === 'ar'
-        ? `مرحباً، أتواصل معك بخصوص إعلانك "${title}" على منصة Daily Job.`
+        ? `Ù…Ø±Ø­Ø¨Ø§Ù‹ØŒ Ø£ØªÙˆØ§ØµÙ„ Ù…Ø¹Ùƒ Ø¨Ø®ØµÙˆØµ Ø¥Ø¹Ù„Ø§Ù†Ùƒ "${title}" Ø¹Ù„Ù‰ Ù…Ù†ØµØ© Daily Job.`
         : `Hello, I'm contacting you regarding your ad "${title}" on Daily Job.`;
       const encodedMsg = encodeURIComponent(greeting);
       window.open(`https://wa.me/${phoneNumber}?text=${encodedMsg}`, "_blank");
@@ -2322,14 +2323,14 @@
     }
 
     const url = match[0];
-    let cleanText = rawMessage.replace(/الرابط\s*:\s*https?:\/\/[^\s]+/i, '')
+    let cleanText = rawMessage.replace(/Ø§Ù„Ø±Ø§Ø¨Ø·\s*:\s*https?:\/\/[^\s]+/i, '')
                               .replace(/Link\s*:\s*https?:\/\/[^\s]+/i, '')
                               .replace(url, '').trim();
 
-    const isReceipt = (title && title.includes('إيصال')) || cleanText.includes('إيصال') || url.includes('receipt') || url.includes('transactions');
+    const isReceipt = (title && title.includes('Ø¥ÙŠØµØ§Ù„')) || cleanText.includes('Ø¥ÙŠØµØ§Ù„') || url.includes('receipt') || url.includes('transactions');
     const badgeLabel = isReceipt 
-      ? (state.lang === 'ar' ? 'معاينة الإيصال' : 'View Receipt')
-      : (state.lang === 'ar' ? 'فتح الرابط' : 'Open Link');
+      ? (state.lang === 'ar' ? 'Ù…Ø¹Ø§ÙŠÙ†Ø© Ø§Ù„Ø¥ÙŠØµØ§Ù„' : 'View Receipt')
+      : (state.lang === 'ar' ? 'ÙØªØ­ Ø§Ù„Ø±Ø§Ø¨Ø·' : 'Open Link');
     const badgeIcon = isReceipt ? 'fa-file-invoice-dollar' : 'fa-arrow-up-right-from-square';
 
     return `
@@ -2347,7 +2348,7 @@
     const deleteAllBtn = document.getElementById("deleteAllNotifsBtn");
     if (!list) return;
 
-    // استخدام is_read من السيرفر
+    // Ø§Ø³ØªØ®Ø¯Ø§Ù… is_read Ù…Ù† Ø§Ù„Ø³ÙŠØ±ÙØ±
     const unreadCount = state.notifications.filter(n => !n.is_read).length;
     const notifDot = document.getElementById("headerNotifDot");
     if (notifDot) {
@@ -2372,7 +2373,7 @@
           ${formatNotifContent(n.message, n.title)}
           <div class="notif-time">${formatRelative(new Date(n.created_at))}</div>
         </div>
-        <button class="notif-delete-btn" data-delete-id="${n.id}" title="${state.lang === 'ar' ? 'حذف الإشعار' : 'Delete notification'}">
+        <button class="notif-delete-btn" data-delete-id="${n.id}" title="${state.lang === 'ar' ? 'Ø­Ø°Ù Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±' : 'Delete notification'}">
           <i class="fa-solid fa-trash-can"></i>
         </button>
       </div>`).join("");
@@ -2381,7 +2382,7 @@
       item.addEventListener("click", (e) => {
         if (e.target.closest(".notif-delete-btn")) return;
 
-        // وضع علامة مقروء فوراً
+        // ÙˆØ¶Ø¹ Ø¹Ù„Ø§Ù…Ø© Ù…Ù‚Ø±ÙˆØ¡ ÙÙˆØ±Ø§Ù‹
         const notifId = item.dataset.notifId;
         const notif = state.notifications.find(n => String(n.id) === String(notifId));
         if (notif && !notif.is_read) {
@@ -2395,13 +2396,13 @@
         const adId = (item.getAttribute("data-ad-id") || '').trim();
         const fullText = (item.textContent || '').toLowerCase();
 
-        if (state.user && state.user.role === 'admin' && (fullText.includes('إيصال') || fullText.includes('دفع') || fullText.includes('مراجعة') || fullText.includes('receipt'))) {
+        if (state.user && state.user.role === 'admin' && (fullText.includes('Ø¥ÙŠØµØ§Ù„') || fullText.includes('Ø¯ÙØ¹') || fullText.includes('Ù…Ø±Ø§Ø¬Ø¹Ø©') || fullText.includes('receipt'))) {
           goToScreen('admin');
         } else if (adId && adId !== '' && adId !== 'null' && adId !== 'undefined') {
           openDetails(adId);
-        } else if (fullText.includes('قسيمة') || fullText.includes('كوبون') || fullText.includes('هدية') || fullText.includes('كود') || fullText.includes('coupon')) {
+        } else if (fullText.includes('Ù‚Ø³ÙŠÙ…Ø©') || fullText.includes('ÙƒÙˆØ¨ÙˆÙ†') || fullText.includes('Ù‡Ø¯ÙŠØ©') || fullText.includes('ÙƒÙˆØ¯') || fullText.includes('coupon')) {
           goToScreen('coupons');
-        } else if (fullText.includes('إعلان') || fullText.includes('ad')) {
+        } else if (fullText.includes('Ø¥Ø¹Ù„Ø§Ù†') || fullText.includes('ad')) {
           if (state.user && state.user.role === 'admin') {
             goToScreen('admin');
           } else {
@@ -2411,7 +2412,7 @@
       });
     });
 
-    // حذف إشعار فردي
+    // Ø­Ø°Ù Ø¥Ø´Ø¹Ø§Ø± ÙØ±Ø¯ÙŠ
     list.querySelectorAll(".notif-delete-btn").forEach(btn => {
       btn.addEventListener("click", async (e) => {
         e.stopPropagation();
@@ -2421,7 +2422,7 @@
         state.notifications = state.notifications.filter(n => String(n.id) !== String(notifId));
         renderNotifications();
         updateNotificationDot();
-        showToast(state.lang === 'ar' ? "تم حذف الإشعار" : "Notification deleted", "info");
+        showToast(state.lang === 'ar' ? "ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±" : "Notification deleted", "info");
 
         const token = localStorage.getItem("dj_token");
         if (token) {
@@ -2450,7 +2451,7 @@
 
       const confirmed = window.confirm(
         state.lang === 'ar'
-          ? "هل أنت متأكد من حذف جميع الإشعارات؟"
+          ? "Ù‡Ù„ Ø£Ù†Øª Ù…ØªØ£ÙƒØ¯ Ù…Ù† Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§ØªØŸ"
           : "Are you sure you want to delete all notifications?"
       );
       if (!confirmed) return;
@@ -2458,7 +2459,7 @@
       state.notifications = [];
       renderNotifications();
       updateNotificationDot();
-      showToast(state.lang === 'ar' ? "تم حذف جميع الإشعارات بنجاح" : "All notifications deleted", "info");
+      showToast(state.lang === 'ar' ? "ØªÙ… Ø­Ø°Ù Ø¬Ù…ÙŠØ¹ Ø§Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø¨Ù†Ø¬Ø§Ø­" : "All notifications deleted", "info");
 
       const token = localStorage.getItem("dj_token");
       if (token) {
@@ -2485,7 +2486,7 @@
     const profileGovSelect = document.getElementById("profileGov");
     if (profileGovSelect) {
       profileGovSelect.innerHTML = `
-        <option value="all">— ${t("all")} —</option>
+        <option value="all">â€” ${t("all")} â€”</option>
         ${GOVERNORATES.map((g) => `<option value="${g.key}">${state.lang === "ar" ? g.ar : g.en}</option>`).join("")}
       `;
     }
@@ -2493,7 +2494,7 @@
     const filterGovSelect = document.getElementById("filterGovSelect");
     if (filterGovSelect) {
       filterGovSelect.innerHTML = `
-        <option value="all">— ${t("all")} —</option>
+        <option value="all">â€” ${t("all")} â€”</option>
         ${GOVERNORATES.map((g) => `<option value="${g.key}">${g.en}</option>`).join("")}
       `;
     }
@@ -2609,7 +2610,7 @@
 
       const token = localStorage.getItem("dj_token");
       if (!token) {
-        showToast("يرجى تسجيل الدخول أولاً", "error");
+        showToast("ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ø§Ù‹", "error");
         openAuth("login");
         throw new Error("User not authenticated");
       }
@@ -2667,9 +2668,9 @@
         if (res.status === 401) {
           localStorage.removeItem("dj_token");
           localStorage.removeItem("dj_user");
-          showToast("انتهت الجلسة، يرجى تسجيل الدخول مجدداً", "error");
+          showToast("Ø§Ù†ØªÙ‡Øª Ø§Ù„Ø¬Ù„Ø³Ø©ØŒ ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù…Ø¬Ø¯Ø¯Ø§Ù‹", "error");
           openAuth("login");
-          return "انتهت الجلسة، يرجى تسجيل الدخول مجدداً";
+          return "Ø§Ù†ØªÙ‡Øª Ø§Ù„Ø¬Ù„Ø³Ø©ØŒ ÙŠØ±Ø¬Ù‰ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ù…Ø¬Ø¯Ø¯Ø§Ù‹";
         }
         try {
           const errData = await res.json();
@@ -2699,10 +2700,10 @@
           body: formData
         });
         if (!res.ok) {
-          const msg = await parseError(res, "حدث خطأ أثناء تعديل الإعلان.");
+          const msg = await parseError(res, "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†.");
           throw new Error(msg);
         }
-        showToast("تم تعديل الإعلان بنجاح", "success");
+        showToast("ØªÙ… ØªØ¹Ø¯ÙŠÙ„ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ø¨Ù†Ø¬Ø§Ø­", "success");
         state.currentEditAdId = null;
       } else {
         const res = await fetch(`${BASE_URL}/ads/`, {
@@ -2711,7 +2712,7 @@
           body: formData
         });
         if (!res.ok) {
-          const msg = await parseError(res, "حدث خطأ أثناء النشر.");
+          const msg = await parseError(res, "Ø­Ø¯Ø« Ø®Ø·Ø£ Ø£Ø«Ù†Ø§Ø¡ Ø§Ù„Ù†Ø´Ø±.");
           throw new Error(msg);
         }
         showToast(t("adPublished"), "success");
@@ -2740,7 +2741,7 @@
         if (!state.currentEditAdId) {
            errEl = document.getElementById("cliqModalError") || errEl;
         }
-        if (errEl) showFormError(errEl, error.message || "حدث خطأ.");
+        if (errEl) showFormError(errEl, error.message || "Ø­Ø¯Ø« Ø®Ø·Ø£.");
         else showToast(error.message, "error");
       }
       throw error;
@@ -2754,7 +2755,7 @@
 
   const addFormEl = document.getElementById("addForm");
   if (addFormEl) {
-    // ── تحديث بطاقة سياسة الأجر عند تغيير التصنيف ──────────────────────
+    // â”€â”€ ØªØ­Ø¯ÙŠØ« Ø¨Ø·Ø§Ù‚Ø© Ø³ÙŠØ§Ø³Ø© Ø§Ù„Ø£Ø¬Ø± Ø¹Ù†Ø¯ ØªØºÙŠÙŠØ± Ø§Ù„ØªØµÙ†ÙŠÙ â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     function updateWagePolicyBox() {
       const fCategory = document.getElementById("fCategory");
       const durationContainer = document.getElementById("adDurationContainer");
@@ -2776,7 +2777,7 @@
       // Update fee text
       const fee = (durationEl && durationEl.value === '1_week') ? 2 : 1;
       if (btnSpan) {
-        btnSpan.textContent = isAr ? `انشر الإعلان - ${fee} دينار` : `Publish Ad - ${fee} JOD`;
+        btnSpan.textContent = isAr ? `Ø§Ù†Ø´Ø± Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† - ${fee} Ø¯ÙŠÙ†Ø§Ø±` : `Publish Ad - ${fee} JOD`;
       }
     }
 
@@ -2784,7 +2785,7 @@
     const fAdDuration = document.getElementById("fAdDuration");
     if (fCategory) fCategory.addEventListener("change", updateWagePolicyBox);
     if (fAdDuration) fAdDuration.addEventListener("change", updateWagePolicyBox);
-    setTimeout(updateWagePolicyBox, 100); // تهيئة أولية
+    setTimeout(updateWagePolicyBox, 100); // ØªÙ‡ÙŠØ¦Ø© Ø£ÙˆÙ„ÙŠØ©
 
     addFormEl.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -2923,7 +2924,7 @@
       if (!file) return;
 
       if (!file.type.startsWith("image/")) {
-        showToast(state.lang === "ar" ? "يرجى اختيار ملف صورة صالح" : "Please select a valid image file", "error");
+        showToast(state.lang === "ar" ? "ÙŠØ±Ø¬Ù‰ Ø§Ø®ØªÙŠØ§Ø± Ù…Ù„Ù ØµÙˆØ±Ø© ØµØ§Ù„Ø­" : "Please select a valid image file", "error");
         return;
       }
 
@@ -2965,17 +2966,39 @@
 
   const saveProfileBtn = document.getElementById("saveProfileBtn");
   if (saveProfileBtn) {
-    saveProfileBtn.addEventListener("click", () => {
+    saveProfileBtn.addEventListener("click", async () => {
       const nameInput = document.getElementById("profileUsername");
       const govSelect = document.getElementById("profileGov");
       const errEl = document.getElementById("profileModalError");
       const newUsername = nameInput?.value.trim();
 
       if (!newUsername || newUsername.length < 3) {
-        showFormError(errEl, t("usernameMinLength") || (state.lang === "ar" ? "اسم المستخدم يجب أن يكون 3 أحرف على الأقل" : "Username must be at least 3 characters"));
+        showFormError(errEl, t("usernameMinLength") || (state.lang === "ar" ? "Ø§Ø³Ù… Ø§Ù„Ù…Ø³ØªØ®Ø¯Ù… ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† 3 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„" : "Username must be at least 3 characters"));
         return;
       }
 
+      // Save to backend API
+      const token = localStorage.getItem("dj_token");
+      if (token && state.user?.id) {
+        try {
+          const patchRes = await fetch(`${BASE_URL}/users/${state.user.id}/`, {
+            method: "PATCH",
+            headers: {
+              "Authorization": `Token ${token}`,
+              "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ username: newUsername })
+          });
+          if (!patchRes.ok) {
+            const errData = await patchRes.json().catch(() => null);
+            showFormError(errEl, errData?.username?.[0] || errData?.error || (state.lang === 'ar' ? 'ÙØ´Ù„ Ø­ÙØ¸ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„Ø§Øª' : 'Failed to save changes'));
+            return;
+          }
+        } catch (err) {
+          showFormError(errEl, state.lang === 'ar' ? 'Ø®Ø·Ø£ ÙÙŠ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø³ÙŠØ±ÙØ±' : 'Server connection error');
+          return;
+        }
+      }
       state.user.username = newUsername;
       if (pendingAvatarDataUrl) {
         state.user.avatar = pendingAvatarDataUrl;
@@ -3026,7 +3049,7 @@
     updateAllText();
 
     const langToggle = document.getElementById("langToggle");
-    if (langToggle) langToggle.textContent = lang === "en" ? "عربي" : "EN";
+    if (langToggle) langToggle.textContent = lang === "en" ? "Ø¹Ø±Ø¨ÙŠ" : "EN";
 
     updateLanguageOptionsUI();
     populateFormSelects();
@@ -3037,11 +3060,11 @@
       goToScreen(screenName);
     }
 
-    showToast(lang === "ar" ? "تم تغيير اللغة إلى العربية" : "Language switched to English", "success");
+    showToast(lang === "ar" ? "ØªÙ… ØªØºÙŠÙŠØ± Ø§Ù„Ù„ØºØ© Ø¥Ù„Ù‰ Ø§Ù„Ø¹Ø±Ø¨ÙŠØ©" : "Language switched to English", "success");
   }
 
   function updateAllText() {
-    // نص عادي (textContent - آمن من XSS)
+    // Ù†Øµ Ø¹Ø§Ø¯ÙŠ (textContent - Ø¢Ù…Ù† Ù…Ù† XSS)
     document.querySelectorAll("[data-i18n]").forEach(el => {
       const key = el.dataset.i18n;
       if (i18n[state.lang] && i18n[state.lang][key]) {
@@ -3049,7 +3072,7 @@
       }
     });
 
-    // نص يحتوي على HTML (innerHTML - للعناصر الموثوقة فقط)
+    // Ù†Øµ ÙŠØ­ØªÙˆÙŠ Ø¹Ù„Ù‰ HTML (innerHTML - Ù„Ù„Ø¹Ù†Ø§ØµØ± Ø§Ù„Ù…ÙˆØ«ÙˆÙ‚Ø© ÙÙ‚Ø·)
     document.querySelectorAll("[data-i18n-html]").forEach(el => {
       const key = el.dataset.i18nHtml;
       if (i18n[state.lang] && i18n[state.lang][key]) {
@@ -3057,7 +3080,7 @@
       }
     });
 
-    // ترجمة الـ placeholders
+    // ØªØ±Ø¬Ù…Ø© Ø§Ù„Ù€ placeholders
     document.querySelectorAll("[data-i18n-placeholder]").forEach(el => {
       const key = el.dataset.i18nPlaceholder;
       if (i18n[state.lang] && i18n[state.lang][key]) {
@@ -3069,10 +3092,10 @@
     if (searchInput) searchInput.placeholder = i18n[state.lang].searchPlaceholder;
 
     const titleInput = document.getElementById("fTitle");
-    if (titleInput) titleInput.placeholder = state.lang === "ar" ? "مثال: مطلوب عامل بناء خبرة في مادبا" : "e.g.: Construction worker needed in Madaba";
+    if (titleInput) titleInput.placeholder = state.lang === "ar" ? "Ù…Ø«Ø§Ù„: Ù…Ø·Ù„ÙˆØ¨ Ø¹Ø§Ù…Ù„ Ø¨Ù†Ø§Ø¡ Ø®Ø¨Ø±Ø© ÙÙŠ Ù…Ø§Ø¯Ø¨Ø§" : "e.g.: Construction worker needed in Madaba";
 
     const detailsTextarea = document.getElementById("fDetails");
-    if (detailsTextarea) detailsTextarea.placeholder = state.lang === "ar" ? "اكتب وصفك بالتفصيل هنا..." : "Write your description here...";
+    if (detailsTextarea) detailsTextarea.placeholder = state.lang === "ar" ? "Ø§ÙƒØªØ¨ ÙˆØµÙÙƒ Ø¨Ø§Ù„ØªÙØµÙŠÙ„ Ù‡Ù†Ø§..." : "Write your description here...";
 
     const phoneInput = document.getElementById("fPhone");
     if (phoneInput) phoneInput.placeholder = "07X XXX XXXX";
@@ -3081,7 +3104,7 @@
     if (usernameInput) usernameInput.placeholder = state.lang === "ar" ? "abu_mohammad" : "john_doe";
 
     document.querySelectorAll('input[type="password"]').forEach(input => {
-      input.placeholder = "•••••••••";
+      input.placeholder = "â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢";
     });
   }
 
@@ -3329,9 +3352,13 @@
   }
 
   function escapeHtml(text) {
-    const div = document.createElement("div");
-    div.textContent = text;
-    return div.innerHTML;
+    if (text === null || text === undefined) return "";
+    return String(text)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#039;");
   }
 
   function isValidEmail(email) {
@@ -3383,11 +3410,11 @@
     adImagesState.existingImages.forEach((item, index) => {
       const el = document.createElement("div");
       el.className = "image-preview-item";
-      const badgeHtml = item.isMain ? `<span class="image-preview-badge">${t("mainImage") || "رئيسية"}</span>` : "";
+      const badgeHtml = item.isMain ? `<span class="image-preview-badge">${t("mainImage") || "Ø±Ø¦ÙŠØ³ÙŠØ©"}</span>` : "";
       el.innerHTML = `
         <img src="${item.url}" alt="Preview">
         ${badgeHtml}
-        <span class="image-preview-remove" title="${t("deleteImage") || "حذف"}"><i class="fa-solid fa-xmark"></i></span>
+        <span class="image-preview-remove" title="${t("deleteImage") || "Ø­Ø°Ù"}"><i class="fa-solid fa-xmark"></i></span>
       `;
       el.querySelector(".image-preview-remove").addEventListener("click", (ev) => {
         ev.stopPropagation();
@@ -3410,7 +3437,7 @@
       reader.onload = (e) => {
         el.innerHTML = `
           <img src="${e.target.result}" alt="Preview">
-          <span class="image-preview-remove" title="${t("deleteImage") || "حذف"}"><i class="fa-solid fa-xmark"></i></span>
+          <span class="image-preview-remove" title="${t("deleteImage") || "Ø­Ø°Ù"}"><i class="fa-solid fa-xmark"></i></span>
         `;
         el.querySelector(".image-preview-remove").addEventListener("click", (ev) => {
           ev.stopPropagation();
@@ -3671,7 +3698,7 @@
     }
 
     const langToggleBtn = document.getElementById("langToggle");
-    if (langToggleBtn) langToggleBtn.textContent = state.lang === "en" ? "عربي" : "EN";
+    if (langToggleBtn) langToggleBtn.textContent = state.lang === "en" ? "Ø¹Ø±Ø¨ÙŠ" : "EN";
 
     populateFormSelects();
     setupAdImageUploader();
@@ -3681,7 +3708,7 @@
     updateDrawerUser();
     updateNotificationDot();
 
-    // تحميل فوري للإعلانات المحفوظة محلياً لسرعة العرض الفورية (0.01 ثانية)
+    // ØªØ­Ù…ÙŠÙ„ ÙÙˆØ±ÙŠ Ù„Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ø­Ù„ÙŠØ§Ù‹ Ù„Ø³Ø±Ø¹Ø© Ø§Ù„Ø¹Ø±Ø¶ Ø§Ù„ÙÙˆØ±ÙŠØ© (0.01 Ø«Ø§Ù†ÙŠØ©)
     try {
       const cached = localStorage.getItem("dj_cached_ads");
       if (cached) {
@@ -3697,7 +3724,7 @@
       }
     } catch (e) {}
 
-    // تحميل فوري للإشعارات المحفوظة محلياً
+    // ØªØ­Ù…ÙŠÙ„ ÙÙˆØ±ÙŠ Ù„Ù„Ø¥Ø´Ø¹Ø§Ø±Ø§Øª Ø§Ù„Ù…Ø­ÙÙˆØ¸Ø© Ù…Ø­Ù„ÙŠØ§Ù‹
     try {
       const cachedNotifs = localStorage.getItem("dj_cached_notifications");
       if (cachedNotifs) {
@@ -3707,12 +3734,12 @@
       }
     } catch (e) {}
 
-    // تعديل: استعادة الشاشة السابقة بدلاً من الذهاب إلى الرئيسية دائماً
+    // ØªØ¹Ø¯ÙŠÙ„: Ø§Ø³ØªØ¹Ø§Ø¯Ø© Ø§Ù„Ø´Ø§Ø´Ø© Ø§Ù„Ø³Ø§Ø¨Ù‚Ø© Ø¨Ø¯Ù„Ø§Ù‹ Ù…Ù† Ø§Ù„Ø°Ù‡Ø§Ø¨ Ø¥Ù„Ù‰ Ø§Ù„Ø±Ø¦ÙŠØ³ÙŠØ© Ø¯Ø§Ø¦Ù…Ø§Ù‹
     const lastScreen = sessionStorage.getItem("dj_lastScreen") || "home";
     if (lastScreen !== "details" && lastScreen !== "edit") {
       goToScreen(lastScreen);
     } else {
-      // نعرض شاشة فارغة مؤقتاً أو تحميل حتى تأتي الإعلانات
+      // Ù†Ø¹Ø±Ø¶ Ø´Ø§Ø´Ø© ÙØ§Ø±ØºØ© Ù…Ø¤Ù‚ØªØ§Ù‹ Ø£Ùˆ ØªØ­Ù…ÙŠÙ„ Ø­ØªÙ‰ ØªØ£ØªÙŠ Ø§Ù„Ø¥Ø¹Ù„Ø§Ù†Ø§Øª
       document.querySelectorAll(".screen").forEach(s => s.classList.remove("active"));
       const targetScreen = document.getElementById("screen-" + lastScreen);
       if (targetScreen) targetScreen.classList.add("active");
@@ -3730,20 +3757,21 @@
       } else if (lastScreen === "add") {
         const editId = sessionStorage.getItem("dj_lastEditAdId");
         if (editId && ads.some(a => a.id === editId)) {
-          // كنا في وضع التعديل
+          // ÙƒÙ†Ø§ ÙÙŠ ÙˆØ¶Ø¹ Ø§Ù„ØªØ¹Ø¯ÙŠÙ„
           openEdit(editId); 
         } else {
-          // إضافة عادية، لا نحتاج لفعل شيء إضافي لأن goToScreen("add") أظهرت الشاشة
+          // Ø¥Ø¶Ø§ÙØ© Ø¹Ø§Ø¯ÙŠØ©ØŒ Ù„Ø§ Ù†Ø­ØªØ§Ø¬ Ù„ÙØ¹Ù„ Ø´ÙŠØ¡ Ø¥Ø¶Ø§ÙÙŠ Ù„Ø£Ù† goToScreen("add") Ø£Ø¸Ù‡Ø±Øª Ø§Ù„Ø´Ø§Ø´Ø©
         }
       }
     });
 
     fetchNotifications();
-    startSilentPolling(); // تعديل 3: تحديث تلقائي كل 45 ثانية
+    startSilentPolling(); // ØªØ¹Ø¯ÙŠÙ„ 3: ØªØ­Ø¯ÙŠØ« ØªÙ„Ù‚Ø§Ø¦ÙŠ ÙƒÙ„ 45 Ø«Ø§Ù†ÙŠØ©
 
-    // استعادة حالة التحقق من البريد الإلكتروني
+    // Ø§Ø³ØªØ¹Ø§Ø¯Ø© Ø­Ø§Ù„Ø© Ø§Ù„ØªØ­Ù‚Ù‚ Ù…Ù† Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ
     if (state.tempEmail && !state.isAuthenticated) {
-      document.getElementById("authModal").classList.add("active");
+      const authOvl = document.getElementById("authOverlay");
+      if (authOvl) authOvl.classList.add("open");
       document.querySelectorAll('.auth-step').forEach(s => s.classList.add('hidden'));
       document.getElementById('authStepVerify').classList.remove('hidden');
     }
@@ -3799,14 +3827,14 @@
     passInput.focus();
   });
 
-  // 1. زر تأكيد البريد بعد التسجيل (OTP)
+  // 1. Ø²Ø± ØªØ£ÙƒÙŠØ¯ Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø¨Ø¹Ø¯ Ø§Ù„ØªØ³Ø¬ÙŠÙ„ (OTP)
   const verifySubmitBtn = document.getElementById("verifySubmitBtn");
   if(verifySubmitBtn) {
     verifySubmitBtn.addEventListener("click", async () => {
       const otp = document.getElementById("verifyOtp").value.trim();
       const errorEl = document.getElementById("verifyError");
       
-      if(otp.length !== 6) { showFormError(errorEl, "الرمز يجب أن يكون 6 أرقام"); return; }
+      if(otp.length !== 6) { showFormError(errorEl, "Ø§Ù„Ø±Ù…Ø² ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† 6 Ø£Ø±Ù‚Ø§Ù…"); return; }
       
       const originalText = verifySubmitBtn.innerHTML;
       try {
@@ -3828,7 +3856,7 @@
         
         closeAuth();
         updateDrawerUser();
-        showToast("تم تفعيل حسابك بنجاح!", "success");
+        showToast("ØªÙ… ØªÙØ¹ÙŠÙ„ Ø­Ø³Ø§Ø¨Ùƒ Ø¨Ù†Ø¬Ø§Ø­!", "success");
         fetchNotifications();
 
         if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
@@ -3850,7 +3878,7 @@
     });
   }
 
-  // 2. زر نسيت كلمة المرور
+  // 2. Ø²Ø± Ù†Ø³ÙŠØª ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
   const forgotPasswordBtn = document.getElementById("forgotPasswordBtn");
   if(forgotPasswordBtn) {
     forgotPasswordBtn.addEventListener("click", (e) => {
@@ -3869,7 +3897,7 @@
         await Api.deleteAd(state.currentAdId, token);
         ads = ads.filter(a => a.id !== state.currentAdId);
         renderAds();
-        showToast("تم حذف الإعلان بنجاح!", "success");
+        showToast("ØªÙ… Ø­Ø°Ù Ø§Ù„Ø¥Ø¹Ù„Ø§Ù† Ø¨Ù†Ø¬Ø§Ø­!", "success");
         goToScreen("home");
       } catch (err) {
         showToast(err.message, "error");
@@ -3877,7 +3905,7 @@
     });
   }
 
-  // --- DELETE ACCOUNT --- (تم نقله للأسفل مع الإصلاحات الكاملة)
+  // --- DELETE ACCOUNT --- (ØªÙ… Ù†Ù‚Ù„Ù‡ Ù„Ù„Ø£Ø³ÙÙ„ Ù…Ø¹ Ø§Ù„Ø¥ØµÙ„Ø§Ø­Ø§Øª Ø§Ù„ÙƒØ§Ù…Ù„Ø©)
 
 
   const backToLoginBtn = document.getElementById("backToLoginBtn");
@@ -3888,14 +3916,14 @@
     });
   }
 
-  // 3. زر إرسال الإيميل لطلب استعادة كلمة المرور
+  // 3. Ø²Ø± Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø¥ÙŠÙ…ÙŠÙ„ Ù„Ø·Ù„Ø¨ Ø§Ø³ØªØ¹Ø§Ø¯Ø© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
   const forgotSubmitBtn = document.getElementById("forgotSubmitBtn");
   if(forgotSubmitBtn) {
     forgotSubmitBtn.addEventListener("click", async () => {
       const email = document.getElementById("forgotEmail").value.trim();
       const errorEl = document.getElementById("forgotError");
       
-      if(!isValidEmail(email)) { showFormError(errorEl, "بريد إلكتروني غير صالح"); return; }
+      if(!isValidEmail(email)) { showFormError(errorEl, "Ø¨Ø±ÙŠØ¯ Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ ØºÙŠØ± ØµØ§Ù„Ø­"); return; }
       
       const originalText = forgotSubmitBtn.innerHTML;
       try {
@@ -3904,10 +3932,10 @@
         
         await Api.requestPasswordReset(email);
         
-        state.resetUserEmail = email; // تخزين الإيميل للمرحلة القادمة
-        showToast("تم إرسال رمز التحقق إلى بريدك!", "success");
+        state.resetUserEmail = email; // ØªØ®Ø²ÙŠÙ† Ø§Ù„Ø¥ÙŠÙ…ÙŠÙ„ Ù„Ù„Ù…Ø±Ø­Ù„Ø© Ø§Ù„Ù‚Ø§Ø¯Ù…Ø©
+        showToast("ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚ Ø¥Ù„Ù‰ Ø¨Ø±ÙŠØ¯Ùƒ!", "success");
         
-        // الانتقال لشاشة إدخال الرمز
+        // Ø§Ù„Ø§Ù†ØªÙ‚Ø§Ù„ Ù„Ø´Ø§Ø´Ø© Ø¥Ø¯Ø®Ø§Ù„ Ø§Ù„Ø±Ù…Ø²
         showAuthStep('authStepReset');
         
       } catch (error) {
@@ -3920,7 +3948,7 @@
     });
   }
 
-  // 4. زر حفظ كلمة المرور الجديدة باستخدام OTP
+  // 4. Ø²Ø± Ø­ÙØ¸ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø§Ù„Ø¬Ø¯ÙŠØ¯Ø© Ø¨Ø§Ø³ØªØ®Ø¯Ø§Ù… OTP
   const resetSubmitBtn = document.getElementById("resetSubmitBtn");
   if(resetSubmitBtn) {
     resetSubmitBtn.addEventListener("click", async () => {
@@ -3928,8 +3956,8 @@
       const newPass = document.getElementById("resetNewPassword").value;
       const errorEl = document.getElementById("resetError");
       
-      if(otp.length !== 6) { showFormError(errorEl, "الرمز يجب أن يكون 6 أرقام"); return; }
-      if(newPass.length < 6) { showFormError(errorEl, "كلمة المرور يجب أن تكون 6 أحرف على الأقل"); return; }
+      if(otp.length !== 6) { showFormError(errorEl, "Ø§Ù„Ø±Ù…Ø² ÙŠØ¬Ø¨ Ø£Ù† ÙŠÙƒÙˆÙ† 6 Ø£Ø±Ù‚Ø§Ù…"); return; }
+      if(newPass.length < 6) { showFormError(errorEl, "ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙŠØ¬Ø¨ Ø£Ù† ØªÙƒÙˆÙ† 6 Ø£Ø­Ø±Ù Ø¹Ù„Ù‰ Ø§Ù„Ø£Ù‚Ù„"); return; }
       
       const originalText = resetSubmitBtn.innerHTML;
       try {
@@ -3938,9 +3966,9 @@
         
         await Api.confirmPasswordReset(state.resetUserEmail, otp, newPass);
         
-        showToast("تم تغيير كلمة المرور بنجاح!", "success");
+        showToast("ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­!", "success");
         
-        // مسح الحقول والعودة لتسجيل الدخول
+        // Ù…Ø³Ø­ Ø§Ù„Ø­Ù‚ÙˆÙ„ ÙˆØ§Ù„Ø¹ÙˆØ¯Ø© Ù„ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„
         document.getElementById("resetOtp").value = "";
         document.getElementById("resetNewPassword").value = "";
         document.getElementById("forgotEmail").value = "";
@@ -3957,9 +3985,9 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // اقتراح #4: مؤقت OTP + زر إعادة إرسال في شاشة التحقق
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ø§Ù‚ØªØ±Ø§Ø­ #4: Ù…Ø¤Ù‚Øª OTP + Ø²Ø± Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ ÙÙŠ Ø´Ø§Ø´Ø© Ø§Ù„ØªØ­Ù‚Ù‚
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   let _otpTimer = null;
   function startOtpTimer() {
     let secs = 60;
@@ -3969,9 +3997,9 @@
     const resendBtn = document.getElementById('resendOtpBtn');
     if (!countEl) return;
     if (_otpTimer) clearInterval(_otpTimer);
-    // إظهار المؤقت وإخفاء زر الإعادة
+    // Ø¥Ø¸Ù‡Ø§Ø± Ø§Ù„Ù…Ø¤Ù‚Øª ÙˆØ¥Ø®ÙØ§Ø¡ Ø²Ø± Ø§Ù„Ø¥Ø¹Ø§Ø¯Ø©
     countEl.textContent = secs;
-    if (textEl) { textEl.style.display = ''; textEl.textContent = 'إعادة إرسال الرمز خلال '; }
+    if (textEl) { textEl.style.display = ''; textEl.textContent = 'Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ù…Ø² Ø®Ù„Ø§Ù„ '; }
     if (suffEl) suffEl.style.display = '';
     if (resendBtn) resendBtn.classList.add('hidden');
 
@@ -3988,7 +4016,7 @@
     }, 1000);
   }
 
-  // ابدأ المؤقت عند عرض شاشة التحقق
+  // Ø§Ø¨Ø¯Ø£ Ø§Ù„Ù…Ø¤Ù‚Øª Ø¹Ù†Ø¯ Ø¹Ø±Ø¶ Ø´Ø§Ø´Ø© Ø§Ù„ØªØ­Ù‚Ù‚
   const origShowVerify = () => {
     document.querySelectorAll('.auth-step').forEach(s => s.classList.add('hidden'));
     const verifyStep = document.getElementById('authStepVerify');
@@ -4000,10 +4028,10 @@
     }
   };
 
-  // اعتراض الكود الأصلي في registerSubmitBtn لاستدعاء startOtpTimer
+  // Ø§Ø¹ØªØ±Ø§Ø¶ Ø§Ù„ÙƒÙˆØ¯ Ø§Ù„Ø£ØµÙ„ÙŠ ÙÙŠ registerSubmitBtn Ù„Ø§Ø³ØªØ¯Ø¹Ø§Ø¡ startOtpTimer
   const _origRegisterSuccess = window._registerSuccess;
   document.getElementById('registerSubmitBtn')?.addEventListener('click', () => {
-    // المؤقت يبدأ عند انتقال شاشة التسجيل لشاشة التحقق
+    // Ø§Ù„Ù…Ø¤Ù‚Øª ÙŠØ¨Ø¯Ø£ Ø¹Ù†Ø¯ Ø§Ù†ØªÙ‚Ø§Ù„ Ø´Ø§Ø´Ø© Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù„Ø´Ø§Ø´Ø© Ø§Ù„ØªØ­Ù‚Ù‚
     setTimeout(() => {
       if (!document.getElementById('authStepVerify')?.classList.contains('hidden')) {
         startOtpTimer();
@@ -4011,7 +4039,7 @@
     }, 300);
   });
 
-  // زر إعادة الإرسال
+  // Ø²Ø± Ø¥Ø¹Ø§Ø¯Ø© Ø§Ù„Ø¥Ø±Ø³Ø§Ù„
   const resendOtpBtn = document.getElementById('resendOtpBtn');
   if (resendOtpBtn) {
     resendOtpBtn.addEventListener('click', async () => {
@@ -4019,7 +4047,7 @@
       resendOtpBtn.disabled = true;
       try {
         await Api.resendOtp(state.tempEmail);
-        showToast('تم إعادة إرسال رمز التحقق!', 'success');
+        showToast('ØªÙ… Ø¥Ø¹Ø§Ø¯Ø© Ø¥Ø±Ø³Ø§Ù„ Ø±Ù…Ø² Ø§Ù„ØªØ­Ù‚Ù‚!', 'success');
         startOtpTimer();
       } catch(e) {
         showToast(e.message, 'error');
@@ -4029,9 +4057,9 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // اقتراح #1: مؤشر قوة كلمة المرور في التسجيل
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ø§Ù‚ØªØ±Ø§Ø­ #1: Ù…Ø¤Ø´Ø± Ù‚ÙˆØ© ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙÙŠ Ø§Ù„ØªØ³Ø¬ÙŠÙ„
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const regPassInput = document.getElementById('regPassword');
   if (regPassInput) {
     regPassInput.addEventListener('input', () => {
@@ -4045,7 +4073,7 @@
       const label = document.getElementById('passwordStrengthLabel');
       if (!bars[0]) return;
 
-      // حساب القوة
+      // Ø­Ø³Ø§Ø¨ Ø§Ù„Ù‚ÙˆØ©
       let score = 0;
       if (pass.length >= 6)  score++;
       if (pass.length >= 10) score++;
@@ -4054,7 +4082,7 @@
       if (/[^A-Za-z0-9]/.test(pass)) score = Math.min(4, score + 1);
 
       const colors = ['#ef4444', '#f97316', '#eab308', '#22c55e'];
-      const labels = ['ضعيفة جداً', 'ضعيفة', 'متوسطة', 'قوية'];
+      const labels = ['Ø¶Ø¹ÙŠÙØ© Ø¬Ø¯Ø§Ù‹', 'Ø¶Ø¹ÙŠÙØ©', 'Ù…ØªÙˆØ³Ø·Ø©', 'Ù‚ÙˆÙŠØ©'];
       bars.forEach((b, i) => {
         b.style.background = i < score ? colors[score - 1] : '#e5e7eb';
       });
@@ -4065,9 +4093,9 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // اقتراح #5: صفحة القسائم على الموقع
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ø§Ù‚ØªØ±Ø§Ø­ #5: ØµÙØ­Ø© Ø§Ù„Ù‚Ø³Ø§Ø¦Ù… Ø¹Ù„Ù‰ Ø§Ù„Ù…ÙˆÙ‚Ø¹
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   async function loadCouponsScreen() {
     const token = localStorage.getItem('dj_token');
     let user  = state.user || JSON.parse(localStorage.getItem('dj_user') || 'null');
@@ -4076,7 +4104,7 @@
       return;
     }
 
-    // بطاقة الإحالة
+    // Ø¨Ø·Ø§Ù‚Ø© Ø§Ù„Ø¥Ø­Ø§Ù„Ø©
     const referralCard = document.getElementById('referralCard');
     const referralCodeEl = document.getElementById('myReferralCode');
     if (referralCard) referralCard.classList.remove('hidden');
@@ -4086,7 +4114,7 @@
       referralCodeEl.textContent = referralCode;
     }
 
-    // جلب كود الإحالة من السيرفر مباشرة إذا كان ناقصاً
+    // Ø¬Ù„Ø¨ ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ù…Ù† Ø§Ù„Ø³ÙŠØ±ÙØ± Ù…Ø¨Ø§Ø´Ø±Ø© Ø¥Ø°Ø§ ÙƒØ§Ù† Ù†Ø§Ù‚ØµØ§Ù‹
     if (!referralCode || referralCode === '---') {
       try {
         const userId = user?.id || localStorage.getItem('dj_user_id');
@@ -4118,13 +4146,13 @@
       }
     }
 
-    // زر نسخ كود الإحالة
+    // Ø²Ø± Ù†Ø³Ø® ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø©
     const copyRefBtn = document.getElementById('copyReferralBtn');
     if (copyRefBtn) {
       copyRefBtn.onclick = () => {
         const code = referralCodeEl?.textContent?.trim() || user?.referral_code || '';
         if (!code || code === '---') return;
-        navigator.clipboard.writeText(code).then(() => showToast(state.lang === 'ar' ? 'تم نسخ كود الإحالة بنجاح!' : 'Referral code copied successfully!', 'success'));
+        navigator.clipboard.writeText(code).then(() => showToast(state.lang === 'ar' ? 'ØªÙ… Ù†Ø³Ø® ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­!' : 'Referral code copied successfully!', 'success'));
       };
     }
     const shareRefBtn = document.getElementById('shareReferralBtn');
@@ -4133,7 +4161,7 @@
         const code = referralCodeEl?.textContent?.trim() || user?.referral_code || '';
         if (!code || code === '---') return;
         const msg = state.lang === 'ar'
-          ? `سجل في منصة Daily Job للبحث عن وظائف يومية أو نشر إعلاناتك مجاناً! استخدم كود الإحالة الخاص بي: ${code} عند التسجيل للحصول على قسيمة إعلان مجانية!`
+          ? `Ø³Ø¬Ù„ ÙÙŠ Ù…Ù†ØµØ© Daily Job Ù„Ù„Ø¨Ø­Ø« Ø¹Ù† ÙˆØ¸Ø§Ø¦Ù ÙŠÙˆÙ…ÙŠØ© Ø£Ùˆ Ù†Ø´Ø± Ø¥Ø¹Ù„Ø§Ù†Ø§ØªÙƒ Ù…Ø¬Ø§Ù†Ø§Ù‹! Ø§Ø³ØªØ®Ø¯Ù… ÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø§Ù„Ø®Ø§Øµ Ø¨ÙŠ: ${code} Ø¹Ù†Ø¯ Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù„Ù„Ø­ØµÙˆÙ„ Ø¹Ù„Ù‰ Ù‚Ø³ÙŠÙ…Ø© Ø¥Ø¹Ù„Ø§Ù† Ù…Ø¬Ø§Ù†ÙŠØ©!`
           : `Join Daily Job to find daily jobs or post your ads for free! Use my referral code: ${code} when registering to get a free ad voucher!`;
         
         if (navigator.share) {
@@ -4146,11 +4174,11 @@
             return;
           } catch (_) {}
         }
-        navigator.clipboard.writeText(msg).then(() => showToast(state.lang === 'ar' ? 'تم نسخ رسالة المشاركة وكود الإحالة بنجاح!' : 'Share message copied successfully!', 'success'));
+        navigator.clipboard.writeText(msg).then(() => showToast(state.lang === 'ar' ? 'ØªÙ… Ù†Ø³Ø® Ø±Ø³Ø§Ù„Ø© Ø§Ù„Ù…Ø´Ø§Ø±ÙƒØ© ÙˆÙƒÙˆØ¯ Ø§Ù„Ø¥Ø­Ø§Ù„Ø© Ø¨Ù†Ø¬Ø§Ø­!' : 'Share message copied successfully!', 'success'));
       };
     }
 
-    // القسائم النشطة
+    // Ø§Ù„Ù‚Ø³Ø§Ø¦Ù… Ø§Ù„Ù†Ø´Ø·Ø©
     const activeList   = document.getElementById('activeCouponsList');
     const activeEmpty  = document.getElementById('activeCouponsEmpty');
     const historyList  = document.getElementById('historyCouponsList');
@@ -4166,7 +4194,7 @@
       const active  = coupons.filter(c => !c.is_used && !c.is_expired && (!c.expires_at || new Date(c.expires_at) > now));
       const history = coupons.filter(c =>  c.is_used ||  c.is_expired);
 
-      // عرض النشطة
+      // Ø¹Ø±Ø¶ Ø§Ù„Ù†Ø´Ø·Ø©
       activeList.innerHTML = '';
       if (active.length === 0) {
         if (activeEmpty) activeEmpty.classList.remove('hidden');
@@ -4175,7 +4203,7 @@
         active.forEach(c => activeList.insertAdjacentHTML('beforeend', renderCouponCard(c, true)));
       }
 
-      // عرض السجل
+      // Ø¹Ø±Ø¶ Ø§Ù„Ø³Ø¬Ù„
       if (historyList) {
         historyList.innerHTML = '';
         if (history.length === 0) {
@@ -4186,15 +4214,15 @@
         }
       }
 
-      // أحداث نسخ الأكواد
+      // Ø£Ø­Ø¯Ø§Ø« Ù†Ø³Ø® Ø§Ù„Ø£ÙƒÙˆØ§Ø¯
       document.querySelectorAll('.coupon-copy-btn').forEach(btn => {
         btn.onclick = () => {
           const code = btn.dataset.code;
-          navigator.clipboard.writeText(code).then(() => showToast('تم نسخ كود القسيمة!', 'success'));
+          navigator.clipboard.writeText(code).then(() => showToast('ØªÙ… Ù†Ø³Ø® ÙƒÙˆØ¯ Ø§Ù„Ù‚Ø³ÙŠÙ…Ø©!', 'success'));
         };
       });
     } catch(e) {
-      if (activeList) activeList.innerHTML = '<p style="text-align:center;color:#ef4444;">فشل تحميل القسائم</p>';
+      if (activeList) activeList.innerHTML = '<p style="text-align:center;color:#ef4444;">ÙØ´Ù„ ØªØ­Ù…ÙŠÙ„ Ø§Ù„Ù‚Ø³Ø§Ø¦Ù…</p>';
     }
   }
 
@@ -4207,7 +4235,7 @@
     const barColor = isActive ? '#FF6A00' : (isUsed ? '#22c55e' : '#9ca3af');
     const badgeColor = isActive ? '#FFF0E4' : (isUsed ? 'rgba(34,197,94,0.1)' : 'rgba(156,163,175,0.1)');
     const badgeTextColor = isActive ? '#FF6A00' : (isUsed ? '#22c55e' : '#9ca3af');
-    const badgeLabel = isActive ? 'نشط' : (isUsed ? 'مستخدم' : 'منتهي');
+    const badgeLabel = isActive ? 'Ù†Ø´Ø·' : (isUsed ? 'Ù…Ø³ØªØ®Ø¯Ù…' : 'Ù…Ù†ØªÙ‡ÙŠ');
 
     return `
     <div style="background:white; border-radius:12px; border:1px solid ${isActive ? 'rgba(255,106,0,0.3)' : '#ECEDF3'}; margin-bottom:12px; overflow:hidden; display:flex;">
@@ -4215,39 +4243,39 @@
       <div style="padding:16px; flex:1; display:flex; justify-content:space-between; align-items:center;">
         <div>
           <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-            <span style="font-weight:bold; color:#151A2E;">إعلان مجاني</span>
+            <span style="font-weight:bold; color:#151A2E;">Ø¥Ø¹Ù„Ø§Ù† Ù…Ø¬Ø§Ù†ÙŠ</span>
             <span style="background:${badgeColor}; color:${badgeTextColor}; font-size:10px; font-weight:bold; padding:2px 8px; border-radius:20px;">${badgeLabel}</span>
           </div>
-          <div style="font-size:12px; color:#7A8099; margin-bottom:3px;">الكود: <strong style="color:#151A2E;">${coupon.code}</strong></div>
-          ${isActive && dateStr ? `<div style="font-size:11px; color:#ef4444; font-weight:500;">ينتهي في: ${dateStr}</div>` : ''}
-          ${isUsed && coupon.used_at ? `<div style="font-size:11px; color:#7A8099;">استُخدم في: ${coupon.used_at.split('T')[0]}</div>` : ''}
-          ${!isActive && !isUsed && dateStr ? `<div style="font-size:11px; color:#9ca3af;">انتهى في: ${dateStr}</div>` : ''}
+          <div style="font-size:12px; color:#7A8099; margin-bottom:3px;">Ø§Ù„ÙƒÙˆØ¯: <strong style="color:#151A2E;">${coupon.code}</strong></div>
+          ${isActive && dateStr ? `<div style="font-size:11px; color:#ef4444; font-weight:500;">ÙŠÙ†ØªÙ‡ÙŠ ÙÙŠ: ${dateStr}</div>` : ''}
+          ${isUsed && coupon.used_at ? `<div style="font-size:11px; color:#7A8099;">Ø§Ø³ØªÙØ®Ø¯Ù… ÙÙŠ: ${coupon.used_at.split('T')[0]}</div>` : ''}
+          ${!isActive && !isUsed && dateStr ? `<div style="font-size:11px; color:#9ca3af;">Ø§Ù†ØªÙ‡Ù‰ ÙÙŠ: ${dateStr}</div>` : ''}
         </div>
         ${isActive ? `<button class="coupon-copy-btn" data-code="${coupon.code}" style="background:#FF6A00; color:white; border:none; border-radius:8px; padding:8px 12px; cursor:pointer; font-size:13px;"><i class="fa-solid fa-copy"></i></button>` : ''}
       </div>
     </div>`;
   }
 
-  // زر Refresh في صفحة القسائم
+  // Ø²Ø± Refresh ÙÙŠ ØµÙØ­Ø© Ø§Ù„Ù‚Ø³Ø§Ø¦Ù…
   const refreshCouponsBtn = document.getElementById('refreshCouponsBtn');
   if (refreshCouponsBtn) {
     refreshCouponsBtn.addEventListener('click', loadCouponsScreen);
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // اقتراح #2: Rate limiting — عرض رسالة واضحة عند OTP throttle
-  // (يُعالج تلقائياً من Api.resendOtp الذي يُرجع error.message من السيرفر)
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ø§Ù‚ØªØ±Ø§Ø­ #2: Rate limiting â€” Ø¹Ø±Ø¶ Ø±Ø³Ø§Ù„Ø© ÙˆØ§Ø¶Ø­Ø© Ø¹Ù†Ø¯ OTP throttle
+  // (ÙŠÙØ¹Ø§Ù„Ø¬ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹ Ù…Ù† Api.resendOtp Ø§Ù„Ø°ÙŠ ÙŠÙØ±Ø¬Ø¹ error.message Ù…Ù† Ø§Ù„Ø³ÙŠØ±ÙØ±)
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
 
-  // ══════════════════════════════════════════════════════════════════
-  // حذف الحساب مع تأكيد كلمة المرور
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // Ø­Ø°Ù Ø§Ù„Ø­Ø³Ø§Ø¨ Ù…Ø¹ ØªØ£ÙƒÙŠØ¯ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const deleteAccountBtn = document.getElementById("deleteAccountBtn");
   if (deleteAccountBtn) {
     deleteAccountBtn.addEventListener("click", () => {
       closeDrawer();
       if (!state.isAuthenticated || !state.user) {
-        showToast("يجب تسجيل الدخول أولاً.", "error");
+        showToast("ÙŠØ¬Ø¨ ØªØ³Ø¬ÙŠÙ„ Ø§Ù„Ø¯Ø®ÙˆÙ„ Ø£ÙˆÙ„Ø§Ù‹.", "error");
         return;
       }
       const overlay = document.getElementById("deleteAccOverlay");
@@ -4275,7 +4303,7 @@
       const errEl = document.getElementById("deleteAccError");
       const password = passInput?.value?.trim();
       if (!password) {
-        if (errEl) { errEl.textContent = state.lang === 'ar' ? 'يرجى إدخال كلمة المرور للتأكيد' : 'Please enter your password to confirm'; errEl.classList.remove('hidden'); }
+        if (errEl) { errEl.textContent = state.lang === 'ar' ? 'ÙŠØ±Ø¬Ù‰ Ø¥Ø¯Ø®Ø§Ù„ ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ù„Ù„ØªØ£ÙƒÙŠØ¯' : 'Please enter your password to confirm'; errEl.classList.remove('hidden'); }
         return;
       }
       const userId = state.user?.id;
@@ -4294,7 +4322,7 @@
         state.user = null;
         state.favorites = new Set();
         updateDrawerUser();
-        showToast("تم حذف حسابك بنجاح. نتمنى أن نراك مجدداً!", "success");
+        showToast("ØªÙ… Ø­Ø°Ù Ø­Ø³Ø§Ø¨Ùƒ Ø¨Ù†Ø¬Ø§Ø­. Ù†ØªÙ…Ù†Ù‰ Ø£Ù† Ù†Ø±Ø§Ùƒ Ù…Ø¬Ø¯Ø¯Ø§Ù‹!", "success");
         goToScreen("home");
       } catch (err) {
         if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
@@ -4305,9 +4333,9 @@
     });
   }
 
-  // ══════════════════════════════════════════════════════════════════
-  // تغيير كلمة المرور
-  // ══════════════════════════════════════════════════════════════════
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
+  // ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
+  // â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•â•
   const changePasswordBtn = document.getElementById("changePasswordBtn");
   if (changePasswordBtn) {
     changePasswordBtn.addEventListener("click", () => {
@@ -4338,17 +4366,17 @@
   if (cpForgotPassBtn) {
     cpForgotPassBtn.addEventListener("click", (e) => {
       e.preventDefault();
-      // إغلاق نافذة تغيير كلمة المرور
+      // Ø¥ØºÙ„Ø§Ù‚ Ù†Ø§ÙØ°Ø© ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ±
       document.getElementById("changePassOverlay")?.classList.remove("open");
 
-      // تعبئة البريد الإلكتروني للمستخدم الحالي تلقائياً
-      const userEmail = state.currentUser?.email || localStorage.getItem("dj_user_email") || "";
+      // ØªØ¹Ø¨Ø¦Ø© Ø§Ù„Ø¨Ø±ÙŠØ¯ Ø§Ù„Ø¥Ù„ÙƒØªØ±ÙˆÙ†ÙŠ Ù„Ù„Ù…Ø³ØªØ®Ø¯Ù… Ø§Ù„Ø­Ø§Ù„ÙŠ ØªÙ„Ù‚Ø§Ø¦ÙŠØ§Ù‹
+      const userEmail = state.user?.email || "";
       const forgotEmailInput = document.getElementById("forgotEmail");
       if (forgotEmailInput && userEmail) {
         forgotEmailInput.value = userEmail;
       }
 
-      // إظهار واجهة نسيت كلمة المرور وفتح نافذة المصادقة
+      // Ø¥Ø¸Ù‡Ø§Ø± ÙˆØ§Ø¬Ù‡Ø© Ù†Ø³ÙŠØª ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± ÙˆÙØªØ­ Ù†Ø§ÙØ°Ø© Ø§Ù„Ù…ØµØ§Ø¯Ù‚Ø©
       if (typeof showAuthStep === 'function') {
         showAuthStep('authStepForgot');
       }
@@ -4390,18 +4418,18 @@
         changePassSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
         changePassSubmitBtn.disabled = true;
         const result = await Api.changePassword(oldPass, newPass, token);
-        // تحديث التوكن الجديد
+        // ØªØ­Ø¯ÙŠØ« Ø§Ù„ØªÙˆÙƒÙ† Ø§Ù„Ø¬Ø¯ÙŠØ¯
         if (result.token) {
           localStorage.setItem("dj_token", result.token);
         }
         if (successEl) {
-          successEl.textContent = result.message || (state.lang === 'ar' ? 'تم تغيير كلمة المرور بنجاح' : 'Password changed successfully');
+          successEl.textContent = result.message || (state.lang === 'ar' ? 'ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­' : 'Password changed successfully');
           successEl.classList.remove('hidden');
         }
         document.getElementById("cpOldPass").value = '';
         document.getElementById("cpNewPass").value = '';
         document.getElementById("cpConfirmPass").value = '';
-        showToast(state.lang === 'ar' ? 'تم تغيير كلمة المرور بنجاح ✅' : 'Password changed successfully ✅', 'success');
+        showToast(state.lang === 'ar' ? 'ØªÙ… ØªØºÙŠÙŠØ± ÙƒÙ„Ù…Ø© Ø§Ù„Ù…Ø±ÙˆØ± Ø¨Ù†Ø¬Ø§Ø­ âœ…' : 'Password changed successfully âœ…', 'success');
         setTimeout(() => {
           document.getElementById("changePassOverlay")?.classList.remove("open");
         }, 1500);
@@ -4414,46 +4442,138 @@
     });
   }
 
+  // ===================== CONTACT FORM =====================
+  const contactForm = document.getElementById('contact-form');
+  if (contactForm) {
+    contactForm.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const btn = document.getElementById('contact-submit-btn');
+      const originalText = btn?.innerText || 'Ø¥Ø±Ø³Ø§Ù„';
+      if (btn) { btn.disabled = true; btn.innerText = state.lang === 'ar' ? 'Ø¬Ø§Ø±ÙŠ Ø§Ù„Ø¥Ø±Ø³Ø§Ù„...' : 'Sending...'; }
+
+      const data = {
+        name: document.getElementById('contact-name')?.value || '',
+        email: document.getElementById('contact-email')?.value || '',
+        subject: document.getElementById('contact-subject')?.value || '',
+        message: document.getElementById('contact-message')?.value || ''
+      };
+
+      try {
+        const response = await fetch(BASE_URL + '/contact/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+
+        if (response.ok) {
+          showToast(state.lang === 'ar' ? 'ØªÙ… Ø¥Ø±Ø³Ø§Ù„ Ø±Ø³Ø§Ù„ØªÙƒ Ø¨Ù†Ø¬Ø§Ø­ âœ…' : 'Message sent successfully âœ…', 'success');
+          contactForm.reset();
+          goToScreen('home');
+        } else {
+          const errData = await response.json().catch(() => null);
+          showToast(errData?.message || (state.lang === 'ar' ? 'ÙØ´Ù„ Ø¥Ø±Ø³Ø§Ù„ Ø§Ù„Ø±Ø³Ø§Ù„Ø©' : 'Failed to send message'), 'error');
+        }
+      } catch (error) {
+        showToast(state.lang === 'ar' ? 'Ø®Ø·Ø£ ÙÙŠ Ø§Ù„Ø§ØªØµØ§Ù„ Ø¨Ø§Ù„Ø³ÙŠØ±ÙØ±' : 'Server connection error', 'error');
+      } finally {
+        if (btn) { btn.disabled = false; btn.innerText = originalText; }
+      }
+    });
+  }
+
 })();
 
-function openContactModal() {
-    document.getElementById('contact-modal').style.display = 'block';
-    closeMenu();
-}
-
-async function submitContactForm(e) {
-    e.preventDefault();
-    const btn = document.getElementById('contact-submit-btn');
-    btn.disabled = true;
-    btn.innerText = 'جاري الإرسال...';
-    
-    const data = {
-        name: document.getElementById('contact-name').value,
-        email: document.getElementById('contact-email').value,
-        subject: document.getElementById('contact-subject').value,
-        message: document.getElementById('contact-message').value
-    };
-    
-    try {
-        const response = await fetch(API_BASE_URL + 'contact/', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(data)
-        });
-        
-        if (response.ok) {
-            showToast('تم إرسال رسالتك بنجاح', 'success');
-            showScreen('home');
-            document.getElementById('contact-form').reset();
-        } else {
-            showToast('فشل إرسال الرسالة', 'error');
-        }
-    } catch (error) {
-        showToast('خطأ في الاتصال بالسيرفر', 'error');
-    } finally {
-        btn.disabled = false;
-        btn.innerText = 'إرسال';
-    }
-}
+ 
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ / /   A D M I N   G I F T   C O U P O N S   L O G I C  
+ / /   = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = = =  
+ d o c u m e n t . a d d E v e n t L i s t e n e r ( ' D O M C o n t e n t L o a d e d ' ,   ( )   = >   {  
+         c o n s t   g r a n t T a r g e t R a d i o s   =   d o c u m e n t . q u e r y S e l e c t o r A l l ( ' i n p u t [ n a m e = " g r a n t T a r g e t " ] ' ) ;  
+         c o n s t   s p e c i f i c D i v   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t S p e c i f i c U s e r D i v ' ) ;  
+          
+         i f ( g r a n t T a r g e t R a d i o s . l e n g t h )   {  
+                 g r a n t T a r g e t R a d i o s . f o r E a c h ( r   = >   r . a d d E v e n t L i s t e n e r ( ' c h a n g e ' ,   ( e )   = >   {  
+                         i f ( e . t a r g e t . v a l u e   = = =   ' s p e c i f i c ' )   {  
+                                 s p e c i f i c D i v . s t y l e . d i s p l a y   =   ' b l o c k ' ;  
+                         }   e l s e   {  
+                                 s p e c i f i c D i v . s t y l e . d i s p l a y   =   ' n o n e ' ;  
+                         }  
+                 } ) ) ;  
+         }  
+  
+         c o n s t   g r a n t S e a r c h B t n   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t S e a r c h B t n ' ) ;  
+         i f ( g r a n t S e a r c h B t n )   {  
+                 g r a n t S e a r c h B t n . a d d E v e n t L i s t e n e r ( ' c l i c k ' ,   a s y n c   ( )   = >   {  
+                         c o n s t   q u e r y   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t S e a r c h I n p u t ' ) . v a l u e . t r i m ( ) ;  
+                         i f ( ! q u e r y )   r e t u r n ;  
+                         c o n s t   s e l e c t   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t U s e r S e l e c t ' ) ;  
+                         s e l e c t . i n n e r H T M L   =   ' < o p t i o n > ,'1J  'D(-+. . . < / o p t i o n > ' ;  
+                         s e l e c t . s t y l e . d i s p l a y   =   ' b l o c k ' ;  
+                          
+                         t r y   {  
+                                 c o n s t   r e s   =   a w a i t   f e t c h ( B A S E _ U R L   +   ' / u s e r s / ? s e a r c h = '   +   e n c o d e U R I C o m p o n e n t ( q u e r y ) ,   {  
+                                         h e a d e r s :   {   ' A u t h o r i z a t i o n ' :   ' B e a r e r   '   +   l o c a l S t o r a g e . g e t I t e m ( ' d j _ t o k e n ' )   }  
+                                 } ) ;  
+                                 c o n s t   d a t a   =   a w a i t   r e s . j s o n ( ) ;  
+                                 s e l e c t . i n n e r H T M L   =   ' < o p t i o n   v a l u e = " " > - -   '.*1  E3*./E'K  - - < / o p t i o n > ' ;  
+                                 i f ( d a t a . r e s u l t s   & &   d a t a . r e s u l t s . l e n g t h )   {  
+                                         d a t a . r e s u l t s . f o r E a c h ( u   = >   {  
+                                                 s e l e c t . i n n e r H T M L   + =   ` < o p t i o n   v a l u e = " $ { u . i d } "   t i t l e = " $ { u . e m a i l } " > $ { u . u s e r n a m e }   ( $ { u . e m a i l } ) < / o p t i o n > ` ;  
+                                         } ) ;  
+                                 }   e l s e   i f ( d a t a . l e n g t h )   {  
+                                         d a t a . f o r E a c h ( u   = >   {  
+                                                 s e l e c t . i n n e r H T M L   + =   ` < o p t i o n   v a l u e = " $ { u . i d } "   t i t l e = " $ { u . e m a i l } " > $ { u . u s e r n a m e }   ( $ { u . e m a i l } ) < / o p t i o n > ` ;  
+                                         } ) ;  
+                                 }   e l s e   {  
+                                         s e l e c t . i n n e r H T M L   =   ' < o p t i o n   v a l u e = " " > D'  *H,/  F*'&,< / o p t i o n > ' ;  
+                                 }  
+                         }   c a t c h ( e )   {  
+                                 s e l e c t . i n n e r H T M L   =   ' < o p t i o n   v a l u e = " " > .7#  AJ  'D(-+< / o p t i o n > ' ;  
+                         }  
+                 } ) ;  
+         }  
+  
+         c o n s t   g r a n t S u b m i t B t n   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t S u b m i t B t n ' ) ;  
+         i f ( g r a n t S u b m i t B t n )   {  
+                 g r a n t S u b m i t B t n . a d d E v e n t L i s t e n e r ( ' c l i c k ' ,   a s y n c   ( )   = >   {  
+                         c o n s t   t a r g e t   =   d o c u m e n t . q u e r y S e l e c t o r ( ' i n p u t [ n a m e = " g r a n t T a r g e t " ] : c h e c k e d ' ) . v a l u e ;  
+                         c o n s t   c o u n t   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t C o u n t I n p u t ' ) . v a l u e ;  
+                         l e t   u s e r I d   =   ' ' ;  
+                          
+                         i f   ( t a r g e t   = = =   ' s p e c i f i c ' )   {  
+                                 u s e r I d   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t U s e r S e l e c t ' ) . v a l u e ;  
+                                 i f ( ! u s e r I d )   {  
+                                         a l e r t ( ' J1,I  '.*J'1  E3*./E  #HD'K. ' ) ;  
+                                         r e t u r n ;  
+                                 }  
+                         }  
+  
+                         c o n s t   m s g D i v   =   d o c u m e n t . g e t E l e m e n t B y I d ( ' g r a n t R e s u l t M s g ' ) ;  
+                         m s g D i v . i n n e r T e x t   =   ' ,'1J  'D%13'D. . . ' ;  
+                         m s g D i v . s t y l e . c o l o r   =   ' # F F 6 A 0 0 ' ;  
+                          
+                         t r y   {  
+                                 c o n s t   r e s   =   a w a i t   f e t c h ( B A S E _ U R L   +   ' / a d m i n / g r a n t - c o u p o n s / ' ,   {  
+                                         m e t h o d :   ' P O S T ' ,  
+                                         h e a d e r s :   {  
+                                                 ' A u t h o r i z a t i o n ' :   ' B e a r e r   '   +   l o c a l S t o r a g e . g e t I t e m ( ' d j _ t o k e n ' ) ,  
+                                                 ' C o n t e n t - T y p e ' :   ' a p p l i c a t i o n / j s o n '  
+                                         } ,  
+                                         b o d y :   J S O N . s t r i n g i f y ( {   t a r g e t :   t a r g e t ,   u s e r _ i d :   u s e r I d ,   c o u n t :   p a r s e I n t ( c o u n t )   } )  
+                                 } ) ;  
+                                 c o n s t   d a t a   =   a w a i t   r e s . j s o n ( ) ;  
+                                 i f ( r e s . o k )   {  
+                                         m s g D i v . i n n e r T e x t   =   ` *E  %13'D  $ { c o u n t }   B3JE)  D@  $ { d a t a . u s e r s _ c o u n t }   E3*./E  (F,'-! ` ;  
+                                         m s g D i v . s t y l e . c o l o r   =   ' # 1 0 b 9 8 1 ' ;  
+                                 }   e l s e   {  
+                                         m s g D i v . i n n e r T e x t   =   ' .7#:   '   +   ( d a t a . e r r o r   | |   ' :J1  E91HA' ) ;  
+                                         m s g D i v . s t y l e . c o l o r   =   ' r e d ' ;  
+                                 }  
+                         }   c a t c h ( e )   {  
+                                 m s g D i v . i n n e r T e x t   =   ' -/+  .7#  AJ  'D'*5'D  ('D3J1A1. ' ;  
+                                 m s g D i v . s t y l e . c o l o r   =   ' r e d ' ;  
+                         }  
+                 } ) ;  
+         }  
+ } ) ;  
+ 

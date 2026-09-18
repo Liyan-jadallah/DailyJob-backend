@@ -11,6 +11,8 @@
   <meta property="og:description" content="ابحث عن وظائف يومية أو انشر إعلاناتك بكل سهولة وأمان في الأردن.">
   <meta property="og:image" content="app_logo.png">
   <meta property="og:type" content="website">
+  <link rel="icon" type="image/x-icon" href="favicon.ico">
+  <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link
     href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
@@ -465,6 +467,10 @@
           <span>نُشر تلقائياً</span>
           <span class="admin-tab-badge" id="adminAutoBadge">0</span>
         </button>
+        <button class="admin-tab-btn" data-admin-tab="coupons">
+          <i class="fa-solid fa-gift"></i>
+          <span>إهداء إعلانات</span>
+        </button>
       </div>
 
       <!-- Tab 1: Pending Ads -->
@@ -501,6 +507,39 @@
         <div class="empty-state hidden" id="adminAutoEmpty">
           <i class="fa-solid fa-bolt" style="font-size: 3rem; margin-bottom: 12px; color:var(--ink-400);"></i>
           <h3>لا توجد إعلانات نُشرت تلقائياً</h3>
+        </div>
+      </div>
+
+      <!-- Tab 5: Grant Coupons -->
+      <div class="admin-tab-content" id="adminTabCoupons" style="display:none; padding: 20px;">
+        <h3 style="margin-bottom: 15px; color: var(--primary);">إهداء قسائم إعلانات مجانية</h3>
+        <div style="background: white; padding: 20px; border-radius: 12px; border: 1px solid var(--ink-200);">
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 8px;">لمن تريد الإهداء؟</label>
+            <div style="display: flex; gap: 15px;">
+              <label><input type="radio" name="grantTarget" value="all" checked> جميع المستخدمين</label>
+              <label><input type="radio" name="grantTarget" value="specific"> مستخدم محدد</label>
+            </div>
+          </div>
+          
+          <div id="grantSpecificUserDiv" style="display:none; margin-bottom: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 8px;">البحث عن مستخدم:</label>
+            <div style="display: flex; gap: 10px;">
+              <input type="text" id="grantSearchInput" placeholder="الاسم أو البريد الإلكتروني..." class="input-field" style="flex:1;">
+              <button id="grantSearchBtn" class="primary-btn" style="width: auto; padding: 0 15px;">بحث</button>
+            </div>
+            <select id="grantUserSelect" class="input-field" style="margin-top: 10px; display: none;">
+              <option value="">-- اختر مستخدماً --</option>
+            </select>
+          </div>
+
+          <div style="margin-bottom: 15px;">
+            <label style="font-weight: bold; display: block; margin-bottom: 8px;">عدد الإعلانات المهداة:</label>
+            <input type="number" id="grantCountInput" value="1" min="1" max="50" class="input-field">
+          </div>
+
+          <button id="grantSubmitBtn" class="primary-btn" style="width: 100%;"><i class="fa-solid fa-paper-plane" style="margin-inline-end: 8px;"></i>إرسال القسائم</button>
+          <div id="grantResultMsg" style="margin-top: 15px; font-weight: bold; text-align: center;"></div>
         </div>
       </div>
     </main>
@@ -601,7 +640,7 @@
         <span class="topbar-spacer"></span>
       </div>
       
-      <form class="form-card" id="contact-form" onsubmit="submitContactForm(event)" style="padding: 16px;">
+      <form class="form-card" id="contact-form" style="padding: 16px;">
         <label class="form-label" data-i18n="contactName">الاسم</label>
         <input class="form-input" id="contact-name" type="text" required>
 
@@ -692,6 +731,18 @@
             <i class="fa-solid fa-envelope"></i>
             <span data-i18n="contactUs">اتصل بنا</span>
           </button>
+        </li>
+        <li>
+          <a href="privacy.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;color:inherit;text-decoration:none;font-size:14px;">
+            <i class="fa-solid fa-shield-halved"></i>
+            <span data-i18n="privacyPolicy">سياسة الخصوصية</span>
+          </a>
+        </li>
+        <li>
+          <a href="delete-account.html" target="_blank" style="display:flex;align-items:center;gap:10px;padding:10px 14px;color:inherit;text-decoration:none;font-size:14px;">
+            <i class="fa-solid fa-file-contract"></i>
+            <span data-i18n="deleteAccountPage">طلب حذف الحساب</span>
+          </a>
         </li>
       </ul>
 
