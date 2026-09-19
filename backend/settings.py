@@ -236,6 +236,16 @@ else:
     }
 
 
+# Cache Configuration (Shared across all Gunicorn workers via Supabase DB)
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.db.DatabaseCache',
+        'LOCATION': 'django_cache_table',
+        'TIMEOUT': 600,
+    }
+}
+
+
 # Email Configuration (HTTP API with SMTP Fallback)
 # Uses HTTPS (port 443) via Brevo or Resend to bypass cloud SMTP port blocks (e.g. Render)
 EMAIL_BACKEND = 'core.email_backends.HttpApiEmailBackend'

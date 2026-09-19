@@ -3,7 +3,78 @@ import secrets
 import uuid as uuid_lib
 
 def generate_secure_otp():
+    """توليد رمز OTP عشوائي وآمن تشفيرياً مكون من 6 خانات (100000-999999)"""
     return f"{secrets.randbelow(900000) + 100000}"
+
+
+def send_otp_email(to_email, username, otp_code, subject='رمز تأكيد حسابك - Daily Job', purpose='تأكيد حسابك'):
+    """
+    إرسال رمز التحقق OTP عبر البريد الإلكتروني بصيغتي نص عادي و HTML احترافي.
+    مصمم لضمان وصول الرسالة لصندوق الوارد الرئيسي (Inbox) وتجنب تصنيفها كـ Spam.
+    """
+    clean_username = username.strip() if username else 'مستخدمنا العزيز'
+    email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', None) or getattr(settings, 'EMAIL_HOST_USER', None) or 'dailyjob2026@gmail.com'
+
+    text_content = (
+        f"مرحباً {clean_username}،\n\n"
+        f"رمز {purpose} الخاص بك في Daily Job هو:\n"
+        f"{otp_code}\n\n"
+        f"هذا الرمز صالح للاستخدام لمدة 10 دقائق فقط.\n"
+        f"لأمانك، يرجى عدم مشاركة هذا الرمز مع أي شخص.\n\n"
+        f"مع تحيات فريق Daily Job"
+    )
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html lang="ar" dir="rtl">
+    <head>
+      <meta charset="utf-8">
+      <title>{subject}</title>
+    </head>
+    <body style="margin: 0; padding: 20px; background-color: #F8F9FA; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; direction: rtl; text-align: right; color: #1F2937;">
+      <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="max-width: 520px; margin: 0 auto; background-color: #FFFFFF; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 16px rgba(0,0,0,0.08); border: 1px solid #E5E7EB;">
+        <tr>
+          <td style="background-color: #0B0F1E; padding: 28px 24px; text-align: center;">
+            <h1 style="margin: 0; color: #FFFFFF; font-size: 24px; font-weight: 800; letter-spacing: 1px;">Daily Job</h1>
+            <p style="margin: 6px 0 0 0; color: #FF6A00; font-size: 13px; font-weight: 600;">منصة الوظائف والخدمات اليومية</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="padding: 32px 28px;">
+            <h2 style="margin: 0 0 16px 0; color: #111827; font-size: 18px; font-weight: 700;">مرحباً {clean_username}،</h2>
+            <p style="margin: 0 0 24px 0; color: #4B5563; font-size: 15px; line-height: 1.7;">
+              استخدم رمز التحقق التالي لإكمال {purpose} في تطبيق <strong>Daily Job</strong>:
+            </p>
+            <div style="background-color: #F9FAFB; border: 2px dashed #FF6A00; border-radius: 12px; padding: 20px; text-align: center; margin: 24px 0;">
+              <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; color: #0B0F1E; letter-spacing: 10px; display: inline-block; padding-left: 10px;">{otp_code}</span>
+            </div>
+            <p style="margin: 16px 0 8px 0; color: #6B7280; font-size: 13px; text-align: center;">
+              ⏱️ <strong>صلاحية الرمز:</strong> صالح لمدة 10 دقائق فقط.
+            </p>
+            <p style="margin: 8px 0 0 0; color: #9CA3AF; font-size: 12px; line-height: 1.6; text-align: center;">
+              🔒 لأمان حسابك، لا تشارك هذا الرمز مع أي شخص. إذا لم تكن قد طلبت هذا الرمز، يمكنك تجاهل هذه الرسالة بأمان.
+            </p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background-color: #F9FAFB; padding: 18px 24px; border-top: 1px solid #E5E7EB; text-align: center;">
+            <p style="margin: 0; color: #9CA3AF; font-size: 12px;">© 2026 Daily Job. جميع الحقوق محفوظة.</p>
+          </td>
+        </tr>
+      </table>
+    </body>
+    </html>
+    """
+
+    return send_mail(
+        subject=subject,
+        message=text_content,
+        from_email=email_sender,
+        recipient_list=[to_email],
+        html_message=html_content,
+        fail_silently=False,
+    )
+
 
 import logging
 logger = logging.getLogger(__name__)
@@ -47,12 +118,7 @@ class UserViewSet(viewsets.ModelViewSet):
         if not user.is_authenticated:
             return User.objects.none()
         if getattr(user, 'role', '') == 'admin':
-            qs = User.objects.all().order_by('-date_joined')
-            q = self.request.query_params.get('search', None)
-            if q:
-                from django.db.models import Q
-                qs = qs.filter(Q(username__icontains=q) | Q(email__icontains=q) | Q(phone_number__icontains=q))
-            return qs
+            return User.objects.all().order_by('-date_joined')
         return User.objects.filter(id=user.id)
 
     def get_permissions(self):
@@ -65,27 +131,27 @@ class UserViewSet(viewsets.ModelViewSet):
     def destroy(self, request, *args, **kwargs):
         user = self.get_object()
         if user != request.user:
-            return Response({'error': '___ ______ ___________ ______ _____ ___________'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'لا تملك صلاحية حذف هذا الحساب'}, status=status.HTTP_403_FORBIDDEN)
 
-        # _________ __ ______ __________ ____ _________
+        # التحقق من كلمة المرور قبل الحذف
         password = request.data.get('password')
         if not password or not user.check_password(password):
-            return Response({'error': '______ __________ ______ __________. ________ _________ ______ __________ ___________ ______ ___________.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'كلمة المرور غير صحيحة. يرجى إدخال كلمة المرور لتأكيد حذف الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # ______ _____ Token _________ ___ ____________ __________
+        # حذف الـ Token لإنهاء كل الجلسات النشطة
         Token.objects.filter(user=user).delete()
 
-        # __________ __________ ___________ (___________ #3)
+        # إشعار بريدي بالحذف (اقتراح #3)
         try:
             email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
             send_mail(
-                '___ ______ __________ ____ Daily Job',
-                f'___________ {user.username}__\n\n___ ______ __________ ____ Daily Job _________.\n'
-                f'______ __ _____ _____ __ _____ ___________ ________ ____________ ______ __________ _____: dailyjob2026@gmail.com\n\n'
-                f'_______ ___ _______ ___________!\n_______ Daily Job',
+                'تم حذف حسابك في Daily Job',
+                f'مرحباً {user.username}،\n\nتم حذف حسابك في Daily Job بنجاح.\n'
+                f'إذا لم تكن أنت من طلب الحذف، يرجى التواصل معنا فوراً على: dailyjob2026@gmail.com\n\n'
+                f'نتمنى أن نراك مجدداً!\nفريق Daily Job',
                 email_sender,
                 [user.email],
-                fail_silently=True,  # ___ ______ _________ ______ _____ ___________
+                fail_silently=True,  # لا نوقف الحذف إذا فشل الإيميل
             )
         except Exception:
             pass
@@ -93,34 +159,33 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        # _________ __ ________ __________ ______ _______ _______ ___________ ____ _________ __ _____ serializer
+        # التحقق من وجود مستخدم غير مفعّل بنفس الإيميل قبل التحقق من الـ serializer
         incoming_email = request.data.get('email', '').strip().lower()
         if incoming_email:
             existing_inactive = User.objects.filter(email__iexact=incoming_email, is_active=False).first()
             if existing_inactive:
-                # ______ _______ _____________ ______ _______ ____________ ___________ __________ __ __________ _____ ______ ____________
+                # إذا أدخل المستخدم كلمة مرور جديدة، نحدّثها لتمكينه من الدخول بها بعد التفعيل
                 new_password = request.data.get('password')
                 if new_password:
                     existing_inactive.set_password(new_password)
                     existing_inactive.save(update_fields=['password'])
 
-                # ______ _________ OTP _________ __ ______ ____________
+                # أعد إرسال OTP بدلاً من رفض التسجيل
                 otp_code = generate_secure_otp()
                 cache.set(f'verify_{existing_inactive.email}', otp_code, timeout=600)
-                email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
                 try:
-                    send_mail(
-                        '_____ __________ __________ - Daily Job',
-                        f'___________ {existing_inactive.username}__\n\n__________ ______ ____ ______ _______.\n\n_____ _____________: {otp_code}\n\n_______ ______ 10 ________ _____.',
-                        email_sender,
-                        [existing_inactive.email],
-                        fail_silently=True,
+                    send_otp_email(
+                        to_email=existing_inactive.email,
+                        username=existing_inactive.username,
+                        otp_code=otp_code,
+                        subject='رمز تأكيد حسابك - Daily Job',
+                        purpose='تأكيد وتفعيل حسابك'
                     )
                 except Exception as e:
                     logger.warning(f"[AUTH] Inactive account OTP sending failed: {e}")
                 return Response(
                     {
-                        'message': '_____ ___________ _________________ ______ __________ ____ ___________ ______ _______. ___ _________ _____ __________ ________ __ ________ __________ __________ __________.',
+                        'message': 'هذا البريد الإلكتروني مسجل مسبقاً لكن الحساب غير مفعّل. تم إرسال رمز تأكيد جديد — يرجى إدخاله لتفعيل حسابك.',
                         'code': 'inactive_account_otp_sent',
                         'email': existing_inactive.email,
                     },
@@ -131,20 +196,19 @@ class UserViewSet(viewsets.ModelViewSet):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
         
-        # 1. __________ ________ ____________ ____ _________
+        # 1. إعداد الرمز وتخزينه في الكاش
         otp_code = generate_secure_otp()
         cache.set(f'verify_{user.email}', otp_code, timeout=600)
         
-        # 2. __________ _________ ___________ __________
-        email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+        # 2. محاولة إرسال الإيميل بالرمز
         email_sent = False
         try:
-            send_mail(
-                '__________ __________ ____ Daily Job',
-                f'___________ {user.username}__\n__________ ____________!\n\n_____ _____________ _________ ____ ___: {otp_code}\n\n_____ ________ _______ ______ 10 ________ _____.',
-                email_sender,
-                [user.email],
-                fail_silently=False,
+            send_otp_email(
+                to_email=user.email,
+                username=user.username,
+                otp_code=otp_code,
+                subject='تأكيد حسابك في Daily Job',
+                purpose='تأكيد حسابك الجديد'
             )
             email_sent = True
         except Exception as e:
@@ -156,12 +220,12 @@ class UserViewSet(viewsets.ModelViewSet):
 
         if email_sent:
             return Response({
-                'message': '___ _________ ___________ ___________ ________ ___________ __________ _________________ _________ _____ _____ ____________.',
+                'message': 'تم إنشاء الحساب بنجاح، يرجى مراجعة بريدك الإلكتروني للحصول على رمز التفعيل.',
                 'email': user.email,
             }, status=status.HTTP_201_CREATED, headers=headers)
         else:
             return Response({
-                'message': '___ _________ ___________ ___________ ____ ________ _________ _____ ____________ ______________. ________ _________ _____ __________ _________ ________.',
+                'message': 'تم إنشاء الحساب بنجاح، لكن تعذر إرسال رمز التفعيل تلقائياً. يرجى الضغط على إعادة إرسال الرمز.',
                 'email': user.email,
                 'email_failed': True,
             }, status=status.HTTP_201_CREATED, headers=headers)
@@ -171,32 +235,34 @@ class VerifyEmailView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [OTPThrottle]
 
-    # ____ helper _________: _________ _____ ________ ____________ ____________ ____
+    # ── helper مشترك: إنشاء رمز جديد وإرساله للمستخدم ──
     @staticmethod
     def _send_new_otp(email, username):
         otp_code = generate_secure_otp()
         cache.set(f'verify_{email}', otp_code, timeout=600)
-        cache.delete(f'verify_attempts_{email}')  # __________ ______ ___________
-        email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
-        send_mail(
-            '_____ _________ ________ - Daily Job',
-            f'___________ {username}__\n\n___ _________ _____ _________ ________ ______ ____________ ______ _______________ _____________.\n\n_______ ___________ ___: {otp_code}\n\n_____ ________ _______ ______ 10 ________ _____.',
-            email_sender,
-            [email],
-            fail_silently=True,
-        )
+        cache.delete(f'verify_attempts_{email}')  # إعادة ضبط العداد
+        try:
+            send_otp_email(
+                to_email=email,
+                username=username,
+                otp_code=otp_code,
+                subject='رمز تفعيل جديد - Daily Job',
+                purpose='تفعيل حسابك'
+            )
+        except Exception as e:
+            logger.warning(f"[AUTH] New OTP email sending failed: {e}")
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email = request.data.get('email')
         entered_otp = request.data.get('otp')
 
-        # _____ ________ _________ ______ ___________
+        # جلب الرمز المخزن لهذا الإيميل
         cached_otp = cache.get(f'verify_{email}')
 
-        # ______ __ ________ _____ ____ ________ ____________
+        # إذا لم يوجد رمز أو انتهت صلاحيته
         if not cached_otp:
             return Response(
-                {'error': '_____ ____________ ______ _______ ____ _______ ______________. ________ _____ _____ ________ ______ _________ _____ __________ ____________.', 'code': 'expired'},
+                {'error': 'رمز التفعيل غير صالح أو منتهي الصلاحية. يرجى طلب رمز جديد عبر الضغط على إعادة الإرسال.', 'code': 'expired'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -204,10 +270,10 @@ class VerifyEmailView(APIView):
             user = User.objects.filter(email=email).first()
             if user:
                 if user.is_active:
-                    # ___________ _______ __________ __ ___ _______ ____________ ___________ token ___________
+                    # الحساب مفعّل مسبقاً — لا نعيد التفعيل ونُرجع token مباشرة
                     token, _ = Token.objects.get_or_create(user=user)
                     return Response({
-                        'message': '__________ _______ __________. ___ _________ _________.',
+                        'message': 'حسابك مفعّل بالفعل. تم تسجيل دخولك.',
                         'token': token.key,
                         'user_id': str(user.pk),
                         'email': user.email,
@@ -216,14 +282,14 @@ class VerifyEmailView(APIView):
                         'referral_code': user.referral_code,
                     })
 
-                user.is_active = True  # _________ ___________
+                user.is_active = True  # تفعيل الحساب
                 user.save()
                 
-                # ______ ________ __ _________ ______ ____________ __________
+                # حذف الرمز من الكاش بعد التفعيل الناجح
                 cache.delete(f'verify_{email}')
                 
-                # ____ _________ __ ___________ _________________ _______________ ________ __________ ____
-                # __________ WelcomeCouponRecord _____ Coupon ____ Coupon __________ ___ _____________
+                # ── التحقق من القسيمة الترحيبية باستخدام السجل الدائم ──
+                # نستخدم WelcomeCouponRecord بدل Coupon لأن Coupon يُحذف مع المستخدم
                 email_already_welcomed = WelcomeCouponRecord.objects.filter(email=email).exists()
                 device_already_welcomed = False
                 if user.device_id and user.device_id.strip():
@@ -238,23 +304,23 @@ class VerifyEmailView(APIView):
                         code=welcome_code,
                         coupon_type='free_ad'
                     )
-                    # ______ _____ _______ _____ __________ _______ ______ ______ ______ ___________
+                    # حفظ سجل دائم لمنع إعادة المنح حتى بعد حذف الحساب
                     WelcomeCouponRecord.objects.create(
                         email=email,
                         device_id=user.device_id if user.device_id and user.device_id.strip() else None
                     )
-                    # __________ ____________
+                    # إشعار ترحيبي
                     Notification.objects.create(
                         user=user,
-                        title="____ ___________ ____ ____ Daily Job!",
-                        message=f"________ {user.username}__ _______ _________! ___ ______ ________ ________ ________ _________ ______________. ________ ________________ ______ _____ ________ ___ __________!",
+                        title="🎉 مرحباً بك في Daily Job!",
+                        message=f"أهلاً {user.username}، نورت منصتنا! تم منحك قسيمة إعلان مجاني كهدية ترحيبية. يمكنك استخدامها لنشر أول إعلان لك مجاناً!",
                     )
                 
-                # ____ _________ __ ____________ ______ ______________ __________ ____
+                # ── التحقق من الإحالة ومنح المكافأة للداعي ──
                 referral = Referral.objects.filter(referred=user).first()
                 if referral:
                     referrer = referral.referrer
-                    # _________ __ _____ __________ ____ _________ ______ ____________
+                    # التحقق من عدم تكرار منح كوبون لنفس الإحالة
                     ref_code_prefix = f"REF-{user.username[:5].upper()}-"
                     if not Coupon.objects.filter(user=referrer, coupon_type='free_ad', code__startswith=ref_code_prefix).exists():
                         reward_code = f"{ref_code_prefix}{str(uuid_lib.uuid4())[:4].upper()}"
@@ -263,17 +329,17 @@ class VerifyEmailView(APIView):
                             code=reward_code,
                             coupon_type='free_ad'
                         )
-                        # __________ __________ _____ _______ ___ ______________
+                        # إشعار للداعي بأن كوده تم استخدامه
                         Notification.objects.create(
                             user=referrer,
-                            title="____ ___ _____________ ________!",
-                            message=f"___ _____________ ______ ____________ _________ ____! _______ ______ ________ ________ __________ ______ _____. ______________ ____ __________ ______________.",
+                            title="🎁 تم استخدام كودك!",
+                            message=f"تم استخدام كود الإحالة الخاص بك! لديك الآن قسيمة إعلان مجانية لمدة شهر. استخدمها قبل انتهاء صلاحيتها.",
                         )
                 
-                # ____ _________ __________ ____________: _________/_____ __________ ____________ ___________ _____________ ____
+                # ── تسجيل الدخول المباشر: إنشاء/جلب التوكن وإرجاع بيانات المستخدم ──
                 token, _ = Token.objects.get_or_create(user=user)
                 return Response({
-                    'message': '___ _________ ___________ _________! ___________ ____ ____',
+                    'message': 'تم تفعيل الحساب بنجاح! مرحباً بك 🎉',
                     'token': token.key,
                     'user_id': str(user.pk),
                     'email': user.email,
@@ -282,7 +348,7 @@ class VerifyEmailView(APIView):
                     'referral_code': user.referral_code,
                 })
 
-        # ________ ________ _ _______ ___________
+        # الرمز خاطئ → نزيد العداد
         attempts_key = f'verify_attempts_{email}'
         attempts = cache.get(attempts_key, 0) + 1
         cache.set(attempts_key, attempts, timeout=600)
@@ -291,11 +357,11 @@ class VerifyEmailView(APIView):
         remaining = max_attempts - attempts
 
         if attempts >= max_attempts:
-            # __________ _______ _ _________ ________ _____ ___________ _______________
+            # تجاوز الحد → إبطال الرمز لمنع التخمين العشوائي
             cache.delete(f'verify_{email}')
             return Response(
                 {
-                    'error': '____ ____________ _______ __________ ______________ _____________ (3 ____________). ___ _________ __________ ________ _____ _____ ________ ______ _________ _____ __________ ____________.',
+                    'error': 'لقد تجاوزت الحد الأقصى للمحاولات الخاطئة (3 محاولات). تم إبطال الرمز، يرجى طلب رمز جديد عبر الضغط على إعادة الإرسال.',
                     'code': 'max_attempts_exceeded',
                 },
                 status=status.HTTP_400_BAD_REQUEST
@@ -303,7 +369,7 @@ class VerifyEmailView(APIView):
 
         return Response(
             {
-                'error': f'________ ______ ________. _______ {remaining} __________ __________.',
+                'error': f'الرمز غير صحيح. لديك {remaining} محاولة متبقية.',
                 'code': 'wrong_otp',
                 'remaining': remaining,
             },
@@ -321,33 +387,35 @@ class ResendOTPView(APIView):
     def post(self, request):
         email = request.data.get('email', '').strip().lower()
         if not email:
-            return Response({'error': '___________ _________ ___________ _________________'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'يرجى تقديم البريد الإلكتروني'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = User.objects.filter(email=email).first()
         if not user:
-            return Response({'error': '___________ _________________ ______ ______ ________'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'البريد الإلكتروني غير مسجل لدينا'}, status=status.HTTP_400_BAD_REQUEST)
 
         if user.is_active:
-            return Response({'message': '___________ ______ __________! ________ _________ __________.'})
+            return Response({
+                'error': 'الحساب مفعّل بالفعل! يمكنك تسجيل الدخول مباشرة.',
+                'code': 'already_active'
+            }, status=status.HTTP_400_BAD_REQUEST)
 
-        # _________ _____ __________ ________ ____
+        # توليد رمز تأكيد جديد وحفظه في الكاش المشترك
         otp_code = generate_secure_otp()
         cache.set(f'verify_{email}', otp_code, timeout=600)
 
-        # _________ ___________
-        email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+        # إرسال الإيميل
         try:
-            send_mail(
-                '_____ __________ __________ ___________ - Daily Job',
-                f'___________ {user.username}__\n\n_____ _____________ ___________ _________ ____ ___: {otp_code}\n\n_____ ________ _______ ______ 10 ________ _____.',
-                email_sender,
-                [user.email],
-                fail_silently=False,
+            send_otp_email(
+                to_email=user.email,
+                username=user.username,
+                otp_code=otp_code,
+                subject='رمز تأكيد حسابك الجديد - Daily Job',
+                purpose='تأكيد حسابك'
             )
-            return Response({'message': '___ __________ _________ _____ ____________ _____ __________ _________________.'})
+            return Response({'message': 'تم إعادة إرسال رمز التفعيل إلى بريدك الإلكتروني بنجاح.'})
         except Exception as e:
             logger.warning(f"[OTP] Resend email failed: {e}")
-            return Response({'message': '___ _________ _____ _________ ________ _________.'})
+            return Response({'error': 'تعذر إرسال رمز التأكيد عبر البريد الإلكتروني، يرجى المحاولة لاحقاً.'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
 
 class PasswordResetRequestView(APIView):
@@ -355,73 +423,75 @@ class PasswordResetRequestView(APIView):
     throttle_classes = [OTPThrottle]
     
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        raw_email = request.data.get('email') or request.data.get('username') or ''
+        email = raw_email.strip().lower()
         if not email:
             return Response(
-                {'error': '___________ _________ ___________ _________________.'},
+                {'error': 'الرجاء إدخال البريد الإلكتروني.'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
         if not user:
             return Response(
-                {'error': '___________ ______ _________.'},
+                {'error': 'الحساب غير موجود.'},
                 status=status.HTTP_404_NOT_FOUND
             )
         
-        # _________ _____ ____ ________________
+        # توليد رمز آمن للاستعادة
         otp_code = generate_secure_otp()
         cache.set(f'reset_{email}', otp_code, timeout=600)
         if user.email and user.email.lower() != email:
             cache.set(f'reset_{user.email.lower()}', otp_code, timeout=600)
             
-        email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
         try:
-            send_mail(
-                '__________ _________ ______ __________ - Daily Job',
-                f'_____________\n____ _______ __________ _________ ______ __________.\n\n_____ _________ _________ ____ ___: {otp_code}\n\n_____ ________ _______ ______ 10 ________ _____.',
-                email_sender,
-                [user.email],
-                fail_silently=False,
+            send_otp_email(
+                to_email=user.email,
+                username=user.username,
+                otp_code=otp_code,
+                subject='إعادة تعيين كلمة المرور - Daily Job',
+                purpose='إعادة تعيين كلمة المرور'
             )
         except Exception as e:
             logger.warning(f"[RESET] Password reset email failed: {e}")
             
-        return Response({'message': '___ _________ _____ _________ _____ __________ _________________.'})
+        return Response({'message': 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.'})
 
 
 class PasswordResetConfirmView(APIView):
     permission_classes = [AllowAny]
     throttle_classes = [OTPThrottle]
 
-    # ____ helper: _________ _____ ______________ ________ ____________ ______________ ____
+    # ── helper: توليد رمز استعادة جديد وإرساله تلقائياً ──
     @staticmethod
     def _auto_resend_reset_otp(email):
         clean_email = (email or '').strip().lower()
         otp_code = generate_secure_otp()
         cache.set(f'reset_{clean_email}', otp_code, timeout=600)
         cache.delete(f'reset_attempts_{clean_email}')
-        email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
-        send_mail(
-            '_____ ______________ ________ - Daily Job',
-            f'_____________\n\n___ _________ _____ ______________ ________ ______ ____________ ______ _______________ _____________ ____ ________ ___________ ________ __________.\n\n_______ ___________ ___: {otp_code}\n\n_____ ________ _______ ______ 10 ________ _____.',
-            email_sender,
-            [clean_email],
-            fail_silently=True,
-        )
+        try:
+            send_otp_email(
+                to_email=clean_email,
+                username='',
+                otp_code=otp_code,
+                subject='رمز استعادة جديد - Daily Job',
+                purpose='إعادة تعيين كلمة المرور'
+            )
+        except Exception as e:
+            logger.warning(f"[RESET] Auto resend reset OTP failed: {e}")
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
         entered_otp = request.data.get('otp')
         new_password = request.data.get('new_password')
 
-        # _____ ________ _________ ___________________
+        # جلب الرمز الخاص بالاستعادة
         cached_otp = cache.get(f'reset_{email}')
 
-        # ______ __ ________ _____ ____ ________ ____________
+        # إذا لم يوجد رمز أو انتهت صلاحيته
         if not cached_otp:
             return Response(
-                {'error': '_____ ______________ ______ __________ ______ _______ ____ _______ ______________. ___________ _____ _____ ________.', 'code': 'expired'},
+                {'error': 'رمز استعادة كلمة المرور غير صالح أو منتهي الصلاحية. الرجاء طلب رمز جديد.', 'code': 'expired'},
                 status=status.HTTP_400_BAD_REQUEST
             )
 
@@ -430,7 +500,7 @@ class PasswordResetConfirmView(APIView):
             if user:
                 if not new_password or len(new_password) < 6:
                     return Response(
-                        {'error': '______ __________ ______ ___ _______ 6 _________ _____ _______.'},
+                        {'error': 'كلمة المرور يجب أن تكون 6 خانات على الأقل.'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 try:
@@ -440,18 +510,18 @@ class PasswordResetConfirmView(APIView):
                     return Response({'error': " ".join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
 
                 user.set_password(new_password)
-                # ___ _____ _________ ___________ ______________ __ ______ __________ ___________ _________________ _________
+                # لا يتم تفعيل الحساب تلقائياً — يجب تأكيد البريد الإلكتروني أولاً
                 if not user.is_active:
                     return Response(
-                        {'error': '___ __________ ______ __________ ____ __________ ______ _______. ________ _________ __________ ______ _____ _____________ _________.'},
+                        {'error': 'تم تغيير كلمة المرور لكن حسابك غير مفعّل. يرجى تفعيل حسابك عبر رمز التأكيد أولاً.'},
                         status=status.HTTP_400_BAD_REQUEST
                     )
                 user.save(update_fields=['password'])
 
-                # _________ ___ _____ tokens ___________ __ _____ ____ _______ _______ __ ________________ ______ __________ ______ __________
+                # إلغاء كل الـ tokens القديمة — لمنع أي جلسة نشطة من الاستمرار بعد تغيير كلمة المرور
                 Token.objects.filter(user=user).delete()
 
-                # ______ ________ __________ _______________ __ _________
+                # حذف الرمز وعداد المحاولات من الكاش
                 cache.delete(f'reset_{email}')
                 if user.email:
                     cache.delete(f'reset_{user.email.lower()}')
@@ -459,9 +529,9 @@ class PasswordResetConfirmView(APIView):
                 if user.email:
                     cache.delete(f'reset_attempts_{user.email.lower()}')
 
-                return Response({'message': '___ __________ ______ __________ _________. ________ _________ __________ ________ __________ _____________.'})
+                return Response({'message': 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.'})
 
-        # ________ ________ __ _______ ________ _______________
+        # الرمز خاطئ — نزيد عداد المحاولات
         attempts_key = f'reset_attempts_{email}'
         attempts = cache.get(attempts_key, 0) + 1
         cache.set(attempts_key, attempts, timeout=600)
@@ -470,18 +540,18 @@ class PasswordResetConfirmView(APIView):
         remaining = max_attempts - attempts
 
         if attempts >= max_attempts:
-            # __________ _______ _ _________ ________ _____ ___________ _______________
+            # تجاوز الحد → إبطال الرمز لمنع التخمين العشوائي
             cache.delete(f'reset_{email}')
             return Response(
                 {
-                    'error': '____ ____________ _______ __________ ______________ _____________ (3 ____________). ___ _________ __________ ________ _____ _____ ______________ ________.',
+                    'error': 'لقد تجاوزت الحد الأقصى للمحاولات الخاطئة (3 محاولات). تم إبطال الرمز، يرجى طلب رمز استعادة جديد.',
                     'code': 'max_attempts_exceeded',
                 },
                 status=status.HTTP_400_BAD_REQUEST
             )
 
         return Response(
-            {'error': f'________ ______ ________. _______ {remaining} __________ __________.', 'code': 'wrong_otp', 'remaining': remaining},
+            {'error': f'الرمز غير صحيح. لديك {remaining} محاولة متبقية.', 'code': 'wrong_otp', 'remaining': remaining},
             status=status.HTTP_400_BAD_REQUEST
         )
 
@@ -491,13 +561,14 @@ class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentMethod.objects.filter(is_active=True)
     serializer_class = PaymentMethodSerializer
     permission_classes = [AllowAny]
-    pagination_class = None
 
 
 class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
-#     Read-only endpoint: GET /api/categories/
-#     Returns all active ad categories ordered by 'order' field.
-#     Flutter and website fetch this dynamically instead of hardcoding.
+    """
+    Read-only endpoint: GET /api/categories/
+    Returns all active ad categories ordered by 'order' field.
+    Flutter and website fetch this dynamically instead of hardcoding.
+    """
     queryset = AdCategory.objects.filter(is_active=True)
     serializer_class = AdCategorySerializer
     permission_classes = [AllowAny]
@@ -518,22 +589,22 @@ class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.
         receipt_file = self.request.FILES.get('receipt_image')
         if receipt_file:
             validate_image_file(receipt_file)
-        # _________ __ ___ _____________ ___ ________ ___________
+        # التحقق من أن المستخدم هو صاحب الإعلان
         ad_id = self.request.data.get('ad')
         if ad_id:
             try:
                 ad = Ad.objects.get(id=ad_id)
                 if ad.user != self.request.user:
-                    raise serializers.ValidationError({'ad': '___ ________ _________ _________ _________ _____ ___.'})
+                    raise serializers.ValidationError({'ad': 'لا يمكنك إنشاء معاملة لإعلان ليس لك.'})
             except Ad.DoesNotExist:
-                raise serializers.ValidationError({'ad': '___________ ______ _________.'})
+                raise serializers.ValidationError({'ad': 'الإعلان غير موجود.'})
         serializer.save(user=self.request.user)
 
 
 class CouponViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = CouponSerializer
     permission_classes = [IsAuthenticated]
-    pagination_class = None  # ___________ _________ _______ ___ ________ __________ __ ______________ _________ ________ ___________
+    pagination_class = None  # القسائم عددها قليل، لا حاجة للتصفح — والتطبيق يتوقع قائمة مباشرة
 
     def get_queryset(self):
         return Coupon.objects.filter(user=self.request.user).order_by('-created_at')
@@ -551,18 +622,11 @@ class AdViewSet(viewsets.ModelViewSet):
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
 
-    def destroy(self, request, *args, **kwargs):
-        instance = self.get_object()
-        instance.is_deleted = True
-        instance.deleted_at = timezone.now()
-        instance.save(update_fields=['is_deleted', 'deleted_at'])
-        return Response(status=status.HTTP_204_NO_CONTENT)
-
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         user = request.user if request.user.is_authenticated else None
         
-        # ___ __________ _____________ ______ _____ _____________ ___ ________ ___________ ______
+        # لا تحتسب المشاهدة إذا كان المستخدم هو صاحب الإعلان نفسه
         is_owner = (user and instance.user_id == user.id)
         
         if not is_owner:
@@ -571,7 +635,7 @@ class AdViewSet(viewsets.ModelViewSet):
             
             view_recorded = False
             if user:
-                # ____________ _____________ ______ __________ _____ ____ ________ ______
+                # احتساب المشاهدة لمرة واحدة فقط لكل حساب مسجل
                 _, created = AdView.objects.get_or_create(
                     ad=instance,
                     user=user,
@@ -579,7 +643,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 )
                 view_recorded = created
             elif ip:
-                # ____________ _____________ __________ ______ ____________ _________ _____ IP
+                # احتساب المشاهدة للزوار غير المسجلين بناءً على IP
                 if not AdView.objects.filter(ad=instance, user__isnull=True, ip_address=ip).exists():
                     AdView.objects.create(ad=instance, ip_address=ip, device_id=device_id)
                     view_recorded = True
@@ -613,24 +677,21 @@ class AdViewSet(viewsets.ModelViewSet):
 
             Ad.objects.filter(
                 Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
-                Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff) & ~Q(status='pending'))
+                Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
             ).delete()
 
             Ad.objects.filter(
                 Q(ad_duration='1_week'),
-                Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff) & ~Q(status='pending'))
+                Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
             ).delete()
         except Exception:
             pass
 
     def get_queryset(self):
-        # 0. Automatically delete expired ads (throttled by 60s cache lock)
-        AdViewSet._cleanup_expired_ads()
-
-        # Base query __ ordered by newest first with prefetching
+        # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
-        # ____ Visibility rules ________________________________________________________________________________________________
+        # ── Visibility rules ────────────────────────────────────────────────
         is_admin = self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'admin'
 
         if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
@@ -673,7 +734,7 @@ class AdViewSet(viewsets.ModelViewSet):
             )
             queryset = queryset.filter(valid_day | valid_week)
 
-        # ____ Filters __________________________________________________________________________________________________________________
+        # ── Filters ─────────────────────────────────────────────────────────
         status_filter = self.request.query_params.get('status')
         user_filter = self.request.query_params.get('user_id')
         category_filter = self.request.query_params.get('category')
@@ -712,7 +773,7 @@ class AdViewSet(viewsets.ModelViewSet):
         if governorate_filter and governorate_filter != 'all':
             queryset = queryset.filter(governorate=governorate_filter)
 
-        # ____ Full-text search (independent from category filter) __________________________
+        # ── Full-text search (independent from category filter) ─────────────
         if search_query:
             queryset = queryset.filter(
                 Q(title__icontains=search_query) |
@@ -734,7 +795,7 @@ class AdViewSet(viewsets.ModelViewSet):
 
         images = self.request.FILES.getlist('images')
         if len(images) > 10:
-            raise serializers.ValidationError({'images': '___ ______ ______ ________ __ 10 ______ __________ ___________.'})
+            raise serializers.ValidationError({'images': 'لا يمكن رفع أكثر من 10 صور للإعلان الواحد.'})
         for img in images:
             validate_image_file(img)
 
@@ -789,46 +850,35 @@ class AdViewSet(viewsets.ModelViewSet):
                             status='approved'
                         )
                     else:
-                        raise serializers.ValidationError({"coupon_id": "____ ___________ _________ ______________."})
+                        raise serializers.ValidationError({"coupon_id": "هذه القسيمة منتهية الصلاحية."})
             except Coupon.DoesNotExist:
-                raise serializers.ValidationError({"coupon_id": "___________ ____________ ______ _________ ____ ___ ________________ __________."})
+                raise serializers.ValidationError({"coupon_id": "القسيمة المحددة غير صالحة أو تم استخدامها مسبقاً."})
         elif receipt_image and hasattr(receipt_image, 'read'):
-            payment_method_id = self.request.data.get('payment_method')
-            pm = None
-            if payment_method_id:
-                try:
-                    pm = PaymentMethod.objects.filter(id=payment_method_id, is_active=True).first()
-                except Exception:
-                    pass
-            if not pm:
-                pm = PaymentMethod.objects.filter(is_active=True).first()
-
             Transaction.objects.create(
                 ad=ad,
                 user=self.request.user,
                 receipt_image=receipt_image,
-                payment_method=pm,
                 amount=2.00 if ad.ad_duration == '1_week' else 1.00
             )
 
-        # 4.5 __________ _________ ___________ ______ _____ ______________
+        # 4.5 إشعار لصاحب الإعلان بأنه قيد المراجعة
         try:
             Notification.objects.create(
                 user=self.request.user,
-                title="___ __________ _____ ______________",
-                message=f"___ __________ __________ '{ad.title}' ___________ _____ ______ _____ ______________ _________ ______ ___________.",
+                title="⏳ إعلانك قيد المراجعة",
+                message=f"تم استلام إعلانك '{ad.title}' بنجاح، وهو الآن قيد المراجعة وسيتم نشره قريباً.",
                 ad_id=ad.id
             )
         except Exception:
             pass
             
-        # 5. _________ ________ ________ ____ _________ _________ (Non-blocking daemon thread)
-        # _____ ______ ____ ________ _____ ________ (Worker Timeout)
+        # 5. إرسال إيميل للأدمن في خلفية النظام (Non-blocking daemon thread)
+        # لمنع بطء أو تعليق طلب النشر (Worker Timeout)
         user_email = getattr(self.request.user, 'email', '')
         ad_title = ad.title
         coupon_code = coupon.code if coupon else None
         has_receipt = bool(receipt_image)
-        # _____ ____________ _________ ____ _____ thread ________ ORM _______ thread _______
+        # جلب إيميلات الأدمن قبل الـ thread لتجنب ORM داخل thread منفصل
         admin_emails_list = list(User.objects.filter(role='admin').values_list('email', flat=True))
         admin_emails_list = [e for e in admin_emails_list if e]
 
@@ -837,11 +887,11 @@ class AdViewSet(viewsets.ModelViewSet):
                 from django.core.mail import send_mail
                 from django.db import connection
                 if admin_emails_list:
-                    payment_method_str = f"_______________ ___________ (______: {coupon_code})" if coupon_code else ("____________ _____ ______ __" if has_receipt else "")
+                    payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
                     from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
                     send_mail(
-                        subject='________ ________ _____________ ______________',
-                        message=f'____ _____________ {user_email} _______ ________ ________ __________ "{ad_title}" {payment_method_str}.\n________ ____________ __ _______ __________.',
+                        subject='إعلان جديد بانتظار المراجعة',
+                        message=f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
                         from_email=from_email,
                         recipient_list=admin_emails_list,
                         fail_silently=True,
@@ -849,7 +899,7 @@ class AdViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
             finally:
-                # ________ _________ DB ____ thread _____ connection leaks
+                # إغلاق اتصال DB للـ thread لمنع connection leaks
                 from django.db import connection
                 connection.close()
 
@@ -859,27 +909,27 @@ class AdViewSet(viewsets.ModelViewSet):
         from .models import AdImage
         ad = serializer.save()
         
-        # ___________ _____ _______ ___________ (___________ _______ ____________ ______ ___ __________ __ _________ ______________)
-        # __________ ________ ___________ _________ ______ ________________
+        # الحفاظ على حالة الإعلان (المعتمد يبقى معتمداً حتى لا يختفي من الموقع والتطبيق)
+        # إشعار صاحب الإعلان بنجاح حفظ التعديلات
         try:
             Notification.objects.create(
                 user=self.request.user,
-                title="__ ___ ______ _______________",
-                message=f"___ __________ __________ '{ad.title}' _________.",
+                title="✅ تم حفظ تعديلاتك",
+                message=f"تم تحديث إعلانك '{ad.title}' بنجاح.",
                 ad_id=ad.id
             )
         except Exception:
             pass
 
-        # __________ _________ _____ _____________ ____ ___________ _________
+        # إشعار الأدمن بأن المستخدم قام بتعديل إعلانه
         if getattr(self.request.user, 'role', '') != 'admin':
             try:
                 admin_users = User.objects.filter(role='admin')
                 notifs = [
                     Notification(
                         user=admin_user,
-                        title="______ ___ _________ ________",
-                        message=f"____ _____________ {self.request.user.email} ___________ ________ '{ad.title}'.",
+                        title="✏️ تم تعديل إعلان",
+                        message=f"قام المستخدم {self.request.user.email} بتعديل إعلان '{ad.title}'.",
                         ad_id=ad.id
                     )
                     for admin_user in admin_users
@@ -889,7 +939,7 @@ class AdViewSet(viewsets.ModelViewSet):
             except Exception:
                 pass
         
-        # 1. __________ ______ ____ _____________ ___________ _______________
+        # 1. معالجة حذف أو استبدال الصورة الرئيسية
         delete_main_image_val = self.request.data.get('delete_main_image')
         should_delete_main = delete_main_image_val in ('true', 'True', True, '1', 1)
 
@@ -902,7 +952,7 @@ class AdViewSet(viewsets.ModelViewSet):
             ad.image = None
             ad.save(update_fields=['image'])
 
-        # 2. __________ ______ ______ ____________ _________ (deleted_image_ids / deleted_images)
+        # 2. معالجة حذف صور إضافية محددة (deleted_image_ids / deleted_images)
         raw_deleted = self.request.data.getlist('deleted_image_ids') or self.request.data.getlist('deleted_images')
         if not raw_deleted:
             single = self.request.data.get('deleted_image_ids') or self.request.data.get('deleted_images')
@@ -932,21 +982,22 @@ class AdViewSet(viewsets.ModelViewSet):
 
         cleaned_ids = []
         for d_id in deleted_ids:
-            d_str = str(d_id).strip()
-            if d_str:
-                cleaned_ids.append(d_str)
+            try:
+                cleaned_ids.append(int(d_id))
+            except (ValueError, TypeError):
+                pass
 
         if cleaned_ids:
             AdImage.objects.filter(ad=ad, id__in=cleaned_ids).delete()
 
-        # 3. __________ ______ ____________ __________ (_____ _____ _________ ___________ ____________)
+        # 3. إضافة صور إضافية جديدة (دون مسح الصور القديمة الباقية)
         images = self.request.FILES.getlist('images')
         if images:
             for img in images:
                 validate_image_file(img)
                 AdImage.objects.create(ad=ad, image=img)
                 
-        # __________ _____ _________ ___ ______
+        # تحديث وصل الدفع إن وجد
         receipt_image = self.request.FILES.get('receipt_image') or self.request.data.get('receipt_image')
         if receipt_image:
             if hasattr(receipt_image, 'read'):
@@ -958,84 +1009,86 @@ class AdViewSet(viewsets.ModelViewSet):
                 receipt_image=receipt_image
             )
 
-    @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>[0-9a-fA-F-]+)')
+    @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>\d+)')
     def delete_extra_image(self, request, pk=None, image_id=None):
         ad = self.get_object()
         if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': '_____ _______ ___________ _______ ____ ___________.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
         from .models import AdImage
         deleted, _ = AdImage.objects.filter(ad=ad, id=image_id).delete()
         if deleted:
-            return Response({'success': True, 'message': '___ ______ ___________ _________.'}, status=status.HTTP_200_OK)
-        return Response({'error': '__ _____ ___________ _____ ___________ _____________.'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'success': True, 'message': 'تم حذف الصورة بنجاح.'}, status=status.HTTP_200_OK)
+        return Response({'error': 'لم يتم العثور على الصورة المطلوبة.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['delete', 'post'], url_path='delete-main-image')
     def delete_main_image(self, request, pk=None):
         ad = self.get_object()
         if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': '_____ _______ ___________ _______ ____ ___________.'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
         ad.image = None
         ad.save(update_fields=['image'])
-        return Response({'success': True, 'message': '___ ______ ___________ _______________ _________.'}, status=status.HTTP_200_OK)
+        return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
 
 
-# ____ Admin Action View ____________________________________________________________________________________________________________________
+# ── Admin Action View ──────────────────────────────────────────────────────────
 class AdminAdActionView(APIView):
-#     POST /api/ads/<ad_id>/action/
+    """
+    POST /api/ads/<ad_id>/action/
     Body: { "action": "approve" } or { "action": "reject" }
 
-#     - approve _ sets status to 'approved' (triggers notification signals)
-#     - reject  _ permanently deletes the ad and all related data
+    - approve → sets status to 'approved' (triggers notification signals)
+    - reject  → permanently deletes the ad and all related data
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request, ad_id):
         # Only admins can use this endpoint
         if getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': '_____ _______ ___________ __________'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'error': 'ليس لديك صلاحية الوصول'}, status=status.HTTP_403_FORBIDDEN)
 
         action = request.data.get('action')
         if action not in ('approve', 'reject', 'delete'):
-            return Response({'error': '_____________ ______ ________. ___________ approve, reject, ____ delete.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'الإجراء غير صحيح. استخدم approve, reject, أو delete.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             ad = Ad.objects.get(id=ad_id)
         except Ad.DoesNotExist:
-            return Response({'error': '___________ ______ _________'}, status=status.HTTP_404_NOT_FOUND)
+            return Response({'error': 'الإعلان غير موجود'}, status=status.HTTP_404_NOT_FOUND)
 
         if action == 'approve':
             ad.status = 'approved'
-            ad.save()  # triggers Ad.save() signal _ sends notifications
-            return Response({'status': 'approved', 'message': '___ ______ ___________ ________.'})
+            ad.save()  # triggers Ad.save() signal → sends notifications
+            return Response({'status': 'approved', 'message': 'تم قبول الإعلان ونشره.'})
 
         elif action == 'reject':
             ad.status = 'rejected'
             ad.save()
-            return Response({'status': 'rejected', 'message': '___ ______ ___________.'})
+            return Response({'status': 'rejected', 'message': 'تم رفض الإعلان.'})
 
         elif action == 'delete':
             # Hard-delete the ad (cascades to AdImage, Transaction)
             ad.delete()
-            return Response({'status': 'deleted', 'message': '___ ______ ___________ ____________.'})
+            return Response({'status': 'deleted', 'message': 'تم حذف الإعلان نهائياً.'})
 
 
 class CustomAuthToken(ObtainAuthToken):
     throttle_classes = [OTPThrottle]
     def post(self, request, *args, **kwargs):
-        login_input = request.data.get('username')  # _______ ______ username ____ _________ ______ ___ _______ ________
+        login_input = request.data.get('username')  # الحقل اسمه username لكن القيمة يجب أن تكون إيميل
         password = request.data.get('password')
 
         if not login_input or not password:
-            return Response({'error': '___________ _________ ___________ __________'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'الرجاء إدخال بيانات الدخول'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # __________ _____________ _____ _____ ____________ __________
+        # الدخول بالإيميل فقط دون حساسية للأحرف
         clean_email = (login_input or '').strip().lower()
         user = User.objects.filter(email__iexact=clean_email).first()
 
         if not user:
-            return Response({'error': '___________ __________ ______ __________'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)
 
         if not user.is_active:
-            # _________ ______ _____ ______ _____ ________ ____ ___________ ___ __ ________ ______ _________ _________
+            # التحقق إذا كان هناك رمز ساري في الكاش، إن لم يوجد ننشئ رمزاً ونرسله
             cached_otp = cache.get(f'verify_{user.email}')
             if not cached_otp:
                 otp_code = generate_secure_otp()
@@ -1043,8 +1096,8 @@ class CustomAuthToken(ObtainAuthToken):
                 email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
                 try:
                     send_mail(
-                        '_____ __________ __________ - Daily Job',
-                        f'___________ {user.username}__\n\n_____ _____________ _________ ____ ___: {otp_code}\n\n_______ ______ 10 ________.',
+                        'رمز تأكيد حسابك - Daily Job',
+                        f'مرحباً {user.username}،\n\nرمز التأكيد الخاص بك هو: {otp_code}\n\nصالح لمدة 10 دقائق.',
                         email_sender,
                         [user.email],
                         fail_silently=True,
@@ -1052,7 +1105,7 @@ class CustomAuthToken(ObtainAuthToken):
                 except Exception:
                     pass
             return Response({
-                'error': '___________ ______ _______. ________ __________ __________ _________________ _________.',
+                'error': 'الحساب غير مفعّل. يرجى تأكيد بريدك الإلكتروني أولاً.',
                 'code': 'inactive_account',
                 'email': user.email
             }, status=status.HTTP_403_FORBIDDEN)
@@ -1060,7 +1113,7 @@ class CustomAuthToken(ObtainAuthToken):
         if user.check_password(password):
             token, created = Token.objects.get_or_create(user=user)
             
-            # __________ _____ FCM _____ _________ __________
+            # تحديث رمز FCM عند تسجيل الدخول
             fcm_token = request.data.get('fcm_token')
             if fcm_token:
                 user.fcm_token = fcm_token
@@ -1075,11 +1128,13 @@ class CustomAuthToken(ObtainAuthToken):
                 'referral_code': user.referral_code
             })
         else:
-            return Response({'error': '___________ __________ ______ __________'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)
 
 class UpdateFCMTokenView(APIView):
-#     POST /api/update-fcm-token/
-#     __________ _____ FCM ____________ _________ ___________ _______ __________ _________________
+    """
+    POST /api/update-fcm-token/
+    تحديث رمز FCM للمستخدم المسجل حالياً لضمان استلام الإشعارات
+    """
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
@@ -1103,9 +1158,11 @@ def _parse_bool(val, default=True):
 
 
 class UpdateNotificationPreferencesView(APIView):
-#     POST /api/update-notification-preferences/
-#     GET  /api/update-notification-preferences/
-#     __________ _______ _____________ _________________ ____________ (________________ _______ __________ ___________)
+    """
+    POST /api/update-notification-preferences/
+    GET  /api/update-notification-preferences/
+    تحديث وجلب تفضيلات الإشعارات للمستخدم (المحافظات ونوع الخدمة المفضلة)
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -1154,12 +1211,12 @@ class UpdateNotificationPreferencesView(APIView):
         })
 
 
-# ____ Notifications ____________________________________________________________________________________________________________________________
+# ── Notifications ──────────────────────────────────────────────────────────────
 class UserNotificationsView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        # _____ ________ 30 __________ ____________ (_________ _____ ______ Celery Beat ______)
+        # جلب أحدث 30 إشعار للمستخدم (الحذف يتم عبر Celery Beat الآن)
         notifications = Notification.objects.filter(
             user=request.user
         ).order_by('-created_at')[:30]
@@ -1177,6 +1234,7 @@ class UserNotificationsView(APIView):
         return Response(data)
 
     def patch(self, request):
+        """تحديث حالة قراءة الإشعارات (إشعار محدد أو الكل)"""
         mark_all = request.data.get('mark_all', False)
         notif_id = request.data.get('id')
 
@@ -1193,6 +1251,7 @@ class UserNotificationsView(APIView):
         return Response({'error': 'Provide mark_all=true or an id'}, status=status.HTTP_400_BAD_REQUEST)
 
     def delete(self, request):
+        """حذف مجموعة من الإشعارات المحددة أو حذف كل الإشعارات"""
         delete_all = request.data.get('delete_all', False)
         ids = request.data.get('ids', [])
         if delete_all or ids == 'all':
@@ -1209,10 +1268,12 @@ class UserNotificationsView(APIView):
 
 
 class NotificationDetailView(APIView):
-#     PATCH /api/notifications/<pk>/
-#     Marks a specific notification as read.
-#     DELETE /api/notifications/<pk>/
-#     Deletes a specific notification.
+    """
+    PATCH /api/notifications/<pk>/
+    Marks a specific notification as read.
+    DELETE /api/notifications/<pk>/
+    Deletes a specific notification.
+    """
     permission_classes = [IsAuthenticated]
 
     def patch(self, request, pk):
@@ -1237,15 +1298,15 @@ class ChangePasswordView(APIView):
         new_password = request.data.get('new_password')
 
         if not old_password or not new_password:
-            return Response({'error': '________ _________ ______ __________ ____________ _______________.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'يرجى إدخال كلمة المرور الحالية والجديدة.'}, status=status.HTTP_400_BAD_REQUEST)
 
         user = request.user
 
         if not user.check_password(old_password):
-            return Response({'error': '______ __________ ____________ ______ __________.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'كلمة المرور الحالية غير صحيحة.'}, status=status.HTTP_400_BAD_REQUEST)
 
         if len(new_password) < 6:
-            return Response({'error': '______ __________ _____________ ______ ___ _______ 6 _________ _____ _______.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'كلمة المرور الجديدة يجب أن تكون 6 خانات على الأقل.'}, status=status.HTTP_400_BAD_REQUEST)
 
         try:
             validate_password(new_password, user=user)
@@ -1256,16 +1317,16 @@ class ChangePasswordView(APIView):
         user.set_password(new_password)
         user.save(update_fields=['password'])
 
-        # _________ ___ ______________ ___________ ___________ _______ ________
+        # إلغاء كل التوكنات القديمة وإنشاء توكن جديد
         Token.objects.filter(user=user).delete()
         new_token = Token.objects.create(user=user)
 
-        # __________ ____________ ______ __________
+        # إشعار بتغيير كلمة المرور
         try:
             email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
             send_mail(
-                '___ __________ ______ __________ - Daily Job',
-                f'___________ {user.username},\n\n___ __________ ______ _______ __________ _________.\n\n______ __ _____ _____ __ ____ _______ _______________ ________ ____________ ______ __________ _____: dailyjob2026@gmail.com\n\n_______ Daily Job',
+                'تم تغيير كلمة المرور - Daily Job',
+                f'مرحباً {user.username},\n\nتم تغيير كلمة مرور حسابك بنجاح.\n\nإذا لم تكن أنت من قام بهذا التغيير، يرجى التواصل معنا فوراً على: dailyjob2026@gmail.com\n\nفريق Daily Job',
                 email_sender,
                 [user.email],
                 fail_silently=True,
@@ -1274,21 +1335,21 @@ class ChangePasswordView(APIView):
             pass
 
         return Response({
-            'message': '___ __________ ______ __________ _________.',
+            'message': 'تم تغيير كلمة المرور بنجاح.',
             'token': new_token.key,
         })
 
 
 class ContactMessageCreateView(APIView):
     permission_classes = [AllowAny]
-    throttle_classes = [OTPThrottle] # _____________ _____ _____________ ________ _____ spam
+    throttle_classes = [OTPThrottle] # استخدام نفس التحديد لتجنب الـ spam
 
     def post(self, request):
         serializer = ContactMessageSerializer(data=request.data)
         if serializer.is_valid():
             message = serializer.save()
             
-            # ______________ _____ Celery Task __________ ___________ ____ ____________
+            # استدعاء الـ Celery Task لإرسال الإيميل في الخلفية
             from .tasks import send_contact_email_task
             send_contact_email_task.delay(
                 name=message.name,
@@ -1298,16 +1359,18 @@ class ContactMessageCreateView(APIView):
             )
 
             return Response(
-                {'message': '___ _________ ___________ ___________ __________ ____________ ______.'},
+                {'message': 'تم إرسال رسالتك بنجاح، شكراً لتواصلك معنا.'},
                 status=status.HTTP_201_CREATED
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class TestPushNotificationView(APIView):
-#     GET /api/test-push/
-#     POST /api/test-push/
-#     ______ ______ ____________ ______________ ______________ Firebase _____________
+    """
+    GET /api/test-push/
+    POST /api/test-push/
+    نقطة فحص وتشخيص واختبار إشعارات Firebase الفورية
+    """
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
@@ -1356,8 +1419,6 @@ class TestPushNotificationView(APIView):
         })
 
     def post(self, request):
-        if getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
         from .firebase_utils import send_push_notification, send_topic_notification, send_multicast_push_notification, _ensure_firebase_app
 
         if not _ensure_firebase_app():
@@ -1366,11 +1427,11 @@ class TestPushNotificationView(APIView):
                 'error': 'Firebase Admin SDK is NOT initialized. Check FIREBASE_CREDENTIALS_JSON or firebase-adminsdk.json.',
             }, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
-        title = request.data.get('title', '__ __________ __________ ________ __ Daily Job')
-        body = request.data.get('body', '______ _______ _____ _____________ _______ _______ ___ ______ _________________ ______ _________ 100%!')
+        title = request.data.get('title', '🔔 تجربة إشعار فوري من Daily Job')
+        body = request.data.get('body', 'إذا وصلك هذا التنبيه، فهذا يعني أن نظام الإشعارات يعمل بنجاح 100%!')
         extra_data = {'test': 'true', 'timestamp': str(timezone.now().timestamp())}
 
-        # 1. _________ _____ Topic ______ ______ ___ ______
+        # 1. إرسال إلى Topic معين إذا تم طلبه
         target_topic = request.data.get('topic')
         if target_topic:
             res = send_topic_notification(topic=target_topic, title=title, body=body, data=extra_data)
@@ -1381,7 +1442,7 @@ class TestPushNotificationView(APIView):
                 'message': f"Topic push to '{target_topic}' sent: {res}",
             })
 
-        # 2. _________ _____ Token _______ ___________
+        # 2. إرسال إلى Token محدد مباشرة
         target_token = request.data.get('fcm_token')
         if target_token:
             res = send_multicast_push_notification(tokens=[target_token], title=title, body=body, data=extra_data)
@@ -1392,7 +1453,7 @@ class TestPushNotificationView(APIView):
                 'message': f"Direct push to token sent: {res}",
             })
 
-        # 3. _________ ____________ _________ __________ ___ _____ ________ _______
+        # 3. إرسال للمستخدم المسجل الحالي إن كان يمتلك توكن
         target_user = None
         if request.user and request.user.is_authenticated:
             target_user = request.user
@@ -1418,7 +1479,7 @@ class TestPushNotificationView(APIView):
                 'message': f"Push notification to user '{target_user.username}' sent: {res}",
             })
 
-        # 4. _________ ____________ _____ __________ "all" ________________
+        # 4. إرسال تجريبي عام لموضوع "all" كافتراضي
         res = send_topic_notification(topic="all", title=title, body=body, data=extra_data)
         return Response({
             'success': res,
@@ -1477,14 +1538,15 @@ class AdminGrantCouponsView(APIView):
             
             notifications_to_create.append(Notification(
                 user=u,
-                title="_ _____ _______ ______!",
-                message=f"___ ____ ___ {count} _____ _____ __ _______. ________ ___ ______ ________!"
+                title="هدية قسائم إعلانية مجانية!",
+                message=f"لقد حصلت على {count} قسيمة إعلان مجاني من الإدارة. استخدمها لنشر إعلاناتك مجاناً!"
             ))
 
         Coupon.objects.bulk_create(coupons_to_create)
         Notification.objects.bulk_create(notifications_to_create)
 
         return Response({"message": f"Successfully granted {count} coupons to {len(users_to_grant)} users.", "users_count": len(users_to_grant)})
+
 
 class AccountDeletionRequestView(APIView):
     permission_classes = [AllowAny]
@@ -1498,7 +1560,6 @@ class AccountDeletionRequestView(APIView):
         if not email:
             return Response({'error': 'البريد الإلكتروني مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
         
-        # Save the request to ContactMessage
         from .models import ContactMessage
         ContactMessage.objects.create(
             name=f'طلب حذف حساب - {email}',
@@ -1507,13 +1568,13 @@ class AccountDeletionRequestView(APIView):
             message=f'طلب حذف حساب\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}'
         )
         
-        # Send email notification to admin
         try:
+            admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'dailyjob2026@gmail.com')
             send_mail(
                 subject=f'طلب حذف حساب - {email}',
                 message=f'تم استلام طلب حذف حساب:\n\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}',
-                from_email=settings.DEFAULT_FROM_EMAIL,
-                recipient_list=[settings.DEFAULT_FROM_EMAIL],
+                from_email=admin_email,
+                recipient_list=[admin_email],
                 fail_silently=True
             )
         except Exception:
