@@ -27,6 +27,18 @@
 
 
   const Api = {
+    getPaymentMethods: async () => {
+      try {
+        const res = await fetch(`${BASE_URL}/payment-methods/`);
+        if (res.ok) {
+          const data = await res.json();
+          return Array.isArray(data) ? data : (data.results || []);
+        }
+      } catch (e) {
+        console.warn("Failed to fetch payment methods", e);
+      }
+      return [];
+    },
 
     verifyEmail: async (email, otp) => {
 
@@ -1327,6 +1339,49 @@
   let ads = [];
 
   let selectedAdCouponId = null;
+
+  let activePaymentMethods = [];
+
+  let selectedPaymentMethodId = null;
+
+  async function loadPaymentMethods() {
+    try {
+      const methods = await Api.getPaymentMethods();
+      if (methods && methods.length > 0) {
+        activePaymentMethods = methods;
+        selectedPaymentMethodId = methods[0].id;
+        const defaultMethod = methods[0];
+        const alias = defaultMethod.account_alias || 'DAILYJOB1';
+        const name = defaultMethod.method_name || 'حساب كليك - محفظة دينارك';
+
+        if (i18n.en) {
+          i18n.en.cliqAccount = `${name} (Alias: ${alias})`;
+          i18n.en.cliqTransferMsg = `Please transfer 1 JOD to ${name} (Alias: <strong>${alias}</strong>) and upload the receipt below:`;
+        }
+        if (i18n.ar) {
+          i18n.ar.cliqAccount = `${name} (اسم مستعار: ${alias})`;
+          i18n.ar.cliqTransferMsg = `يرجى تحويل 1 دينار إلى ${name} (اسم مستعار: <strong>${alias}</strong>) وتحميل صورة الإيصال أدناه:`;
+        }
+
+        const postAdLabel = document.getElementById("postAdCliqAccountLabel");
+        if (postAdLabel) {
+          postAdLabel.textContent = (state.lang === 'en') ? `${name} (Alias: ${alias})` : `${name} (اسم مستعار: ${alias})`;
+        }
+        const postAdSub = document.getElementById("postAdCliqAccountSub");
+        if (postAdSub) {
+          postAdSub.textContent = `${name} (اسم مستعار: ${alias})`;
+        }
+        const modalTransferMsg = document.getElementById("cliqModalTransferMsg");
+        if (modalTransferMsg) {
+          modalTransferMsg.innerHTML = (state.lang === 'en')
+            ? `Please transfer 1 JOD to ${name} (Alias: <strong>${alias}</strong>) and upload the receipt below:`
+            : `يرجى تحويل 1 دينار إلى ${name} (اسم مستعار: <strong>${alias}</strong>) وتحميل صورة الإيصال أدناه:`;
+        }
+      }
+    } catch (err) {
+      console.warn("Could not load payment methods dynamically:", err);
+    }
+  }
 
   let currentAdsPage = 1;
 
@@ -5269,6 +5324,12 @@
 
       }
 
+      if (selectedPaymentMethodId && !state.currentEditAdId) {
+
+        formData.append("payment_method", selectedPaymentMethodId);
+
+      }
+
       
 
       if (state.currentEditAdId) {
@@ -5789,6 +5850,8 @@
       } else {
 
         if (elements.cliqModalOverlay) elements.cliqModalOverlay.classList.add("open");
+
+        loadPaymentMethods();
 
       }
 
@@ -9302,7 +9365,7 @@
 
   }
 
-
+  loadPaymentMethods();
 
 })();
 

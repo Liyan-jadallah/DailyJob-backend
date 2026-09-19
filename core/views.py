@@ -491,6 +491,7 @@ class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentMethod.objects.filter(is_active=True)
     serializer_class = PaymentMethodSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -612,17 +613,20 @@ class AdViewSet(viewsets.ModelViewSet):
 
             Ad.objects.filter(
                 Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
-                Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
+                Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff) & ~Q(status='pending'))
             ).delete()
 
             Ad.objects.filter(
                 Q(ad_duration='1_week'),
-                Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+                Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff) & ~Q(status='pending'))
             ).delete()
         except Exception:
             pass
 
     def get_queryset(self):
+        # 0. Automatically delete expired ads (throttled by 60s cache lock)
+        AdViewSet._cleanup_expired_ads()
+
         # Base query __ ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
@@ -789,10 +793,21 @@ class AdViewSet(viewsets.ModelViewSet):
             except Coupon.DoesNotExist:
                 raise serializers.ValidationError({"coupon_id": "___________ ____________ ______ _________ ____ ___ ________________ __________."})
         elif receipt_image and hasattr(receipt_image, 'read'):
+            payment_method_id = self.request.data.get('payment_method')
+            pm = None
+            if payment_method_id:
+                try:
+                    pm = PaymentMethod.objects.filter(id=payment_method_id, is_active=True).first()
+                except Exception:
+                    pass
+            if not pm:
+                pm = PaymentMethod.objects.filter(is_active=True).first()
+
             Transaction.objects.create(
                 ad=ad,
                 user=self.request.user,
                 receipt_image=receipt_image,
+                payment_method=pm,
                 amount=2.00 if ad.ad_duration == '1_week' else 1.00
             )
 
@@ -1505,3 +1520,27 @@ class AccountDeletionRequestView(APIView):
             pass
         
         return Response({'message': 'تم استلام طلبكم وسيتم مراجعته خلال 48 ساعة'}, status=status.HTTP_200_OK)
+
+
+class HealthCheckView(APIView):
+    """
+    نقطة فحص صحة واستقرار السيرفر وقاعدة البيانات.
+    GET /api/health/
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        from django.db import connection
+        db_ok = True
+        try:
+            connection.ensure_connection()
+        except Exception:
+            db_ok = False
+
+        status_code = status.HTTP_200_OK if db_ok else status.HTTP_503_SERVICE_UNAVAILABLE
+        return Response({
+            'status': 'ok' if db_ok else 'degraded',
+            'database': 'connected' if db_ok else 'disconnected',
+            'timestamp': timezone.now().isoformat(),
+            'service': 'Daily Job API',
+        }, status=status_code)
