@@ -97,7 +97,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework.throttling import AnonRateThrottle
 from .permissions import IsUserOwner, IsOwnerOrReadOnly
 from .validators import validate_image_file
-from .models import User, PaymentMethod, Ad, AdCategory, Transaction, Notification, Coupon, Referral, WelcomeCouponRecord, AdView
+from .models import User, PaymentMethod, Ad, AdCategory, Transaction, Notification, Coupon, Referral, WelcomeCouponRecord, AdView, SystemSetting
 from .serializers import UserSerializer, PaymentMethodSerializer, AdSerializer, TransactionSerializer, AdCategorySerializer, CouponSerializer, ContactMessageSerializer
 
 
@@ -323,22 +323,46 @@ class VerifyEmailView(APIView):
                     ).exists()
 
                 if not email_already_welcomed and not device_already_welcomed:
-                    welcome_code = f"WELCOME-{user.username[:5].upper()}-{str(uuid_lib.uuid4())[:4].upper()}"
-                    Coupon.objects.create(
-                        user=user,
-                        code=welcome_code,
-                        coupon_type='free_ad'
-                    )
+                    welcome_enabled = SystemSetting.get_bool('welcome_free_ads_enabled', default=True)
+                    welcome_count = SystemSetting.get_int('welcome_free_ads_count', default=1)
+                    welcome_days = SystemSetting.get_int('welcome_free_ads_days', default=30)
+
+                    if welcome_enabled and welcome_count > 0:
+                        from datetime import timedelta
+                        now = timezone.now()
+                        expires_at = now + timedelta(days=welcome_days)
+
+                        coupons = []
+                        for _ in range(welcome_count):
+                            welcome_code = f"WELCOME-{user.username[:5].upper()}-{str(uuid_lib.uuid4())[:4].upper()}"
+                            coupons.append(Coupon(
+                                user=user,
+                                code=welcome_code,
+                                coupon_type='free_ad',
+                                expires_at=expires_at
+                            ))
+                        Coupon.objects.bulk_create(coupons)
+
+                        # إشعار ترحيبي
+                        if welcome_count == 1:
+                            ad_msg = "قسيمة إعلان مجاني كهدية ترحيبية"
+                        elif welcome_count == 2:
+                            ad_msg = "قسيمتي إعلانات مجانية كهدية ترحيبية"
+                        elif 3 <= welcome_count <= 10:
+                            ad_msg = f"{welcome_count} قسائم إعلانات مجانية كهدية ترحيبية"
+                        else:
+                            ad_msg = f"{welcome_count} قسيمة إعلانات مجانية كهدية ترحيبية"
+
+                        Notification.objects.create(
+                            user=user,
+                            title="🎉 مرحباً بك في Daily Job!",
+                            message=f"أهلاً {user.username}، نورت منصتنا! تم منحك {ad_msg}. يمكنك استخدامها لنشر إعلاناتك مجاناً!",
+                        )
+
                     # حفظ سجل دائم لمنع إعادة المنح حتى بعد حذف الحساب
                     WelcomeCouponRecord.objects.create(
                         email=email,
                         device_id=user.device_id if user.device_id and user.device_id.strip() else None
-                    )
-                    # إشعار ترحيبي
-                    Notification.objects.create(
-                        user=user,
-                        title="🎉 مرحباً بك في Daily Job!",
-                        message=f"أهلاً {user.username}، نورت منصتنا! تم منحك قسيمة إعلان مجاني كهدية ترحيبية. يمكنك استخدامها لنشر أول إعلان لك مجاناً!",
                     )
                 
                 # ── التحقق من الإحالة ومنح المكافأة للداعي ──
@@ -1571,6 +1595,79 @@ class AdminGrantCouponsView(APIView):
         Notification.objects.bulk_create(notifications_to_create)
 
         return Response({"message": f"Successfully granted {count} coupons to {len(users_to_grant)} users.", "users_count": len(users_to_grant)})
+
+
+class AdminWelcomeSettingsView(APIView):
+    """
+    إدارة إعدادات الإعلانات الترحيبية المجانية للمستخدمين الجدد.
+    GET: استرجاع الإعدادات الحالية
+    POST: تحديث الإعدادات (تفعيل/تعطيل، عدد الإعلانات، مدة الصلاحية بالأيام)
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        if getattr(user, 'role', '') != 'admin':
+            return Response({"error": "Unauthorized"}, status=403)
+
+        enabled = SystemSetting.get_bool('welcome_free_ads_enabled', default=True)
+        count = SystemSetting.get_int('welcome_free_ads_count', default=1)
+        days = SystemSetting.get_int('welcome_free_ads_days', default=30)
+
+        return Response({
+            'enabled': enabled,
+            'count': count,
+            'days': days,
+        })
+
+    def post(self, request):
+        user = request.user
+        if getattr(user, 'role', '') != 'admin':
+            return Response({"error": "Unauthorized"}, status=403)
+
+        enabled = request.data.get('enabled')
+        count = request.data.get('count')
+        days = request.data.get('days')
+
+        if enabled is not None:
+            SystemSetting.set_setting(
+                'welcome_free_ads_enabled',
+                'true' if (enabled is True or str(enabled).lower() in ['true', '1', 'yes']) else 'false',
+                description='تفعيل ميزة الإعلانات المجانية الترحيبية للمستخدمين الجدد'
+            )
+
+        if count is not None:
+            try:
+                count_val = int(count)
+                if count_val < 0 or count_val > 50:
+                    return Response({"error": "عدد الإعلانات يجب أن يكون بين 0 و 50"}, status=400)
+                SystemSetting.set_setting(
+                    'welcome_free_ads_count',
+                    str(count_val),
+                    description='عدد الإعلانات المجانية الممنوحة لكل مستخدم جديد'
+                )
+            except (ValueError, TypeError):
+                return Response({"error": "قيمة عدد الإعلانات غير صالحة"}, status=400)
+
+        if days is not None:
+            try:
+                days_val = int(days)
+                if days_val < 1 or days_val > 365:
+                    return Response({"error": "مدة الصلاحية يجب أن تكون بين 1 و 365 يوم"}, status=400)
+                SystemSetting.set_setting(
+                    'welcome_free_ads_days',
+                    str(days_val),
+                    description='صلاحية الإعلانات المجانية الترحيبية بالأيام'
+                )
+            except (ValueError, TypeError):
+                return Response({"error": "قيمة عدد الأيام غير صالحة"}, status=400)
+
+        return Response({
+            'message': 'تم حفظ إعدادات الإعلانات الترحيبية بنجاح',
+            'enabled': SystemSetting.get_bool('welcome_free_ads_enabled', default=True),
+            'count': SystemSetting.get_int('welcome_free_ads_count', default=1),
+            'days': SystemSetting.get_int('welcome_free_ads_days', default=30),
+        })
 
 
 class AccountDeletionRequestView(APIView):

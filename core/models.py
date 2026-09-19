@@ -461,3 +461,52 @@ class ContactMessage(models.Model):
         return f"Message from {self.name} - {self.email}"
 
 
+class SystemSetting(models.Model):
+    """
+    إعدادات النظام العامة القابلة للتحكم من لوحة الأدمن (تطبيق وموقع).
+    """
+    key = models.CharField(max_length=100, unique=True, db_index=True)
+    value = models.TextField()
+    description = models.CharField(max_length=255, blank=True, null=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        db_table = 'system_settings'
+
+    def __str__(self):
+        return f"{self.key}: {self.value}"
+
+    @classmethod
+    def get_setting(cls, key, default=None):
+        try:
+            item = cls.objects.filter(key=key).first()
+            return item.value if item else default
+        except Exception:
+            return default
+
+    @classmethod
+    def get_int(cls, key, default=1):
+        try:
+            val = cls.get_setting(key, default)
+            return int(val) if val is not None else default
+        except Exception:
+            return default
+
+    @classmethod
+    def get_bool(cls, key, default=True):
+        try:
+            val = cls.get_setting(key, default)
+            if val is None:
+                return default
+            if isinstance(val, bool):
+                return val
+            return str(val).lower() in ('true', '1', 'yes')
+        except Exception:
+            return default
+
+    @classmethod
+    def set_setting(cls, key, value, description=''):
+        cls.objects.update_or_create(key=key, defaults={'value': str(value), 'description': description})
+
+
+

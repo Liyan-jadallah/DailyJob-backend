@@ -2826,6 +2826,10 @@
 
           panel.classList.add("active");
 
+          if (key === "coupons" && typeof loadAdminWelcomeSettings === "function") {
+            loadAdminWelcomeSettings();
+          }
+
         } else {
 
           panel.style.display = "none";
@@ -9363,6 +9367,97 @@
 
     });
 
+  }
+
+  // ── إعدادات الإعلانات الترحيبية للمستخدمين الجدد ──
+  async function loadAdminWelcomeSettings() {
+    const toggle = document.getElementById('welcomeAdsToggle');
+    const countInput = document.getElementById('welcomeCountInput');
+    const daysInput = document.getElementById('welcomeDaysInput');
+    if (!toggle || !countInput || !daysInput) return;
+
+    try {
+      const res = await fetch(BASE_URL + '/admin/welcome-settings/', {
+        headers: {
+          'Authorization': 'Token ' + localStorage.getItem('dj_token'),
+          'Content-Type': 'application/json'
+        }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        toggle.checked = !!data.enabled;
+        countInput.value = data.count !== undefined ? data.count : 1;
+        daysInput.value = data.days !== undefined ? data.days : 30;
+      }
+    } catch (e) {
+      console.error("Failed to load welcome settings", e);
+    }
+  }
+
+  const saveWelcomeBtn = document.getElementById('saveWelcomeSettingsBtn');
+  if (saveWelcomeBtn) {
+    saveWelcomeBtn.addEventListener('click', async () => {
+      const toggle = document.getElementById('welcomeAdsToggle');
+      const countInput = document.getElementById('welcomeCountInput');
+      const daysInput = document.getElementById('welcomeDaysInput');
+      const msgDiv = document.getElementById('welcomeSettingsMsg');
+
+      const enabled = toggle ? toggle.checked : true;
+      const count = parseInt(countInput ? countInput.value : 1, 10);
+      const days = parseInt(daysInput ? daysInput.value : 30, 10);
+
+      if (isNaN(count) || count < 0 || count > 50) {
+        alert('عدد الإعلانات يجب أن يكون بين 0 و 50');
+        return;
+      }
+      if (isNaN(days) || days < 1 || days > 365) {
+        alert('صلاحية الإعلان يجب أن تكون بين 1 و 365 يوم');
+        return;
+      }
+
+      saveWelcomeBtn.disabled = true;
+      saveWelcomeBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الحفظ...';
+      if (msgDiv) {
+        msgDiv.style.display = 'none';
+      }
+
+      try {
+        const res = await fetch(BASE_URL + '/admin/welcome-settings/', {
+          method: 'POST',
+          headers: {
+            'Authorization': 'Token ' + localStorage.getItem('dj_token'),
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({ enabled, count, days })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (msgDiv) {
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#10b981';
+            msgDiv.innerText = '✅ ' + (data.message || 'تم حفظ الإعدادات بنجاح');
+          }
+          if (typeof showToast === 'function') {
+            showToast('تم حفظ إعدادات الإعلانات الترحيبية بنجاح', 'success');
+          }
+        } else {
+          if (msgDiv) {
+            msgDiv.style.display = 'block';
+            msgDiv.style.color = '#ef4444';
+            msgDiv.innerText = '❌ خطأ: ' + (data.error || 'فشل في حفظ الإعدادات');
+          }
+        }
+      } catch (err) {
+        if (msgDiv) {
+          msgDiv.style.display = 'block';
+          msgDiv.style.color = '#ef4444';
+          msgDiv.innerText = '❌ حدث خطأ في الاتصال بالسيرفر';
+        }
+      } finally {
+        saveWelcomeBtn.disabled = false;
+        saveWelcomeBtn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> حفظ إعدادات المستخدمين الجدد';
+      }
+    });
   }
 
   loadPaymentMethods();
