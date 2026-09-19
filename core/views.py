@@ -159,9 +159,22 @@ class UserViewSet(viewsets.ModelViewSet):
         return super().destroy(request, *args, **kwargs)
 
     def create(self, request, *args, **kwargs):
-        # التحقق من وجود مستخدم غير مفعّل بنفس الإيميل قبل التحقق من الـ serializer
+        # التحقق من وجود مستخدم بنفس الإيميل قبل التحقق من الـ serializer
         incoming_email = request.data.get('email', '').strip().lower()
         if incoming_email:
+            # 1. إذا كان البريد الإلكتروني مسجلاً مسبقاً ومفعّلاً
+            existing_active = User.objects.filter(email__iexact=incoming_email, is_active=True).first()
+            if existing_active:
+                return Response(
+                    {
+                        'error': 'البريد الإلكتروني مسجل مسبقاً ومفعّل. يمكنك تسجيل الدخول مباشرة إلى حسابك.',
+                        'code': 'already_registered',
+                        'email': existing_active.email,
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+
+            # 2. إذا كان البريد الإلكتروني مسجلاً لكن حسابه غير مفعّل
             existing_inactive = User.objects.filter(email__iexact=incoming_email, is_active=False).first()
             if existing_inactive:
                 # إذا أدخل المستخدم كلمة مرور جديدة، نحدّثها لتمكينه من الدخول بها بعد التفعيل
@@ -190,6 +203,18 @@ class UserViewSet(viewsets.ModelViewSet):
                         'email': existing_inactive.email,
                     },
                     status=status.HTTP_200_OK
+                )
+
+        incoming_username = request.data.get('username', '').strip()
+        if incoming_username:
+            existing_username = User.objects.filter(username__iexact=incoming_username, is_active=True).first()
+            if existing_username:
+                return Response(
+                    {
+                        'error': 'اسم المستخدم مسجل مسبقاً، يرجى اختيار اسم مستخدم آخر.',
+                        'code': 'username_taken',
+                    },
+                    status=status.HTTP_400_BAD_REQUEST
                 )
 
         serializer = self.get_serializer(data=request.data)
