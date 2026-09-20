@@ -67,11 +67,12 @@ def send_otp_email(to_email, username, otp_code, subject='رمز تأكيد حس
     </html>
     """
 
+    clean_to_email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(to_email)).lower()
     return send_mail(
         subject=subject,
         message=text_content,
         from_email=email_sender,
-        recipient_list=[to_email],
+        recipient_list=[clean_to_email],
         html_message=html_content,
         fail_silently=False,
     )
@@ -161,7 +162,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
     def create(self, request, *args, **kwargs):
         # التحقق من وجود مستخدم بنفس الإيميل قبل التحقق من الـ serializer
-        incoming_email = request.data.get('email', '').strip().lower()
+        incoming_email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(request.data.get('email', ''))).lower()
         if incoming_email:
             # 1. إذا كان البريد الإلكتروني مسجلاً مسبقاً ومفعّلاً
             existing_active = User.objects.filter(email__iexact=incoming_email, is_active=True).first()
@@ -279,7 +280,7 @@ class VerifyEmailView(APIView):
             logger.warning(f"[AUTH] New OTP email sending failed: {e}")
 
     def post(self, request):
-        email = request.data.get('email')
+        email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(request.data.get('email', ''))).lower()
         entered_otp = request.data.get('otp')
 
         # جلب الرمز المخزن لهذا الإيميل
@@ -437,7 +438,7 @@ class ResendOTPView(APIView):
     throttle_classes = [OTPThrottle]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(request.data.get('email', ''))).lower()
         if not email:
             return Response({'error': 'يرجى تقديم البريد الإلكتروني'}, status=status.HTTP_400_BAD_REQUEST)
 

@@ -64,6 +64,15 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError("اسم المستخدم يجب ألا يتجاوز 150 حرفاً.")
         return clean_val
 
+    def validate_email(self, value):
+        if not value:
+            raise serializers.ValidationError("البريد الإلكتروني مطلوب.")
+        import re
+        clean_email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(value)).lower()
+        if '@' not in clean_email or '.' not in clean_email:
+            raise serializers.ValidationError("الرجاء إدخال بريد إلكتروني صحيح.")
+        return clean_email
+
     def validate_password(self, value):
         from django.contrib.auth.password_validation import validate_password
         if not value or len(value) < 6:

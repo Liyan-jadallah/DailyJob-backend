@@ -69,7 +69,11 @@ class HttpApiEmailBackend(BaseEmailBackend):
         for msg in email_messages:
             try:
                 sender_name, sender_email = _parse_sender(msg.from_email)
-                recipients = [{"email": r.strip()} for r in msg.to if r.strip()]
+                recipients = []
+                for r in msg.to:
+                    cleaned_r = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(r)).lower()
+                    if cleaned_r and '@' in cleaned_r:
+                        recipients.append({"email": cleaned_r})
                 if not recipients:
                     continue
 
@@ -142,7 +146,11 @@ class HttpApiEmailBackend(BaseEmailBackend):
             try:
                 sender_name, sender_email = _parse_sender(msg.from_email)
                 from_str = f"{sender_name} <{sender_email}>"
-                recipients = [r.strip() for r in msg.to if r.strip()]
+                recipients = []
+                for r in msg.to:
+                    cleaned_r = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(r)).lower()
+                    if cleaned_r and '@' in cleaned_r:
+                        recipients.append(cleaned_r)
                 if not recipients:
                     continue
 
