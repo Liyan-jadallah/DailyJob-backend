@@ -1,4 +1,5 @@
 import os
+import re
 import secrets
 import uuid as uuid_lib
 
@@ -205,7 +206,7 @@ class UserViewSet(viewsets.ModelViewSet):
                     status=status.HTTP_200_OK
                 )
 
-        incoming_username = request.data.get('username', '').strip()
+        incoming_username = re.sub(r'\s+', ' ', request.data.get('username', '')).strip()
         if incoming_username:
             existing_username = User.objects.filter(username__iexact=incoming_username, is_active=True).first()
             if existing_username:
@@ -333,8 +334,9 @@ class VerifyEmailView(APIView):
                         expires_at = now + timedelta(days=welcome_days)
 
                         coupons = []
+                        safe_uname = re.sub(r'[^A-Za-z0-9]', '', user.username)[:5].upper() or 'USER'
                         for _ in range(welcome_count):
-                            welcome_code = f"WELCOME-{user.username[:5].upper()}-{str(uuid_lib.uuid4())[:4].upper()}"
+                            welcome_code = f"WELCOME-{safe_uname}-{str(uuid_lib.uuid4())[:4].upper()}"
                             coupons.append(Coupon(
                                 user=user,
                                 code=welcome_code,
@@ -370,7 +372,8 @@ class VerifyEmailView(APIView):
                 if referral:
                     referrer = referral.referrer
                     # التحقق من عدم تكرار منح كوبون لنفس الإحالة
-                    ref_code_prefix = f"REF-{user.username[:5].upper()}-"
+                    ref_uname = re.sub(r'[^A-Za-z0-9]', '', user.username)[:5].upper() or 'USER'
+                    ref_code_prefix = f"REF-{ref_uname}-"
                     if not Coupon.objects.filter(user=referrer, coupon_type='free_ad', code__startswith=ref_code_prefix).exists():
                         reward_code = f"{ref_code_prefix}{str(uuid_lib.uuid4())[:4].upper()}"
                         Coupon.objects.create(

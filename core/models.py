@@ -3,8 +3,13 @@ from datetime import timedelta
 from django.utils import timezone
 from django.db import models
 from django.contrib.auth.models import AbstractUser
-from django.contrib.auth.validators import UnicodeUsernameValidator
+from django.core.validators import RegexValidator
 from django.conf import settings
+
+username_validator = RegexValidator(
+    regex=r'^[\w\s.@+-]+$',
+    message='اسم المستخدم يمكن أن يحتوي على أحرف، أرقام، مسافات، أو الرموز (@ . + - _).'
+)
 from django.db.models.signals import post_save
 from django.dispatch import receiver
 from django.core.mail import send_mail
@@ -34,9 +39,9 @@ class User(AbstractUser):
     username = models.CharField(
         max_length=150,
         unique=False,
-        validators=[UnicodeUsernameValidator()],
+        validators=[username_validator],
         verbose_name='username',
-        help_text='Required. 150 characters or fewer. Letters, digits and @/./+/-/_ only.'
+        help_text='Required. 150 characters or fewer. Letters, digits, spaces and @/./+/-/_ only.'
     )
     email = models.EmailField(unique=True)
     phone_number = models.CharField(max_length=15, blank=True, null=True)

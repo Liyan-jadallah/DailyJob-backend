@@ -152,9 +152,8 @@
 
     register: async (email, username, password, referralCode = '') => {
 
-      // Django's default username validator doesn't allow spaces. Replace with underscores.
-
-      const safeUsername = username.replace(/\s+/g, '_');
+      // Trim and normalize multiple spaces
+      const safeUsername = username.replace(/\s+/g, ' ').trim();
 
       
 
@@ -214,7 +213,7 @@
 
           else if (errorMsg.includes("email already exists")) errorMsg = "هذا البريد الإلكتروني مسجل مسبقاً.";
 
-          else if (errorMsg.includes("valid username")) errorMsg = "اسم المستخدم يجب أن يحتوي على أحرف وأرقام فقط.";
+          else if (errorMsg.includes("valid username")) errorMsg = "اسم المستخدم يجب أن يحتوي على أحرف أو أرقام، ويمكن أن يتضمن مسافات أو إشارات (- _ . @).";
 
         }
 

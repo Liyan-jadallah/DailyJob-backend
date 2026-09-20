@@ -53,6 +53,17 @@ class UserSerializer(serializers.ModelSerializer):
         ]
         read_only_fields = ['id', 'date_joined', 'role', 'referral_code']
 
+    def validate_username(self, value):
+        if not value:
+            raise serializers.ValidationError("اسم المستخدم مطلوب.")
+        import re
+        clean_val = re.sub(r'\s+', ' ', str(value)).strip()
+        if len(clean_val) < 3:
+            raise serializers.ValidationError("اسم المستخدم يجب أن يكون 3 أحرف على الأقل.")
+        if len(clean_val) > 150:
+            raise serializers.ValidationError("اسم المستخدم يجب ألا يتجاوز 150 حرفاً.")
+        return clean_val
+
     def validate_password(self, value):
         from django.contrib.auth.password_validation import validate_password
         if not value or len(value) < 6:
