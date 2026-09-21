@@ -3055,9 +3055,14 @@
 
             <div style="flex:1; min-width:0;">
 
-              <div style="margin-bottom:6px;">
+              <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
 
                 <span class="badge" style="background:#FFF0E4; color:#FF6A00; font-weight:bold; font-size:11px; padding:3px 8px; border-radius:6px;">قيد المراجعة</span>
+
+                <span class="badge" style="background:${ad.ad_duration === '1_week' ? '#ede7f6' : '#e3f2fd'}; color:${ad.ad_duration === '1_week' ? '#512da8' : '#1565c0'}; font-weight:bold; font-size:11px; padding:3px 8px; border-radius:6px; border:1px solid ${ad.ad_duration === '1_week' ? '#d1c4e9' : '#bbdefb'};">
+                  <i class="fa-regular ${ad.ad_duration === '1_week' ? 'fa-calendar-check' : 'fa-calendar'}"></i> 
+                  المدة: ${ad.ad_duration === '1_week' ? 'أسبوع كامل (المطلوب: 2 د.أ)' : 'يوم واحد (المطلوب: 1 د.أ)'}
+                </span>
 
               </div>
 
@@ -3091,7 +3096,7 @@
 
               <div style="margin-inline-start: 12px; flex-shrink:0; text-align:center;">
 
-                <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">إيصال الدفع</p>
+                <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">إيصال الدفع (${ad.ad_duration === '1_week' ? '2 د.أ' : '1 د.أ'})</p>
 
                 <div onclick="openLightbox(['${escapeHtml(ad.receipt_image)}'], 0);" style="cursor:pointer; position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--orange-500);">
 
@@ -3277,7 +3282,12 @@
 
             <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
 
-            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
+            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500); align-items:center;">
+
+              <span class="badge" style="background:${ad.ad_duration === '1_week' ? '#ede7f6' : '#e3f2fd'}; color:${ad.ad_duration === '1_week' ? '#512da8' : '#1565c0'}; font-weight:bold; font-size:11px; padding:2px 6px; border-radius:4px;">
+                <i class="fa-regular ${ad.ad_duration === '1_week' ? 'fa-calendar-check' : 'fa-calendar'}"></i> 
+                ${ad.ad_duration === '1_week' ? 'أسبوع (2 د.أ)' : 'يوم (1 د.أ)'}
+              </span>
 
               <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
 
@@ -3459,12 +3469,17 @@
 
           <div class="admin-published-info">
 
-            <div style="margin-bottom:4px;">
+            <div style="margin-bottom:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
 
               <span class="badge" style="background:#E8F5E9; color:#2E9E5B; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
 
                 <i class="fa-solid fa-bolt"></i> نُشر تلقائياً
 
+              </span>
+
+              <span class="badge" style="background:${ad.ad_duration === '1_week' ? '#ede7f6' : '#e3f2fd'}; color:${ad.ad_duration === '1_week' ? '#512da8' : '#1565c0'}; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
+                <i class="fa-regular ${ad.ad_duration === '1_week' ? 'fa-calendar-check' : 'fa-calendar'}"></i> 
+                ${ad.ad_duration === '1_week' ? 'أسبوع كامل (2 د.أ)' : 'يوم واحد (1 د.أ)'}
               </span>
 
             </div>

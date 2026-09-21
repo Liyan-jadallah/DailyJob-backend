@@ -29,11 +29,18 @@ class AdImageInline(admin.TabularInline):
 
 @admin.register(Ad)
 class AdAdmin(admin.ModelAdmin):
-    list_display = ('title', 'user', 'category', 'status', 'image_preview', 'created_at')
-    list_filter = ('status', 'category')
-    search_fields = ('title', 'description', 'user__email')
+    list_display = ('title', 'user', 'duration_badge', 'category', 'status', 'image_preview', 'created_at')
+    list_filter = ('ad_duration', 'status', 'category')
+    search_fields = ('title', 'description', 'user__email', 'user__username')
     readonly_fields = ('image_preview',)
     inlines = [AdImageInline]
+
+    def duration_badge(self, obj):
+        if obj.ad_duration == '1_week':
+            return format_html('<span style="background-color:#EDE7F6; color:#512DA8; font-weight:bold; padding:3px 8px; border-radius:4px;">أسبوع (2 د.أ)</span>')
+        return format_html('<span style="background-color:#E3F2FD; color:#1565C0; font-weight:bold; padding:3px 8px; border-radius:4px;">يوم (1 د.أ)</span>')
+    duration_badge.short_description = "المدة المطلوبة"
+    duration_badge.admin_order_field = 'ad_duration'
 
     def image_preview(self, obj):
         if obj.image:
