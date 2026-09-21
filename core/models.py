@@ -313,7 +313,8 @@ class Transaction(models.Model):
         ('rejected', 'Rejected'),
     )
     id = models.UUIDField(primary_key=True, default=uuid.uuid4, editable=False)
-    ad = models.ForeignKey(Ad, on_delete=models.CASCADE, related_name='transactions')
+    ad = models.ForeignKey(Ad, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
+    ad_title = models.CharField(max_length=255, blank=True, default='', help_text="عنوان الإعلان المحفوظ للأرشيف")
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
@@ -325,8 +326,14 @@ class Transaction(models.Model):
     class Meta:
         db_table = 'transactions'
 
+    def save(self, *args, **kwargs):
+        if self.ad and not self.ad_title:
+            self.ad_title = self.ad.title
+        super().save(*args, **kwargs)
+
     def __str__(self):
-        return f"Transaction {self.id} - Ad: {self.ad.title}"
+        title = self.ad_title or (self.ad.title if self.ad else 'إعلان محذوف')
+        return f"Transaction {self.id} - Ad: {title}"
 
 
 class Notification(models.Model):

@@ -914,6 +914,7 @@ class AdViewSet(viewsets.ModelViewSet):
                         
                         Transaction.objects.create(
                             ad=ad,
+                            ad_title=ad.title,
                             user=self.request.user,
                             coupon=coupon,
                             amount=0.00,
@@ -926,6 +927,7 @@ class AdViewSet(viewsets.ModelViewSet):
         elif receipt_image and hasattr(receipt_image, 'read'):
             Transaction.objects.create(
                 ad=ad,
+                ad_title=ad.title,
                 user=self.request.user,
                 receipt_image=receipt_image,
                 amount=2.00 if ad.ad_duration == '1_week' else 1.00
@@ -1075,6 +1077,7 @@ class AdViewSet(viewsets.ModelViewSet):
             from .models import Transaction
             Transaction.objects.create(
                 ad=ad,
+                ad_title=ad.title,
                 user=self.request.user,
                 receipt_image=receipt_image
             )

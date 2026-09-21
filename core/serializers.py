@@ -199,15 +199,39 @@ class AdSerializer(serializers.ModelSerializer):
         return fields
 
 class TransactionSerializer(serializers.ModelSerializer):
+    user_email = serializers.SerializerMethodField()
+    user_username = serializers.SerializerMethodField()
+    user_phone = serializers.SerializerMethodField()
+    payment_method_name = serializers.SerializerMethodField()
+    coupon_code = serializers.SerializerMethodField()
+
     class Meta:
         model = Transaction
         fields = '__all__'
         read_only_fields = ['id', 'submitted_at', 'status', 'user']
 
+    def get_user_email(self, instance):
+        return instance.user.email if instance.user else ''
+
+    def get_user_username(self, instance):
+        return instance.user.username if instance.user else ''
+
+    def get_user_phone(self, instance):
+        return getattr(instance.user, 'phone_number', '') or ''
+
+    def get_payment_method_name(self, instance):
+        return instance.payment_method.method_name if instance.payment_method else ''
+
+    def get_coupon_code(self, instance):
+        return instance.coupon.code if instance.coupon else ''
+
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         request = self.context.get('request')
         ret['receipt_image'] = _resolve_media_url(instance.receipt_image, request)
+        if not ret.get('ad_title') and instance.ad:
+            ret['ad_title'] = instance.ad.title
+        ret['is_ad_active'] = bool(instance.ad and not getattr(instance.ad, 'is_deleted', False))
         return ret
 
 class NotificationSerializer(serializers.ModelSerializer):

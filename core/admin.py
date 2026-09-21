@@ -51,14 +51,21 @@ class AdAdmin(admin.ModelAdmin):
 
 @admin.register(Transaction)
 class TransactionAdmin(admin.ModelAdmin):
-    list_display = ('id', 'user', 'ad', 'amount', 'status', 'receipt_preview', 'submitted_at')
-    list_filter = ('status',)
-    search_fields = ('user__email', 'ad__title')
+    list_display = ('id', 'user', 'get_ad_title', 'amount', 'status', 'receipt_preview', 'submitted_at')
+    list_filter = ('status', 'submitted_at')
+    search_fields = ('user__email', 'user__username', 'ad_title', 'ad__title')
     readonly_fields = ('receipt_preview',)
+
+    def get_ad_title(self, obj):
+        title = obj.ad_title or (obj.ad.title if obj.ad else 'إعلان محذوف')
+        if obj.ad:
+            return format_html('<span style="color:#2E9E5B; font-weight:600;">{}</span>', title)
+        return format_html('<span style="color:#7A8099;">{} <em style="font-size:11px;">(محذوف)</em></span>', title)
+    get_ad_title.short_description = "عنوان الإعلان"
 
     def receipt_preview(self, obj):
         if obj.receipt_image:
-            return format_html('<img src="{}" style="max-height:120px; border-radius:6px;" />', obj.receipt_image.url)
+            return format_html('<a href="{}" target="_blank"><img src="{}" style="max-height:120px; border-radius:6px;" /></a>', obj.receipt_image.url, obj.receipt_image.url)
         return "لا يوجد إيصال"
     receipt_preview.short_description = "إيصال الدفع"
 

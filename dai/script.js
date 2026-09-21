@@ -2807,7 +2807,9 @@
 
       auto: "adminTabAuto",
 
-      coupons: "adminTabCoupons"
+      coupons: "adminTabCoupons",
+
+      transactions: "adminTabTransactions"
 
     };
 
@@ -2877,6 +2879,8 @@
 
     const autoList = document.getElementById("adminAutoList");
 
+    const txList = document.getElementById("adminTransactionsList");
+
 
 
     if (pendingList) pendingList.innerHTML = loadingHtml;
@@ -2886,6 +2890,8 @@
     if (usersList) usersList.innerHTML = loadingHtml;
 
     if (autoList) autoList.innerHTML = loadingHtml;
+
+    if (txList) txList.innerHTML = loadingHtml;
 
 
 
@@ -2911,13 +2917,25 @@
 
 
 
-      const [adsData, usersData] = await Promise.all([adsPromise, usersPromise]);
+      // 3. جلب كل المعاملات والإيصالات
+
+      const txPromise = fetch(`${BASE_URL}/transactions/`, {
+
+        headers: { 'Authorization': 'Token ' + token }
+
+      }).then(r => r.json()).catch(() => []);
+
+
+
+      const [adsData, usersData, txData] = await Promise.all([adsPromise, usersPromise, txPromise]);
 
 
 
       const allAds = (adsData && adsData.results) ? adsData.results : (Array.isArray(adsData) ? adsData : []);
 
       const allUsers = (usersData && usersData.results) ? usersData.results : (Array.isArray(usersData) ? usersData : []);
+
+      const allTx = (txData && txData.results) ? txData.results : (Array.isArray(txData) ? txData : []);
 
 
 
@@ -2939,6 +2957,8 @@
 
       const bAuto = document.getElementById("adminAutoBadge");
 
+      const bTx = document.getElementById("adminTransactionsBadge");
+
 
 
       if (bPending) bPending.textContent = pendingAds.length;
@@ -2948,6 +2968,8 @@
       if (bUsers) bUsers.textContent = allUsers.length;
 
       if (bAuto) bAuto.textContent = autoApprovedAds.length;
+
+      if (bTx) bTx.textContent = allTx.length;
 
 
 
@@ -2972,6 +2994,12 @@
       // 4. تبويب نُشر تلقائياً
 
       renderAdminAutoTab(autoApprovedAds, token);
+
+
+
+      // 5. تبويب سجل الإيصالات والمعاملات
+
+      renderAdminTransactionsTab(allTx, token);
 
 
 
@@ -3566,6 +3594,95 @@
 
     });
 
+  }
+
+
+
+  let _allAdminTransactions = [];
+
+  function renderAdminTransactionsTab(transactions, token) {
+    _allAdminTransactions = transactions || [];
+    const list = document.getElementById("adminTransactionsList");
+    const empty = document.getElementById("adminTransactionsEmpty");
+    const searchInput = document.getElementById("adminTransactionSearch");
+    if (!list) return;
+
+    function applyFilterAndRender() {
+      const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+      const filtered = _allAdminTransactions.filter(t => {
+        if (!q) return true;
+        const email = (t.user_email || '').toLowerCase();
+        const username = (t.user_username || '').toLowerCase();
+        const adTitle = (t.ad_title || '').toLowerCase();
+        const phone = (t.user_phone || '').toLowerCase();
+        return email.includes(q) || username.includes(q) || adTitle.includes(q) || phone.includes(q);
+      });
+
+      if (!filtered.length) {
+        list.innerHTML = "";
+        if (empty) empty.classList.remove("hidden");
+        return;
+      }
+      if (empty) empty.classList.add("hidden");
+
+      list.innerHTML = filtered.map(t => {
+        const adTitle = escapeHtml(t.ad_title || (t.ad ? t.ad.title : '') || 'إعلان بدون عنوان');
+        const isAdActive = t.is_ad_active === true;
+        const userEmail = escapeHtml(t.user_email || '');
+        const userUsername = escapeHtml(t.user_username || '');
+        const userPhone = escapeHtml(t.user_phone || '');
+        const amount = escapeHtml(String(t.amount || '0.00'));
+        const couponCode = escapeHtml(t.coupon_code || '');
+        const status = t.status || 'pending';
+        const submittedAt = t.submitted_at ? new Date(t.submitted_at).toLocaleDateString('ar-JO', { year:'numeric', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' }) : '';
+        const receiptImage = t.receipt_image || '';
+
+        return `
+          <div class="admin-published-card" style="display:flex; flex-direction:column; gap:10px; border-radius:12px; border:1px solid var(--line); padding:15px; margin-bottom:12px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px;">
+              <div>
+                <h4 style="font-size:15px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${adTitle}</h4>
+                <span class="badge" style="background:${isAdActive ? '#E8F5E9' : '#F1F5F9'}; color:${isAdActive ? '#2E9E5B' : '#64748B'}; font-size:11px; padding:2px 6px; border-radius:4px;">
+                  <i class="fa-solid ${isAdActive ? 'fa-check' : 'fa-box-archive'}"></i> ${isAdActive ? 'إعلان نشط' : 'إعلان محذوف أو منتهي'}
+                </span>
+              </div>
+              <span class="badge" style="background:${status === 'approved' ? '#E8F5E9' : (status === 'rejected' ? '#FFEBEE' : '#FFF0E4')}; color:${status === 'approved' ? '#2E9E5B' : (status === 'rejected' ? '#E63946' : '#FF6A00')}; font-weight:bold; font-size:11px; padding:4px 8px; border-radius:6px;">
+                ${status === 'approved' ? 'مقبول' : (status === 'rejected' ? 'مرفوض' : 'قيد المراجعة')}
+              </span>
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px; border-top:1px solid #f1f5f9; padding-top:10px;">
+              <div style="font-size:12px; color:var(--ink-600); display:flex; flex-direction:column; gap:4px;">
+                <div><i class="fa-regular fa-user" style="color:var(--orange-500);"></i> <strong>${userUsername || 'مستخدم'}</strong> (${userEmail})</div>
+                ${userPhone ? `<div><i class="fa-solid fa-phone" style="color:#2E9E5B;"></i> ${userPhone}</div>` : ''}
+                <div><i class="fa-regular fa-clock" style="color:var(--ink-400);"></i> ${submittedAt}</div>
+                <div style="margin-top:2px;">
+                  ${couponCode ? `<span class="badge" style="background:#FFF0E4; color:#FF6A00; font-weight:bold;"><i class="fa-solid fa-gift"></i> كوبون: ${couponCode}</span>` : `<span class="badge" style="background:#ede7f6; color:#512da8; font-weight:bold;"><i class="fa-solid fa-coins"></i> المبلغ: ${amount} د.أ</span>`}
+                </div>
+              </div>
+
+              ${receiptImage ? `
+                <div style="text-align:center;">
+                  <div onclick="openLightbox(['${escapeHtml(receiptImage)}'], 0);" style="cursor:pointer; position:relative; border-radius:8px; overflow:hidden; border:2px solid var(--orange-500); width:70px; height:70px;">
+                    <img src="${escapeHtml(receiptImage)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover; display:block;">
+                    <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 0;">تكبير <i class="fa-solid fa-magnifying-glass-plus"></i></div>
+                  </div>
+                </div>` : `
+                <div style="padding:10px 14px; background:#f8fafc; border-radius:8px; font-size:11px; color:#94a3b8; font-weight:bold;">
+                  لا يوجد وصل
+                </div>`}
+            </div>
+          </div>
+        `;
+      }).join("");
+    }
+
+    if (searchInput && !searchInput._listenerAttached) {
+      searchInput._listenerAttached = true;
+      searchInput.addEventListener("input", applyFilterAndRender);
+    }
+
+    applyFilterAndRender();
   }
 
 

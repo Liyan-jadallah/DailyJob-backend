@@ -533,6 +533,11 @@
           <i class="fa-solid fa-gift"></i>
           <span>إهداء إعلانات</span>
         </button>
+        <button class="admin-tab-btn" data-admin-tab="transactions">
+          <i class="fa-solid fa-receipt"></i>
+          <span>سجل الإيصالات</span>
+          <span class="admin-tab-badge" id="adminTransactionsBadge">0</span>
+        </button>
       </div>
 
       <!-- Tab 1: Pending Ads -->
@@ -572,7 +577,20 @@
         </div>
       </div>
 
-      <!-- Tab 5: Grant Coupons & Welcome Settings -->
+      <!-- Tab 5: Receipts & Transactions Archive -->
+      <div class="admin-tab-content" id="adminTabTransactions" style="display:none;">
+        <div style="padding: 14px 16px 4px 16px;">
+          <input type="text" id="adminTransactionSearch" placeholder="ابحث بالإيميل، اسم المستخدم، أو عنوان الإعلان..." 
+            style="width:100%; padding:10px 14px; border-radius:10px; border:1px solid var(--ink-200); font-size:14px; outline:none; background:#fff;">
+        </div>
+        <div class="ads-list" id="adminTransactionsList" style="padding: 14px 16px;"></div>
+        <div class="empty-state hidden" id="adminTransactionsEmpty">
+          <i class="fa-solid fa-receipt" style="font-size: 3rem; margin-bottom: 12px; color:var(--ink-400);"></i>
+          <h3>لا توجد إيصالات أو معاملات</h3>
+        </div>
+      </div>
+
+      <!-- Tab 6: Grant Coupons & Welcome Settings -->
       <div class="admin-tab-content" id="adminTabCoupons" style="display:none; padding: 20px;">
 
         <!-- بطاقة إعدادات الإعلانات الترحيبية للمستخدمين الجدد -->
