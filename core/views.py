@@ -477,7 +477,7 @@ class PasswordResetRequestView(APIView):
     
     def post(self, request):
         raw_email = request.data.get('email') or request.data.get('username') or ''
-        email = raw_email.strip().lower()
+        email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(raw_email)).lower()
         if not email:
             return Response(
                 {'error': 'الرجاء إدخال البريد الإلكتروني.'},
@@ -518,7 +518,7 @@ class PasswordResetConfirmView(APIView):
     # ── helper: توليد رمز استعادة جديد وإرساله تلقائياً ──
     @staticmethod
     def _auto_resend_reset_otp(email):
-        clean_email = (email or '').strip().lower()
+        clean_email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(email or '')).lower()
         otp_code = generate_secure_otp()
         cache.set(f'reset_{clean_email}', otp_code, timeout=600)
         cache.delete(f'reset_attempts_{clean_email}')
@@ -534,7 +534,8 @@ class PasswordResetConfirmView(APIView):
             logger.warning(f"[RESET] Auto resend reset OTP failed: {e}")
 
     def post(self, request):
-        email = (request.data.get('email') or request.data.get('username') or '').strip().lower()
+        raw_email = request.data.get('email') or request.data.get('username') or ''
+        email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(raw_email)).lower()
         entered_otp = request.data.get('otp')
         new_password = request.data.get('new_password')
 
@@ -715,6 +716,18 @@ class AdViewSet(viewsets.ModelViewSet):
         return context
 
     @staticmethod
+    def _auto_approve_pending_ads():
+        from django.core.cache import cache
+        if cache.get('last_auto_approve_check'):
+            return
+        cache.set('last_auto_approve_check', True, timeout=30)
+        try:
+            from .tasks import auto_approve_pending_ads
+            auto_approve_pending_ads()
+        except Exception as e:
+            logger.warning(f"[AUTO_APPROVE] Auto-approval on-demand error: {e}")
+
+    @staticmethod
     def _cleanup_expired_ads():
         from django.core.cache import cache
         if cache.get('last_expired_ads_cleanup'):
@@ -741,6 +754,10 @@ class AdViewSet(viewsets.ModelViewSet):
             pass
 
     def get_queryset(self):
+        # تشغيل الفحص التلقائي لقبول الإعلانات بعد 10 دقائق وحذف المنتهية
+        self._auto_approve_pending_ads()
+        self._cleanup_expired_ads()
+
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
@@ -1133,8 +1150,8 @@ class CustomAuthToken(ObtainAuthToken):
         if not login_input or not password:
             return Response({'error': 'الرجاء إدخال بيانات الدخول'}, status=status.HTTP_400_BAD_REQUEST)
 
-        # الدخول بالإيميل فقط دون حساسية للأحرف
-        clean_email = (login_input or '').strip().lower()
+        # الدخول بالإيميل فقط دون حساسية للأحرف مع تنظيف المحارف الخفية
+        clean_email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(login_input or '')).lower()
         user = User.objects.filter(email__iexact=clean_email).first()
 
         if not user:
@@ -1679,7 +1696,7 @@ class AccountDeletionRequestView(APIView):
     throttle_classes = [OTPThrottle]
 
     def post(self, request):
-        email = request.data.get('email', '').strip().lower()
+        email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(request.data.get('email', ''))).lower()
         phone = request.data.get('phone', '').strip()
         reason = request.data.get('reason', '').strip()
         
