@@ -761,8 +761,7 @@ class AdViewSet(viewsets.ModelViewSet):
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
 
-        # ── Visibility rules ────────────────────────────────────────────────
-        is_admin = self.request.user.is_authenticated and getattr(self.request.user, 'role', '') == 'admin'
+        is_admin = self.request.user.is_authenticated and (getattr(self.request.user, 'role', '') == 'admin' or self.request.user.is_staff or self.request.user.is_superuser)
 
         if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
             from django.db.models import Q
@@ -1130,6 +1129,7 @@ class AdminAdActionView(APIView):
 
         if action == 'approve':
             ad.status = 'approved'
+            ad.is_auto_approved = False
             ad.save()  # triggers Ad.save() signal → sends notifications
             return Response({'status': 'approved', 'message': 'تم قبول الإعلان ونشره.'})
 

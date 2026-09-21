@@ -174,12 +174,14 @@ class AdSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:
             return None
-        is_admin = getattr(request.user, 'role', '') == 'admin'
+        is_admin = getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser
         is_owner = obj.user_id == request.user.id
         if not (is_admin or is_owner):
             return None
 
-        tx = obj.transactions.order_by('-submitted_at').first()
+        tx = obj.transactions.filter(receipt_image__isnull=False).exclude(receipt_image='').order_by('-submitted_at').first()
+        if not tx:
+            tx = obj.transactions.order_by('-submitted_at').first()
         if tx and tx.receipt_image:
             return _resolve_media_url(tx.receipt_image, request)
         return None

@@ -3488,112 +3488,105 @@
 
 
     list.innerHTML = ads.map(ad => {
-
       const adTitle = typeof ad.title === 'object' ? (ad.title.ar || ad.title.en) : (ad.title || '');
-
       return `
-
-        <div class="admin-published-card" data-ad-id="${ad.id}" style="border-left: 4px solid #2E9E5B; border-right: 4px solid #2E9E5B;">
-
-          <div class="admin-published-info">
-
-            <div style="margin-bottom:4px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
-
+        <div class="admin-published-card" data-ad-id="${ad.id}" style="border-left: 4px solid #2E9E5B; border-right: 4px solid #2E9E5B; display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+          <div class="admin-published-info" style="flex:1; min-width:220px;">
+            <div style="margin-bottom:6px; display:flex; align-items:center; gap:6px; flex-wrap:wrap;">
               <span class="badge" style="background:#E8F5E9; color:#2E9E5B; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
-
                 <i class="fa-solid fa-bolt"></i> نُشر تلقائياً
-
               </span>
-
               <span class="badge" style="background:${ad.ad_duration === '1_week' ? '#ede7f6' : '#e3f2fd'}; color:${ad.ad_duration === '1_week' ? '#512da8' : '#1565c0'}; font-weight:bold; font-size:11px; padding:2px 8px; border-radius:6px;">
                 <i class="fa-regular ${ad.ad_duration === '1_week' ? 'fa-calendar-check' : 'fa-calendar'}"></i> 
-                ${ad.ad_duration === '1_week' ? 'أسبوع كامل (2 د.أ)' : 'يوم واحد (1 د.أ)'}
+                ${ad.ad_duration === '1_week' ? 'أسبوع كامل (المطلوب: 2 د.أ)' : 'يوم واحد (المطلوب: 1 د.أ)'}
               </span>
-
             </div>
-
-            <h4 style="font-size:14px; font-weight:700; color:var(--ink-900); margin:0 0 4px 0;">${escapeHtml(adTitle)}</h4>
-
-            <div style="display:flex; flex-wrap:wrap; gap:8px; font-size:12px; color:var(--ink-500);">
-
+            <h4 style="font-size:15px; font-weight:700; color:var(--ink-900); margin:0 0 6px 0;">${escapeHtml(adTitle)}</h4>
+            <div style="display:flex; flex-wrap:wrap; gap:10px; font-size:12px; color:var(--ink-500);">
               <span><i class="fa-solid fa-tag" style="color:var(--orange-500);"></i> ${escapeHtml(ad.category || '')}</span>
-
               <span><i class="fa-solid fa-coins" style="color:#2E9E5B;"></i> ${escapeHtml(String(ad.price || '0'))} دينار</span>
-
               <span><i class="fa-regular fa-user"></i> ${escapeHtml(ad.user_email || ad.user_details?.username || '')}</span>
-
             </div>
-
           </div>
 
-          <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}">
+          ${ad.receipt_image ? `
+            <div style="flex-shrink:0; text-align:center;">
+              <p style="margin:0 0 4px 0; font-size:11px; font-weight:bold; color:var(--ink-600);">إيصال الدفع (${ad.ad_duration === '1_week' ? '2 د.أ' : '1 د.أ'})</p>
+              <div onclick="openLightbox(['${escapeHtml(ad.receipt_image)}'], 0);" style="cursor:pointer; position:relative; border-radius:8px; overflow:hidden; border:2px solid #2E9E5B;">
+                <img src="${escapeHtml(ad.receipt_image)}" onerror="this.onerror=null; this.src='https://placehold.co/70x70/e9ecef/495057?text=Receipt';" style="width:70px;height:70px;object-fit:cover; display:block;">
+                <div style="position:absolute; bottom:0; left:0; right:0; background:rgba(0,0,0,0.6); color:#fff; font-size:9px; padding:2px 0;">تكبير <i class="fa-solid fa-magnifying-glass-plus"></i></div>
+              </div>
+            </div>` : `
+            <div style="flex-shrink:0; text-align:center; padding:8px 12px; background:#fff3cd; border-radius:8px;">
+              <i class="fa-solid fa-triangle-exclamation" style="color:#d97706; font-size:18px;"></i>
+              <p style="color:#92400e; font-size:10px; margin:4px 0 0 0; font-weight:bold;">لا يوجد وصل</p>
+            </div>`}
 
-            <i class="fa-solid fa-trash-can"></i> حذف
-
-          </button>
-
+          <div style="display:flex; gap:8px; align-items:center; flex-shrink:0;">
+            <button class="admin-auto-approve-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}" style="background:#2E9E5B; color:#fff; border:none; padding:8px 14px; border-radius:8px; font-size:12px; font-weight:bold; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              <i class="fa-solid fa-check"></i> اعتماد ونقل للإعلانات
+            </button>
+            <button class="admin-delete-btn" data-id="${ad.id}" data-title="${escapeHtml(adTitle)}" style="padding:8px 14px; font-size:12px;">
+              <i class="fa-solid fa-trash-can"></i> حذف
+            </button>
+          </div>
         </div>
-
       `;
-
     }).join("");
 
-
-
-    list.querySelectorAll(".admin-delete-btn").forEach(btn => {
-
+    list.querySelectorAll(".admin-auto-approve-btn").forEach(btn => {
       btn.addEventListener("click", async () => {
-
         const title = btn.dataset.title;
-
-        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
-
         btn.disabled = true;
-
-        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
-
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري الاعتماد...';
         try {
-
           const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
-
             method: 'POST',
-
             headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
-
-            body: JSON.stringify({ action: 'delete' })
-
+            body: JSON.stringify({ action: 'approve' })
           });
-
           if (r.ok) {
-
-            showToast("تم حذف الإعلان ❌", "success");
-
-            btn.closest(".admin-published-card")?.remove();
-
+            showToast("تم اعتماد الإعلان ونقله لقائمة الإعلانات بنجاح ✅", "success");
             renderAdminAds();
-
           } else {
-
             const errData = await r.json().catch(() => ({}));
-
-            throw new Error(errData.error || "فشل حذف الإعلان");
-
+            throw new Error(errData.error || "فشل اعتماد الإعلان");
           }
-
         } catch(e) {
-
-          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
-
+          showToast(e.message || "حدث خطأ أثناء الاعتماد", "error");
           btn.disabled = false;
-
-          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
-
+          btn.innerHTML = '<i class="fa-solid fa-check"></i> اعتماد ونقل للإعلانات';
         }
-
       });
-
     });
 
+    list.querySelectorAll(".admin-delete-btn").forEach(btn => {
+      btn.addEventListener("click", async () => {
+        const title = btn.dataset.title;
+        if (!confirm(`هل أنت متأكد من حذف الإعلان "${title}" نهائياً؟`)) return;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        try {
+          const r = await fetch(`${BASE_URL}/ads/${btn.dataset.id}/action/`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Token ' + token },
+            body: JSON.stringify({ action: 'delete' })
+          });
+          if (r.ok) {
+            showToast("تم حذف الإعلان ❌", "success");
+            btn.closest(".admin-published-card")?.remove();
+            renderAdminAds();
+          } else {
+            const errData = await r.json().catch(() => ({}));
+            throw new Error(errData.error || "فشل حذف الإعلان");
+          }
+        } catch(e) {
+          showToast(e.message || "حدث خطأ أثناء الحذف", "error");
+          btn.disabled = false;
+          btn.innerHTML = '<i class="fa-solid fa-trash-can"></i> حذف';
+        }
+      });
+    });
   }
 
 
