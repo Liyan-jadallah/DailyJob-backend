@@ -16,23 +16,15 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
         logger = logging.getLogger(__name__)
         from .firebase_utils import send_topic_notification, send_multicast_push_notification
 
-        # 1. إرسال للموضوع العام "all" (يستقبله الزوار ومستخدمو التطبيق المشتركون بالكل)
+        clean_cat = (ad_category or '').strip()
+        clean_gov = (ad_governorate or '').strip()
+
+        # 1. إرسال للموضوع العام "all" (يستقبله الزوار والمستخدمون الذين اختاروا استلام كافة الإعلانات)
         try:
             all_success = send_topic_notification(topic="all", title=notification_title, body=notification_body, data=data)
             results.append(f"Global topic 'all': {all_success}")
         except Exception as te:
             results.append(f"Global topic 'all' error: {te}")
-
-        # 1.1 إرسال لموضوع الفئة cat_<category> لضمان وصول الإشعار للمشتركين بتلك الفئة
-        clean_cat = (ad_category or '').strip()
-        clean_gov = (ad_governorate or '').strip()
-        if clean_cat:
-            try:
-                cat_topic = f"cat_{clean_cat}"
-                cat_success = send_topic_notification(topic=cat_topic, title=notification_title, body=notification_body, data=data)
-                results.append(f"Category topic '{cat_topic}': {cat_success}")
-            except Exception as ce:
-                results.append(f"Category topic error: {ce}")
 
         # 2. البحث عن كافة المستخدمين النشطين المفعلين للإشعارات باستثناء صاحب الإعلان
         eligible_users = User.objects.filter(
@@ -40,29 +32,12 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
             is_active=True
         ).exclude(id=ad_owner_id)
 
-        matching_tokens = set()
+        custom_matching_tokens = set()
         in_app_notifs = []
 
-        clean_cat = (ad_category or '').strip()
-        clean_gov = (ad_governorate or '').strip()
-
         for u in eligible_users:
-            matches = False
             if u.notify_all_ads:
-                # المستخدم يرغب باستلام إشعارات لجميع الإعلانات
-                matches = True
-            else:
-                # مستخدم مخصص: التحقق من مطابقة المحافظة والقسم
-                govs = u.preferred_governorates or []
-                cats = u.preferred_categories or []
-
-                gov_matches = (not govs) or (clean_gov in govs)
-                cat_matches = (not cats) or (clean_cat in cats)
-                matches = gov_matches and cat_matches
-
-            if matches:
-                if u.fcm_token and u.fcm_token.strip():
-                    matching_tokens.add(u.fcm_token.strip())
+                # مستخدم مفعل لكل الإعلانات: يستلم Push عبر Topic "all" وننشئ له إشعاراً داخل التطبيق
                 in_app_notifs.append(
                     Notification(
                         user=u,
@@ -71,16 +46,36 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
                         ad_id=ad_id
                     )
                 )
+            else:
+                # مستخدم مخصص: التحقق الدقيق من مطابقة المحافظة والقسم معاً
+                govs = u.preferred_governorates or []
+                cats = u.preferred_categories or []
 
-        # 3. إرسال Push Notification مباشر لجميع الأجهزة المستهدفة لضمان الوصول الفوري
-        if matching_tokens:
+                gov_matches = (not govs) or (clean_gov in govs)
+                cat_matches = (not cats) or (clean_cat in cats)
+
+                if gov_matches and cat_matches:
+                    # تنطبق عليه الشروط: إرسال Push مباشر خاص به وإنشاء إشعار داخل التطبيق
+                    if u.fcm_token and u.fcm_token.strip():
+                        custom_matching_tokens.add(u.fcm_token.strip())
+                    in_app_notifs.append(
+                        Notification(
+                            user=u,
+                            title=notification_title,
+                            message=notification_body,
+                            ad_id=ad_id
+                        )
+                    )
+
+        # 3. إرسال Push Notification مباشر للمستخدمين المخصصين المطابقين (لمنع التكرار لمشتركي topic "all")
+        if custom_matching_tokens:
             direct_success = send_multicast_push_notification(
-                tokens=list(matching_tokens),
+                tokens=list(custom_matching_tokens),
                 title=notification_title,
                 body=notification_body,
                 data=data
             )
-            results.append(f"Direct push to {len(matching_tokens)} devices: {direct_success}")
+            results.append(f"Direct push to {len(custom_matching_tokens)} customized devices: {direct_success}")
 
         # 4. حفظ إشعارات داخل التطبيق لجميع المستخدمين المطابقين
         if in_app_notifs:

@@ -1201,7 +1201,11 @@ class CustomAuthToken(ObtainAuthToken):
                 'email': user.email,
                 'username': user.username,
                 'role': user.role,
-                'referral_code': user.referral_code
+                'referral_code': user.referral_code,
+                'notifications_enabled': user.notifications_enabled,
+                'notify_all_ads': user.notify_all_ads,
+                'preferred_governorates': user.preferred_governorates or [],
+                'preferred_categories': user.preferred_categories or [],
             })
         else:
             return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)

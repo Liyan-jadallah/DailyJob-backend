@@ -421,6 +421,8 @@ def send_push_on_notification_create(sender, instance, created, **kwargs):
     إرسال إشعار Firebase Push للمستخدم فور حفظ إشعار جديد في قاعدة البيانات
     """
     if created:
+        if not getattr(instance.user, 'notifications_enabled', True):
+            return
         from .firebase_utils import send_push_notification
         try:
             unread_count = Notification.objects.filter(user=instance.user, is_read=False).count()

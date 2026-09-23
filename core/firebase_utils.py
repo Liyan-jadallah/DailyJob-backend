@@ -58,6 +58,10 @@ def send_push_notification(user, title, body, data=None, badge_count=1):
     """
     إرسال إشعار دفع (Push Notification) لجهاز مستخدم معين عبر FCM
     """
+    if not getattr(user, 'notifications_enabled', True):
+        logger.info(f"User {getattr(user, 'username', user)} has notifications disabled. Skipping push.")
+        return False
+
     if not user.fcm_token:
         logger.info(f"User {user.username} doesn't have an FCM token. Skipping push.")
         return False
