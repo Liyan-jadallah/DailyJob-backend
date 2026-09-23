@@ -114,12 +114,13 @@ class OTPThrottle(AnonRateThrottle):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
         if not user.is_authenticated:
             return User.objects.none()
-        if getattr(user, 'role', '') == 'admin':
+        if getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser:
             return User.objects.all().order_by('-date_joined')
         return User.objects.filter(id=user.id)
 
@@ -613,6 +614,7 @@ class PaymentMethodViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = PaymentMethod.objects.filter(is_active=True)
     serializer_class = PaymentMethodSerializer
     permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
@@ -624,16 +626,18 @@ class AdCategoryViewSet(viewsets.ReadOnlyModelViewSet):
     queryset = AdCategory.objects.filter(is_active=True)
     serializer_class = AdCategorySerializer
     permission_classes = [AllowAny]
+    pagination_class = None
 
 
 class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.RetrieveModelMixin, viewsets.GenericViewSet):
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
-        if getattr(user, 'role', '') == 'admin':
+        if getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser:
             return Transaction.objects.all().order_by('-submitted_at')
         return Transaction.objects.filter(user=user).order_by('-submitted_at')
 
@@ -673,6 +677,7 @@ class AdViewSet(viewsets.ModelViewSet):
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    pagination_class = None
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()

@@ -231,9 +231,9 @@
 
     getAds: async (page = 1) => {
 
-      const res = await fetch(`${BASE_URL}/ads/?page=${page}`);
+      const res = await fetch(`${BASE_URL}/ads/`);
 
-      if (!res.ok) return { results: [], next: null };
+      if (!res.ok) return [];
 
       return await res.json();
 
@@ -419,7 +419,7 @@
 
       try {
 
-        const res = await fetch(`${BASE_URL}/ads/?page=${page}`);
+        const res = await fetch(`${BASE_URL}/ads/`);
 
         if (!res.ok) return null;
 
@@ -1576,45 +1576,33 @@
 
 
 
-      const freshData = await Api.getAdsSilent(1);
+      const freshData = await Api.getAdsSilent();
 
-      if (!freshData || !freshData.results) return;
+      const freshResults = Array.isArray(freshData) ? freshData : (freshData && freshData.results ? freshData.results : null);
 
+      if (!freshResults) return;
 
-
-      const freshIds = new Set(freshData.results.map(a => a.id));
+      const freshIds = new Set(freshResults.map(a => a.id));
 
       const currentIds = new Set(ads.map(a => a.id));
 
-
-
       // هل هناك إعلانات جديدة أو محذوفة؟
 
-      const hasChanges = freshData.results.some(a => !currentIds.has(a.id)) ||
+      const hasChanges = freshResults.some(a => !currentIds.has(a.id)) ||
 
                          ads.some(a => a.status === 'approved' && !freshIds.has(a.id));
-
-
 
       if (hasChanges) {
 
         // تحديث صامت: دمج الجديد مع الموجود بدون إعادة رسم كاملة
 
-        const newMapped = freshData.results.map(mapDbAd);
+        const newMapped = freshResults.map(mapDbAd);
 
-
-
-        // الاحتفاظ بالصفحات الإضافية المحملة وإضافة الجديدة في البداية
-
-        const page2PlusAds = ads.filter(a => !currentIds.has(a.id) || 
-
-          !freshData.results.find(f => f.id === a.id));
-
-        ads = [...newMapped, ...page2PlusAds.filter(a => !freshIds.has(a.id))];
+        ads = newMapped;
 
         try {
 
-          localStorage.setItem("dj_cached_ads", JSON.stringify(ads.slice(0, 50)));
+          localStorage.setItem("dj_cached_ads", JSON.stringify(ads));
 
         } catch (e) {}
 

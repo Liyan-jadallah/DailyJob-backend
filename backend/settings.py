@@ -303,8 +303,9 @@ REST_FRAMEWORK = {
         'anon': '60/min',
         'user': '1000/day',
     },
-    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
-    'PAGE_SIZE': 20,
+    # Pagination: Disabled by default so all ads, users, and transactions are returned completely
+    'DEFAULT_PAGINATION_CLASS': None,
+    'PAGE_SIZE': None,
 }
 
 # Celery Configuration
