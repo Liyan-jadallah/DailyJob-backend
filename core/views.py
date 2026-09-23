@@ -294,7 +294,7 @@ class VerifyEmailView(APIView):
             )
 
         if str(cached_otp) == str(entered_otp):
-            user = User.objects.filter(email=email).first()
+            user = User.objects.filter(email__iexact=email).first()
             if user:
                 if user.is_active:
                     # الحساب مفعّل مسبقاً — لا نعيد التفعيل ونُرجع token مباشرة
@@ -442,7 +442,7 @@ class ResendOTPView(APIView):
         if not email:
             return Response({'error': 'يرجى تقديم البريد الإلكتروني'}, status=status.HTTP_400_BAD_REQUEST)
 
-        user = User.objects.filter(email=email).first()
+        user = User.objects.filter(email__iexact=email).first()
         if not user:
             return Response({'error': 'البريد الإلكتروني غير مسجل لدينا'}, status=status.HTTP_400_BAD_REQUEST)
 
@@ -564,13 +564,10 @@ class PasswordResetConfirmView(APIView):
                     return Response({'error': " ".join(error_messages)}, status=status.HTTP_400_BAD_REQUEST)
 
                 user.set_password(new_password)
-                # لا يتم تفعيل الحساب تلقائياً — يجب تأكيد البريد الإلكتروني أولاً
-                if not user.is_active:
-                    return Response(
-                        {'error': 'تم تغيير كلمة المرور لكن حسابك غير مفعّل. يرجى تفعيل حسابك عبر رمز التأكيد أولاً.'},
-                        status=status.HTTP_400_BAD_REQUEST
-                    )
-                user.save(update_fields=['password'])
+                was_inactive = not user.is_active
+                if was_inactive:
+                    user.is_active = True
+                user.save(update_fields=['password', 'is_active'] if was_inactive else ['password'])
 
                 # إلغاء كل الـ tokens القديمة — لمنع أي جلسة نشطة من الاستمرار بعد تغيير كلمة المرور
                 Token.objects.filter(user=user).delete()
@@ -583,7 +580,8 @@ class PasswordResetConfirmView(APIView):
                 if user.email:
                     cache.delete(f'reset_attempts_{user.email.lower()}')
 
-                return Response({'message': 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.'})
+                success_msg = 'تم تغيير كلمة المرور وتفعيل حسابك بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.' if was_inactive else 'تم تغيير كلمة المرور بنجاح. يرجى تسجيل الدخول بكلمة المرور الجديدة.'
+                return Response({'message': success_msg})
 
         # الرمز خاطئ — نزيد عداد المحاولات
         attempts_key = f'reset_attempts_{email}'
@@ -1533,7 +1531,7 @@ class TestPushNotificationView(APIView):
         else:
             username_or_email = request.data.get('username') or request.data.get('email')
             if username_or_email:
-                target_user = User.objects.filter(username=username_or_email).first() or User.objects.filter(email=username_or_email).first()
+                target_user = User.objects.filter(username__iexact=username_or_email).first() or User.objects.filter(email__iexact=username_or_email).first()
 
         if target_user:
             if not target_user.fcm_token:
