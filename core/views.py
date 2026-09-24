@@ -1600,12 +1600,30 @@ class AdminGrantCouponsView(APIView):
         import uuid as uuid_lib
         from django.utils import timezone
         from datetime import timedelta
-        
+        import threading
+        import logging
+
+        logger = logging.getLogger(__name__)
+
         coupons_to_create = []
         notifications_to_create = []
         now = timezone.now()
         expires_at = now + timedelta(days=30)
-        
+
+        # تجهيز عنوان ونص الإشعار المناسبين
+        if count == 1:
+            notif_title = "هدية قسيمة إعلانية مجانية! 🎁"
+            notif_message = "لقد حصلت على قسيمة إعلان مجاني من الإدارة. استخدمها لنشر إعلانك مجاناً!"
+        elif count == 2:
+            notif_title = "هدية قسيمتي إعلانات مجانية! 🎁"
+            notif_message = "لقد حصلت على قسيمتي إعلانات مجانية من الإدارة. استخدمهما لنشر إعلاناتك مجاناً!"
+        elif 3 <= count <= 10:
+            notif_title = "هدية قسائم إعلانية مجانية! 🎁"
+            notif_message = f"لقد حصلت على {count} قسائم إعلانات مجانية من الإدارة. استخدمها لنشر إعلاناتك مجاناً!"
+        else:
+            notif_title = "هدية قسائم إعلانية مجانية! 🎁"
+            notif_message = f"لقد حصلت على {count} قسيمة إعلان مجاني من الإدارة. استخدمها لنشر إعلاناتك مجاناً!"
+
         for u in users_to_grant:
             for _ in range(count):
                 code = f"GIFT-{u.username[:3].upper()}-{str(uuid_lib.uuid4())[:6].upper()}"
@@ -1615,17 +1633,56 @@ class AdminGrantCouponsView(APIView):
                     coupon_type='free_ad',
                     expires_at=expires_at
                 ))
-            
+
             notifications_to_create.append(Notification(
                 user=u,
-                title="هدية قسائم إعلانية مجانية!",
-                message=f"لقد حصلت على {count} قسيمة إعلان مجاني من الإدارة. استخدمها لنشر إعلاناتك مجاناً!"
+                title=notif_title,
+                message=notif_message
             ))
 
         Coupon.objects.bulk_create(coupons_to_create)
         Notification.objects.bulk_create(notifications_to_create)
 
+        # إرسال إشعار خارجي (Push Notification) عبر Firebase في الخلفية
+        def _send_coupon_push_async(users_list, title, body):
+            try:
+                from .firebase_utils import send_push_notification, send_multicast_push_notification
+                if len(users_list) == 1:
+                    target_u = users_list[0]
+                    if getattr(target_u, 'notifications_enabled', True) and target_u.fcm_token:
+                        send_push_notification(
+                            user=target_u,
+                            title=title,
+                            body=body,
+                            data={'type': 'coupon', 'screen': 'coupons'}
+                        )
+                else:
+                    tokens = [
+                        u.fcm_token.strip()
+                        for u in users_list
+                        if getattr(u, 'notifications_enabled', True) and u.fcm_token and u.fcm_token.strip()
+                    ]
+                    if tokens:
+                        send_multicast_push_notification(
+                            tokens=tokens,
+                            title=title,
+                            body=body,
+                            data={'type': 'coupon', 'screen': 'coupons'}
+                        )
+            except Exception as e:
+                logger.warning(f"Failed to send coupon push notifications: {e}")
+            finally:
+                from django.db import connection
+                connection.close()
+
+        threading.Thread(
+            target=_send_coupon_push_async,
+            args=(users_to_grant, notif_title, notif_message),
+            daemon=True
+        ).start()
+
         return Response({"message": f"Successfully granted {count} coupons to {len(users_to_grant)} users.", "users_count": len(users_to_grant)})
+
 
 
 class AdminWelcomeSettingsView(APIView):
