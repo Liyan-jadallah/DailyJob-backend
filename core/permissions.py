@@ -7,8 +7,9 @@ class IsUserOwner(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        if hasattr(request.user, 'role') and request.user.role == 'admin':
-            return True
+        if request.user and request.user.is_authenticated:
+            if getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser:
+                return True
         return obj == request.user
 
 class IsOwnerOrReadOnly(permissions.BasePermission):
@@ -18,6 +19,7 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
     def has_object_permission(self, request, view, obj):
         if request.method in permissions.SAFE_METHODS:
             return True
-        if hasattr(request.user, 'role') and request.user.role == 'admin':
-            return True
+        if request.user and request.user.is_authenticated:
+            if getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser:
+                return True
         return hasattr(obj, 'user') and obj.user == request.user

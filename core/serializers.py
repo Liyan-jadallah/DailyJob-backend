@@ -84,6 +84,17 @@ class UserSerializer(serializers.ModelSerializer):
             raise serializers.ValidationError(" ".join(error_messages))
         return value
 
+    def validate_phone_number(self, value):
+        if value:
+            arabic_digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+            english_digits = '01234567890123456789'
+            trans_table = str.maketrans(arabic_digits, english_digits)
+            normalized = str(value).translate(trans_table)
+            import re
+            phone = re.sub(r'[\s\-\(\)]', '', normalized)
+            return phone
+        return value
+
     def create(self, validated_data):
         referred_by_code = validated_data.pop('referred_by_code', None)
         raw_email = validated_data.get('email', '')
@@ -162,12 +173,30 @@ class AdSerializer(serializers.ModelSerializer):
                 logging.getLogger(__name__).warning(f"Category '{value}' not found in AdCategory table")
         return value
 
+    def validate_price(self, value):
+        if value:
+            arabic_digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+            english_digits = '01234567890123456789'
+            trans_table = str.maketrans(arabic_digits, english_digits)
+            cleaned = str(value).translate(trans_table).strip()
+            try:
+                from decimal import Decimal
+                return Decimal(cleaned)
+            except Exception:
+                raise serializers.ValidationError("السعر غير صالح.")
+        return value
+
     def validate_contact_phone(self, value):
         import re
         if value:
-            phone = re.sub(r'[\s\-\(\)]', '', str(value))
+            arabic_digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+            english_digits = '01234567890123456789'
+            trans_table = str.maketrans(arabic_digits, english_digits)
+            normalized = str(value).translate(trans_table)
+            phone = re.sub(r'[\s\-\(\)]', '', normalized)
             if not re.match(r'^\+?[0-9]{7,15}$', phone):
                 raise serializers.ValidationError("رقم الهاتف غير صالح. يرجى إدخال رقم صحيح (مثال: 0791234567).")
+            return phone
         return value
 
     def get_receipt_image(self, obj):

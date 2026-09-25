@@ -12,16 +12,21 @@ class Command(BaseCommand):
         day_cutoff = now - timedelta(hours=24)
         week_cutoff = now - timedelta(days=7)
 
-        # 1-day ads (or default): expired after 24 hours
+        # 1-day ads (or default): expired after 24 hours of approval
         day_expired = Ad.objects.filter(
-            Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
+            status='approved'
+        ).filter(
+            Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')
+        ).filter(
             Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
         )
         count_day, _ = day_expired.delete()
 
-        # 1-week ads: expired after 7 days
+        # 1-week ads: expired after 7 days of approval
         week_expired = Ad.objects.filter(
-            Q(ad_duration='1_week'),
+            status='approved',
+            ad_duration='1_week'
+        ).filter(
             Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
         )
         count_week, _ = week_expired.delete()

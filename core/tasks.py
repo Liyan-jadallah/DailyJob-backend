@@ -94,23 +94,33 @@ def auto_approve_pending_ads():
     grace_minutes = int(os.getenv('AD_AUTO_APPROVE_MINUTES', '10'))
     grace_period_cutoff = timezone.now() - timedelta(minutes=grace_minutes)
 
-    # فقط الإعلانات المعلقة التي لها معاملة مع وصل دفع وتجاوزت فترة السماح
+    # 1. جلب الإعلانات المعلقة التي تجاوزت فترة السماح
     pending_ads = Ad.objects.filter(status='pending', created_at__lt=grace_period_cutoff)
     approved_count = 0
     for ad in pending_ads:
-        # التحقق من وجود معاملة مع وصل دفع أو كوبون مستخدم
-        has_valid_transaction = Transaction.objects.filter(
-            ad=ad
-        ).filter(
-            (Q(receipt_image__isnull=False) & ~Q(receipt_image='')) |
-            Q(coupon__isnull=False)
+        # فحص أمني: هل يوجد أي إيصال دفع بنكي أو محفظة مرفوع للإعلان؟
+        has_manual_receipt = Transaction.objects.filter(
+            ad=ad,
+            receipt_image__isnull=False
+        ).exclude(receipt_image='').exists()
+
+        # إذا وُجد إيصال يدوي، يُحظر القبول التلقائي ويُترك الإعلان لمراجعة الأدمن
+        if has_manual_receipt:
+            continue
+
+        # الموافقة التلقائية حصراً للإعلانات المدفوعة بالكامل بواسطة كوبون صالح
+        has_valid_coupon_payment = Transaction.objects.filter(
+            ad=ad,
+            coupon__isnull=False,
+            status='approved'
         ).exists()
-        if has_valid_transaction:
+
+        if has_valid_coupon_payment:
             ad.status = 'approved'
             ad.is_auto_approved = True
             ad.save()
             approved_count += 1
-    return f"Auto-approved {approved_count} ads with valid payment (grace period: {grace_minutes} min)"
+    return f"Auto-approved {approved_count} coupon-paid ads (grace period: {grace_minutes} min)"
 
 @shared_task
 def delete_expired_content():
@@ -119,12 +129,19 @@ def delete_expired_content():
     day_cutoff = now - timedelta(hours=24)
     week_cutoff = now - timedelta(days=7)
 
+    # الحذف التلقائي ينطبق حصراً على الإعلانات المقبولة المنتهية (status='approved')
     deleted_day_ads, _ = Ad.objects.filter(
-        Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
+        status='approved'
+    ).filter(
+        Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')
+    ).filter(
         Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
     ).delete()
+
     deleted_week_ads, _ = Ad.objects.filter(
-        Q(ad_duration='1_week'),
+        status='approved',
+        ad_duration='1_week'
+    ).filter(
         Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
     ).delete()
 

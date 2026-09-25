@@ -282,7 +282,11 @@ class VerifyEmailView(APIView):
 
     def post(self, request):
         email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(request.data.get('email', ''))).lower()
-        entered_otp = request.data.get('otp')
+        raw_otp = str(request.data.get('otp', '')).strip()
+        arabic_digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+        english_digits = '01234567890123456789'
+        trans_table = str.maketrans(arabic_digits, english_digits)
+        entered_otp = raw_otp.translate(trans_table)
 
         # جلب الرمز المخزن لهذا الإيميل
         cached_otp = cache.get(f'verify_{email}')
@@ -537,7 +541,11 @@ class PasswordResetConfirmView(APIView):
     def post(self, request):
         raw_email = request.data.get('email') or request.data.get('username') or ''
         email = re.sub(r'[\u200b-\u200f\u202a-\u202e\ufeff\s]', '', str(raw_email)).lower()
-        entered_otp = request.data.get('otp')
+        raw_otp = str(request.data.get('otp', '')).strip()
+        arabic_digits = '٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹'
+        english_digits = '01234567890123456789'
+        trans_table = str.maketrans(arabic_digits, english_digits)
+        entered_otp = raw_otp.translate(trans_table)
         new_password = request.data.get('new_password')
 
         # جلب الرمز الخاص بالاستعادة
@@ -744,17 +752,23 @@ class AdViewSet(viewsets.ModelViewSet):
             day_cutoff = now - timedelta(hours=24)
             week_cutoff = now - timedelta(days=7)
 
+            # يُشترط status='approved' لحماية إعلانات المستخدمين المعلقة
             Ad.objects.filter(
-                Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration=''),
+                status='approved'
+            ).filter(
+                Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')
+            ).filter(
                 Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
             ).delete()
 
             Ad.objects.filter(
-                Q(ad_duration='1_week'),
+                status='approved',
+                ad_duration='1_week'
+            ).filter(
                 Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
             ).delete()
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[CLEANUP] Ad cleanup error: {e}")
 
     def get_queryset(self):
         # تشغيل الفحص التلقائي لقبول الإعلانات بعد 10 دقائق وحذف المنتهية
@@ -788,7 +802,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 # Public feed, other users, or no user_filter: only show approved ads
                 queryset = queryset.filter(status='approved')
 
-            # Exclude expired ads in real time (24h for 1_day, 7 days for 1_week)
+            # Exclude expired ads in real time (24h for 1_day, 7 days for 1_week) - strictly for approved ads
             from datetime import timedelta
             from django.utils import timezone as tz
             from django.db.models import Q
@@ -804,7 +818,8 @@ class AdViewSet(viewsets.ModelViewSet):
                 Q(ad_duration='1_week') &
                 (Q(approved_at__gte=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__gte=week_cutoff)))
             )
-            queryset = queryset.filter(valid_day | valid_week)
+            # الإعلانات المعلقة أو المرفوضة الخاصة بالمستخدم لا تُحذف بفحص الصلاحية الزمني
+            queryset = queryset.filter(~Q(status='approved') | valid_day | valid_week)
 
         # ── Filters ─────────────────────────────────────────────────────────
         status_filter = self.request.query_params.get('status')
@@ -858,6 +873,7 @@ class AdViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         import threading
+        from django.db import transaction
         from .models import AdImage, Coupon, Transaction
 
         # 0. Validate all uploaded images
@@ -875,39 +891,38 @@ class AdViewSet(viewsets.ModelViewSet):
         if receipt_image and hasattr(receipt_image, 'read'):
             validate_image_file(receipt_image)
         
-        # 1. Save the Ad instance (status defaults to 'pending')
-        ad = serializer.save(user=self.request.user)
-
-        # 1.1 Explicitly save main_image (since image is a SerializerMethodField in AdSerializer)
-        if main_image:
-            ad.image = main_image
-            ad.save(update_fields=['image'])
-
-        # 1.2 Automatically set ad_type if not provided
-        if not ad.ad_type:
-            if ad.category == 'cars':
-                ad.ad_type = 'cars'
-            elif ad.category == 'real_estate':
-                ad.ad_type = 'real_estate'
-            elif ad.category in ('rentals', 'rental'):
-                ad.ad_type = 'rent'
-            else:
-                ad.ad_type = 'other'
-            ad.save(update_fields=['ad_type'])
-        
-        # 2. Save all uploaded images (multiple images support)
-        for img in images:
-            AdImage.objects.create(ad=ad, image=img)
-        
-        # 3. Extract receipt_image and coupon_id from request data
+        # 1. إنشاء وحفظ الإعلان والمعاملة ذرياً لضمان عدم وجود إعلانات معلقة بدون وصل (Atomic)
         coupon_id = self.request.data.get('coupon_id')
-        
-        # 4. Create a Transaction linked to the Ad and user (using either coupon or receipt)
+        pm_id = self.request.data.get('payment_method') or self.request.data.get('payment_method_id')
         coupon = None
-        if coupon_id:
-            from django.db import transaction
-            try:
-                with transaction.atomic():
+
+        with transaction.atomic():
+            ad = serializer.save(user=self.request.user)
+
+            # 1.1 حفظ الصورة الرئيسية
+            if main_image:
+                ad.image = main_image
+                ad.save(update_fields=['image'])
+
+            # 1.2 تعيين نوع الإعلان تلقائياً
+            if not ad.ad_type:
+                if ad.category == 'cars':
+                    ad.ad_type = 'cars'
+                elif ad.category == 'real_estate':
+                    ad.ad_type = 'real_estate'
+                elif ad.category in ('rentals', 'rental'):
+                    ad.ad_type = 'rent'
+                else:
+                    ad.ad_type = 'other'
+                ad.save(update_fields=['ad_type'])
+            
+            # 2. حفظ الصور الإضافية
+            for img in images:
+                AdImage.objects.create(ad=ad, image=img)
+            
+            # 3. إنشاء المعاملة المالية (إما كوبون أو وصل دفع بنكي)
+            if coupon_id:
+                try:
                     coupon = Coupon.objects.select_for_update().get(id=coupon_id, user=self.request.user, is_used=False)
                     if not coupon.is_expired():
                         coupon.is_used = True
@@ -924,16 +939,17 @@ class AdViewSet(viewsets.ModelViewSet):
                         )
                     else:
                         raise serializers.ValidationError({"coupon_id": "هذه القسيمة منتهية الصلاحية."})
-            except Coupon.DoesNotExist:
-                raise serializers.ValidationError({"coupon_id": "القسيمة المحددة غير صالحة أو تم استخدامها مسبقاً."})
-        elif receipt_image and hasattr(receipt_image, 'read'):
-            Transaction.objects.create(
-                ad=ad,
-                ad_title=ad.title,
-                user=self.request.user,
-                receipt_image=receipt_image,
-                amount=2.00 if ad.ad_duration == '1_week' else 1.00
-            )
+                except Coupon.DoesNotExist:
+                    raise serializers.ValidationError({"coupon_id": "القسيمة المحددة غير صالحة أو تم استخدامها مسبقاً."})
+            elif receipt_image and hasattr(receipt_image, 'read'):
+                Transaction.objects.create(
+                    ad=ad,
+                    ad_title=ad.title,
+                    user=self.request.user,
+                    payment_method_id=pm_id if pm_id else None,
+                    receipt_image=receipt_image,
+                    amount=2.00 if ad.ad_duration == '1_week' else 1.00
+                )
 
         # 4.5 إشعار لصاحب الإعلان بأنه قيد المراجعة
         try:
@@ -1103,6 +1119,51 @@ class AdViewSet(viewsets.ModelViewSet):
         ad.image = None
         ad.save(update_fields=['image'])
         return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
+
+    @action(detail=True, methods=['post'], permission_classes=[AllowAny], url_path='report')
+    def report(self, request, pk=None):
+        """
+        نقطة الإبلاغ عن الإعلانات المخالفة لسياسات المحتوى (Google Play UGC Compliance)
+        POST /api/ads/<id>/report/
+        """
+        ad = self.get_object()
+        reason = request.data.get('reason', '').strip()
+        details = request.data.get('details', '').strip()
+
+        if not reason:
+            return Response({'error': 'سبب الإبلاغ مطلوب'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # 1. حفظ البلاغ كرسالة إدارية داخل النظام
+        from .models import ContactMessage
+        reporter_email = getattr(request.user, 'email', 'anonymous@dailyjob.app') if request.user.is_authenticated else 'anonymous@dailyjob.app'
+        reporter_name = getattr(request.user, 'username', 'مستخدم مجهول') if request.user.is_authenticated else 'مستخدم مجهول'
+
+        report_msg = ContactMessage.objects.create(
+            name=f"تقرير مخالفة إعلان: {ad.title[:30]}",
+            email=reporter_email,
+            subject=f"[UGC REPORT] إعلان #{ad.id} - {reason}",
+            message=(
+                f"قام المستخدم ({reporter_name}) بالإبلاغ عن الإعلان التالي:\n"
+                f"- معرف الإعلان: {ad.id}\n"
+                f"- عنوان الإعلان: {ad.title}\n"
+                f"- صاحب الإعلان: {ad.user.username} ({ad.user.email})\n"
+                f"- سبب البلاغ: {reason}\n"
+                f"- تفاصيل إضافية: {details or 'لا توجد'}\n"
+            )
+        )
+
+        # 2. إرسال تنبيه فوري للأدمن عبر البريد في الخلفية
+        from .tasks import send_contact_email_task
+        send_contact_email_task.delay(
+            name=report_msg.name,
+            email=report_msg.email,
+            subject=report_msg.subject,
+            message=report_msg.message
+        )
+
+        return Response({
+            'message': 'تم استلام بلاغك بنجاح. سيتم مراجعة المحتوى واتخاذ الإجراء اللازم خلال 24 ساعة.'
+        }, status=status.HTTP_200_OK)
 
 
 # ── Admin Action View ──────────────────────────────────────────────────────────
