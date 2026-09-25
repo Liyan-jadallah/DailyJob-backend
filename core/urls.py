@@ -23,6 +23,7 @@ from .views import (
     AdminWelcomeSettingsView,
     AccountDeletionRequestView,
     HealthCheckView,
+    LogoutView,
 )
 
 router = DefaultRouter()
@@ -36,7 +37,8 @@ router.register(r'coupons', CouponViewSet, basename='coupon')
 urlpatterns = [
     path('', include(router.urls)),
 
-    # Auth / Email verification / Password reset
+    # Auth / Email verification / Password reset / Logout
+    path('logout/', LogoutView.as_view(), name='logout'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset'),

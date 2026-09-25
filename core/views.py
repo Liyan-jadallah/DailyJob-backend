@@ -1159,13 +1159,30 @@ class AdViewSet(viewsets.ModelViewSet):
         )
 
         # 2. إرسال تنبيه فوري للأدمن عبر البريد في الخلفية
-        from .tasks import send_contact_email_task
-        send_contact_email_task.delay(
-            name=report_msg.name,
-            email=report_msg.email,
-            subject=report_msg.subject,
-            message=report_msg.message
-        )
+        try:
+            from .tasks import send_contact_email_task
+            send_contact_email_task.delay(
+                name=report_msg.name,
+                email=report_msg.email,
+                subject=report_msg.subject,
+                message=report_msg.message
+            )
+        except Exception as e:
+            logger.warning(f"[REPORT] Celery task dispatch failed: {e}")
+            try:
+                from django.core.mail import send_mail
+                admin_emails = list(User.objects.filter(role='admin').values_list('email', flat=True))
+                if admin_emails:
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'dailyjob2026@gmail.com')
+                    send_mail(
+                        report_msg.subject,
+                        report_msg.message,
+                        from_email,
+                        admin_emails,
+                        fail_silently=True
+                    )
+            except Exception:
+                pass
 
         return Response({
             'message': 'تم استلام بلاغك بنجاح. سيتم مراجعة المحتوى واتخاذ الإجراء اللازم خلال 24 ساعة.'
@@ -1885,3 +1902,27 @@ class HealthCheckView(APIView):
             'timestamp': timezone.now().isoformat(),
             'service': 'Daily Job API',
         }, status=status_code)
+
+
+class LogoutView(APIView):
+    """
+    POST /api/logout/
+    تسجيل الخروج: حذف الـ Token وإبطال جلسة المستخدم مع تفريغ رمز FCM
+    """
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request):
+        user = request.user
+        try:
+            Token.objects.filter(user=user).delete()
+        except Exception as e:
+            logger.warning(f"[LOGOUT] Token delete error: {e}")
+
+        try:
+            user.fcm_token = ''
+            user.save(update_fields=['fcm_token'])
+        except Exception as e:
+            logger.warning(f"[LOGOUT] FCM token clear error: {e}")
+
+        return Response({'message': 'تم تسجيل الخروج بنجاح'}, status=status.HTTP_200_OK)
+
