@@ -95,6 +95,17 @@ class UserSerializer(serializers.ModelSerializer):
             return phone
         return value
 
+    def get_fields(self):
+        fields = super().get_fields()
+        # عند التحديث (instance موجود)، نجعل البريد وكلمة المرور للقراءة فقط لمنع العبث بهما
+        # تغيير كلمة المرور يتم حصراً عبر /api/change-password/
+        if self.instance is not None:
+            if 'email' in fields:
+                fields['email'].read_only = True
+            if 'password' in fields:
+                fields['password'].read_only = True
+        return fields
+
     def create(self, validated_data):
         referred_by_code = validated_data.pop('referred_by_code', None)
         raw_email = validated_data.get('email', '')
@@ -112,6 +123,14 @@ class UserSerializer(serializers.ModelSerializer):
             if referrer:
                 Referral.objects.create(referrer=referrer, referred=user)
         return user
+
+    def update(self, instance, validated_data):
+        # منع تغيير البريد أو كلمة المرور أو الرتبة أو كود الإحالة نهائياً عبر مسار التعديل العام
+        validated_data.pop('password', None)
+        validated_data.pop('email', None)
+        validated_data.pop('role', None)
+        validated_data.pop('referral_code', None)
+        return super().update(instance, validated_data)
 
 class PaymentMethodSerializer(serializers.ModelSerializer):
     class Meta:
