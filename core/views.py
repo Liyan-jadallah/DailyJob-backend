@@ -492,8 +492,8 @@ class PasswordResetRequestView(APIView):
         user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
         if not user:
             return Response(
-                {'error': 'الحساب غير موجود.'},
-                status=status.HTTP_404_NOT_FOUND
+                {'message': 'إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رمز التحقق إليه.'},
+                status=status.HTTP_200_OK
             )
         
         # توليد رمز آمن للاستعادة
@@ -950,6 +950,8 @@ class AdViewSet(viewsets.ModelViewSet):
                     receipt_image=receipt_image,
                     amount=2.00 if ad.ad_duration == '1_week' else 1.00
                 )
+            elif not (getattr(self.request.user, 'role', '') == 'admin' or self.request.user.is_staff or self.request.user.is_superuser):
+                raise serializers.ValidationError({"payment": "يرجى اختيار قسيمة إعلانية أو إرفاق وصل الدفع لإكمال النشر."})
 
         # 4.5 إشعار لصاحب الإعلان بأنه قيد المراجعة
         try:
@@ -1560,6 +1562,9 @@ class TestPushNotificationView(APIView):
         })
 
     def post(self, request):
+        if not (getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser):
+            return Response({'error': 'صلاحية الأدمن مطلوبة لتنفيذ هذا الإجراء.'}, status=status.HTTP_403_FORBIDDEN)
+
         from .firebase_utils import send_push_notification, send_topic_notification, send_multicast_push_notification, _ensure_firebase_app
 
         if not _ensure_firebase_app():
@@ -1634,7 +1639,7 @@ class AdminGrantCouponsView(APIView):
 
     def post(self, request):
         user = request.user
-        if getattr(user, 'role', '') != 'admin':
+        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
             return Response({"error": "Unauthorized"}, status=403)
 
         target = request.data.get('target') # 'all' or 'specific'
@@ -1756,7 +1761,7 @@ class AdminWelcomeSettingsView(APIView):
 
     def get(self, request):
         user = request.user
-        if getattr(user, 'role', '') != 'admin':
+        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
             return Response({"error": "Unauthorized"}, status=403)
 
         enabled = SystemSetting.get_bool('welcome_free_ads_enabled', default=True)
@@ -1771,7 +1776,7 @@ class AdminWelcomeSettingsView(APIView):
 
     def post(self, request):
         user = request.user
-        if getattr(user, 'role', '') != 'admin':
+        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
             return Response({"error": "Unauthorized"}, status=403)
 
         enabled = request.data.get('enabled')

@@ -29,11 +29,18 @@ firebase-adminsdk.json
 # Static Files
 staticfiles/
 
-# Temporary & Test
+# Temporary, Test & Data Dumps
 scratch/
 test_ads.json
 *.log
 .DS_Store
+*.txt
+!requirements.txt
+brevo_events.json
+*_test.json
+user_info.txt
+all_similar_users.txt
+email_test_result.txt
 
-.env
-firebase-adminsdk.json
+# Media & Uploads (User financial receipts)
+media/transactions/
