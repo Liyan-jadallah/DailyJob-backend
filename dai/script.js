@@ -307,6 +307,32 @@
 
     },
 
+    reportAd: async (adId, reason, details) => {
+
+      const token = localStorage.getItem("dj_token");
+
+      const headers = { 'Content-Type': 'application/json' };
+
+      if (token) headers['Authorization'] = `Token ${token}`;
+
+      const res = await fetch(`${BASE_URL}/ads/${adId}/report/`, {
+
+        method: 'POST',
+
+        headers: headers,
+
+        body: JSON.stringify({ reason: reason, details: details })
+
+      });
+
+      const data = await res.json().catch(() => ({}));
+
+      if (!res.ok) throw new Error(data.error || "فشل إرسال البلاغ");
+
+      return data;
+
+    },
+
     getCoupons: async (token) => {
 
       // (اقتراح #5) جلب القسائم من الـ API
@@ -928,7 +954,27 @@
 
       snapPhoto: "Take Photo",
 
-      selectImages: "Add Images (Gallery or Camera)"
+      selectImages: "Add Images (Gallery or Camera)",
+
+      reportAd: "Report This Ad",
+
+      reportAdSub: "We review all reports to protect the community according to our content policies",
+
+      reportReason: "Reason for Report",
+
+      reportDetails: "Additional Details (Optional)",
+
+      sendReport: "Submit Report",
+
+      reportSuccess: "Thank you. Your report has been submitted and will be reviewed promptly.",
+
+      reportFailed: "Failed to submit report. Please try again.",
+
+      blockAdvertiser: "Block This Advertiser",
+
+      blockAdvertiserConfirm: "Are you sure you want to block this advertiser? Their ads will no longer be visible to you.",
+
+      advertiserBlocked: "Advertiser blocked successfully."
 
     },
 
@@ -1275,7 +1321,27 @@
 
       snapPhoto: "التقاط الصورة",
 
-      selectImages: "إضافة صور (معرض أو كاميرا)"
+      selectImages: "إضافة صور (معرض أو كاميرا)",
+
+      reportAd: "الإبلاغ عن هذا الإعلان",
+
+      reportAdSub: "نحن نراجع جميع البلاغات لحماية المجتمع وفق سياسات المحتوى",
+
+      reportReason: "سبب البلاغ",
+
+      reportDetails: "تفاصيل إضافية توضح المخالفة (اختياري)",
+
+      sendReport: "إرسال البلاغ",
+
+      reportSuccess: "شكراً لك. تم استلام بلاغك وسيتم مراجعته فوراً.",
+
+      reportFailed: "فشل إرسال البلاغ، يرجى المحاولة لاحقاً.",
+
+      blockAdvertiser: "حظر هذا المعلن نهائياً",
+
+      blockAdvertiserConfirm: "هل أنت متأكد من رغبتك في حظر هذا المعلن؟ لن تظهر لك أي إعلانات منشورة بواسطته مجدداً.",
+
+      advertiserBlocked: "تم حظر المعلن وإخفاء إعلاناته بنجاح."
 
     }
 
@@ -2448,6 +2514,15 @@
     return ads.slice()
 
       .filter((ad) => {
+
+        // 0. Filter out blocked advertisers
+        try {
+          const blockedUsers = JSON.parse(localStorage.getItem("dj_blocked_users") || "[]");
+          if (blockedUsers && blockedUsers.length > 0) {
+            const ownerId = String(ad.user || ad.user_details?.id || '');
+            if (ownerId && blockedUsers.map(String).includes(ownerId)) return false;
+          }
+        } catch (_) {}
 
         // 1. Filter by Chip / Type
 
@@ -4216,7 +4291,11 @@
 
     const topbarOwner = document.getElementById("topbarOwnerActions");
 
+    const topbarViewer = document.getElementById("topbarViewerActions");
+
     const topbarSpacer = document.getElementById("topbarSpacer");
+
+    const reportAdBtn = document.getElementById("reportAdBtn");
 
 
 
@@ -4228,7 +4307,11 @@
 
       if (topbarOwner) topbarOwner.classList.remove("hidden");
 
+      if (topbarViewer) topbarViewer.classList.add("hidden");
+
       if (topbarSpacer) topbarSpacer.classList.add("hidden");
+
+      if (reportAdBtn) reportAdBtn.classList.add("hidden");
 
     } else {
 
@@ -4238,7 +4321,11 @@
 
       if (topbarOwner) topbarOwner.classList.add("hidden");
 
-      if (topbarSpacer) topbarSpacer.classList.remove("hidden");
+      if (topbarViewer) topbarViewer.classList.remove("hidden");
+
+      if (topbarSpacer) topbarSpacer.classList.add("hidden");
+
+      if (reportAdBtn) reportAdBtn.classList.remove("hidden");
 
     }
 
@@ -4621,6 +4708,208 @@
       renderAds();
 
     }
+
+  }
+
+
+
+  // ===== REPORT AD & BLOCK ADVERTISER (UGC Compliance) =====
+
+  function openReportModal() {
+
+    const overlay = document.getElementById("reportModalOverlay");
+
+    const errEl = document.getElementById("reportAdError");
+
+    const detailsInput = document.getElementById("reportDetailsInput");
+
+    const reasonSelect = document.getElementById("reportReasonSelect");
+
+    if (errEl) {
+
+      errEl.textContent = "";
+
+      errEl.classList.add("hidden");
+
+    }
+
+    if (detailsInput) detailsInput.value = "";
+
+    if (reasonSelect) reasonSelect.selectedIndex = 0;
+
+    if (overlay) overlay.classList.add("open");
+
+  }
+
+
+
+  function closeReportModal() {
+
+    const overlay = document.getElementById("reportModalOverlay");
+
+    if (overlay) overlay.classList.remove("open");
+
+  }
+
+
+
+  const reportAdBtn = document.getElementById("reportAdBtn");
+
+  if (reportAdBtn) {
+
+    reportAdBtn.addEventListener("click", openReportModal);
+
+  }
+
+
+
+  const topbarReportBtn = document.getElementById("topbarReportBtn");
+
+  if (topbarReportBtn) {
+
+    topbarReportBtn.addEventListener("click", openReportModal);
+
+  }
+
+
+
+  const reportModalClose = document.getElementById("reportModalClose");
+
+  if (reportModalClose) {
+
+    reportModalClose.addEventListener("click", closeReportModal);
+
+  }
+
+
+
+  const reportModalOverlay = document.getElementById("reportModalOverlay");
+
+  if (reportModalOverlay) {
+
+    reportModalOverlay.addEventListener("click", (e) => {
+
+      if (e.target === reportModalOverlay) closeReportModal();
+
+    });
+
+  }
+
+
+
+  const reportSubmitBtn = document.getElementById("reportSubmitBtn");
+
+  if (reportSubmitBtn) {
+
+    reportSubmitBtn.addEventListener("click", async () => {
+
+      const reasonSelect = document.getElementById("reportReasonSelect");
+
+      const detailsInput = document.getElementById("reportDetailsInput");
+
+      const errEl = document.getElementById("reportAdError");
+
+      const reason = reasonSelect?.value || "محتوى غير لائق أو مسيء";
+
+      const details = detailsInput?.value?.trim() || "";
+
+
+
+      if (!state.currentAdId) return;
+
+
+
+      const originalHtml = reportSubmitBtn.innerHTML;
+
+      try {
+
+        reportSubmitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+
+        reportSubmitBtn.disabled = true;
+
+        await Api.reportAd(state.currentAdId, reason, details);
+
+        closeReportModal();
+
+        showToast(t("reportSuccess"), "success");
+
+      } catch (err) {
+
+        if (errEl) {
+
+          errEl.textContent = err.message || t("reportFailed");
+
+          errEl.classList.remove("hidden");
+
+        } else {
+
+          showToast(err.message || t("reportFailed"), "error");
+
+        }
+
+      } finally {
+
+        reportSubmitBtn.innerHTML = originalHtml;
+
+        reportSubmitBtn.disabled = false;
+
+      }
+
+    });
+
+  }
+
+
+
+  const blockAdvertiserBtn = document.getElementById("blockAdvertiserBtn");
+
+  if (blockAdvertiserBtn) {
+
+    blockAdvertiserBtn.addEventListener("click", () => {
+
+      const ad = ads.find((a) => String(a.id) === String(state.currentAdId));
+
+      const ownerId = ad ? String(ad.user || ad.user_details?.id || '') : '';
+
+      if (!ownerId) {
+
+        closeReportModal();
+
+        showToast(state.lang === 'ar' ? "تعذر تحديد المعلن" : "Unable to identify advertiser", "error");
+
+        return;
+
+      }
+
+
+
+      if (confirm(t("blockAdvertiserConfirm"))) {
+
+        try {
+
+          const blocked = JSON.parse(localStorage.getItem("dj_blocked_users") || "[]");
+
+          if (!blocked.map(String).includes(ownerId)) {
+
+            blocked.push(ownerId);
+
+            localStorage.setItem("dj_blocked_users", JSON.stringify(blocked));
+
+          }
+
+        } catch (_) {}
+
+        closeReportModal();
+
+        showToast(t("advertiserBlocked"), "success");
+
+        goToScreen("home");
+
+        renderAds();
+
+      }
+
+    });
 
   }
 

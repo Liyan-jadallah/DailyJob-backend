@@ -265,7 +265,10 @@
           <button type="button" class="icon-btn" id="topbarEditAdBtn" title="تعديل الإعلان"><i class="fa-solid fa-pen-to-square"></i></button>
           <button type="button" class="icon-btn" id="topbarDeleteAdBtn" title="حذف الإعلان" style="color:#ef4444;"><i class="fa-solid fa-trash-can"></i></button>
         </div>
-        <span class="topbar-spacer" id="topbarSpacer"></span>
+        <div class="topbar-viewer-actions" id="topbarViewerActions" style="display:flex; gap:6px; margin-inline-start:auto;">
+          <button type="button" class="icon-btn" id="topbarReportBtn" title="الإبلاغ عن الإعلان" style="color:#ef4444;"><i class="fa-solid fa-flag"></i></button>
+        </div>
+        <span class="topbar-spacer hidden" id="topbarSpacer"></span>
       </div>
       <div class="details-card">
         <h1 class="details-title" id="detailsTitle">—</h1>
@@ -333,6 +336,7 @@
         </button>
         <button class="icon-round" id="shareBtn" title="مشاركة"><i class="fa-solid fa-share-nodes"></i></button>
         <button class="icon-round" id="favBtn" title="إضافة للمفضلة"><i class="fa-regular fa-heart"></i></button>
+        <button class="icon-round" id="reportAdBtn" title="الإبلاغ عن الإعلان" style="color:#ef4444;"><i class="fa-solid fa-flag"></i></button>
       </div>
     </main>
 
@@ -1238,10 +1242,50 @@
     </div>
   </div>
 
+  <!-- ============ REPORT AD MODAL ============ -->
+  <div class="modal-overlay" id="reportModalOverlay">
+    <div class="modal-sheet">
+      <button class="modal-close" id="reportModalClose" type="button">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+
+      <div class="modal-icon" style="background:#fee2e2; color:#ef4444;"><i class="fa-solid fa-flag"></i></div>
+      <h2 class="modal-title" style="color:#ef4444;" data-i18n="reportAd">الإبلاغ عن هذا الإعلان</h2>
+      <p class="modal-sub" style="margin-bottom:16px; font-size:13px; color:var(--ink-500); text-align:center;" data-i18n="reportAdSub">
+        نحن نراجع جميع البلاغات لحماية المجتمع وفق سياسات المحتوى
+      </p>
+
+      <div class="form-error hidden" id="reportAdError"></div>
+
+      <label class="form-label" data-i18n="reportReason">سبب البلاغ</label>
+      <select class="form-select" id="reportReasonSelect">
+        <option value="محتوى احتيالي أو وهمي">محتوى احتيالي أو وهمي</option>
+        <option value="محتوى مسيء أو غير لائق أو مخالف للآداب">محتوى مسيء أو غير لائق أو مخالف للآداب</option>
+        <option value="معلومات اتصال خاطئة أو مضللة">معلومات اتصال خاطئة أو مضللة</option>
+        <option value="سلعة أو خدمة محظورة قانونياً">سلعة أو خدمة محظورة قانونياً</option>
+        <option value="إعلان متكرر أو مزعج (Spam)">إعلان متكرر أو مزعج (Spam)</option>
+        <option value="سبب آخر">سبب آخر</option>
+      </select>
+
+      <label class="form-label" style="margin-top:12px;" data-i18n="reportDetails">تفاصيل إضافية توضح المخالفة (اختياري)</label>
+      <textarea class="form-input" id="reportDetailsInput" rows="3" placeholder="تفاصيل إضافية توضح المخالفة..." style="resize:vertical;"></textarea>
+
+      <button class="btn-primary btn-block" id="reportSubmitBtn" type="button" style="margin-top:16px; background:#ef4444;">
+        <i class="fa-solid fa-flag"></i>
+        <span data-i18n="sendReport">إرسال البلاغ</span>
+      </button>
+
+      <button type="button" class="btn-outline btn-block" id="blockAdvertiserBtn" style="margin-top:10px; border-color:#cbd5e1; color:#ef4444;">
+        <i class="fa-solid fa-user-slash"></i>
+        <span data-i18n="blockAdvertiser">حظر هذا المعلن نهائياً</span>
+      </button>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast" id="toast"></div>
 
-  <script src="script.js?v=63"></script>
+  <script src="script.js?v=64"></script>
 
 </body>
 

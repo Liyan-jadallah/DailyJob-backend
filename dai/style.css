@@ -1252,6 +1252,19 @@ html[dir="rtl"] .desc-list li::before {
   transform: translateY(-2px);
 }
 
+/* زر الإبلاغ عن الإعلان */
+#reportAdBtn {
+  background: #fef2f2;
+  color: #ef4444;
+  border-color: #fecaca;
+}
+#reportAdBtn:hover {
+  background: #fee2e2;
+  color: #dc2626;
+  border-color: #f87171;
+  transform: translateY(-2px);
+}
+
 @media (max-width: 400px) {
   .details-actionbar {
     gap: 6px;
