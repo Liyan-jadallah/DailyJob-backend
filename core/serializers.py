@@ -218,6 +218,20 @@ class AdSerializer(serializers.ModelSerializer):
             return phone
         return value
 
+    def validate_description(self, value):
+        if value and len(value) > 5000:
+            raise serializers.ValidationError("الوصف يجب أن لا يتجاوز 5000 حرف.")
+        if value and len(value.strip()) < 10:
+            raise serializers.ValidationError("الوصف قصير جداً. يرجى كتابة 10 أحرف على الأقل.")
+        return value
+
+    def validate_title(self, value):
+        if value and len(value) > 255:
+            raise serializers.ValidationError("العنوان يجب أن لا يتجاوز 255 حرفاً.")
+        if value and len(value.strip()) < 5:
+            raise serializers.ValidationError("العنوان قصير جداً. يرجى كتابة 5 أحرف على الأقل.")
+        return value
+
     def get_receipt_image(self, obj):
         request = self.context.get('request')
         if not request or not request.user.is_authenticated:

@@ -281,7 +281,7 @@ CORS_ALLOW_HEADERS = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework.authentication.TokenAuthentication',
+        'core.authentication.ExpiringTokenAuthentication',
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticatedOrReadOnly',
@@ -291,13 +291,16 @@ REST_FRAMEWORK = {
         'rest_framework.throttling.UserRateThrottle',
     ],
     'DEFAULT_THROTTLE_RATES': {
-        'anon': '60/min',
-        'user': '1000/day',
+        'anon': '20/min',
+        'user': '200/hour',
     },
     # Pagination: Disabled by default so all ads, users, and transactions are returned completely
     'DEFAULT_PAGINATION_CLASS': None,
     'PAGE_SIZE': None,
 }
+
+# Token Expiry: عدد الأيام قبل انتهاء صلاحية التوكن
+TOKEN_EXPIRY_DAYS = 30
 
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')

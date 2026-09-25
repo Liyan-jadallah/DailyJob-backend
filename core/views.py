@@ -655,6 +655,8 @@ class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.
             validate_image_file(receipt_file)
         # التحقق من أن المستخدم هو صاحب الإعلان
         ad_id = self.request.data.get('ad')
+        if not ad_id:
+            raise serializers.ValidationError({'ad': 'يجب تحديد الإعلان المرتبط بالمعاملة.'})
         if ad_id:
             try:
                 ad = Ad.objects.get(id=ad_id)
@@ -1084,6 +1086,8 @@ class AdViewSet(viewsets.ModelViewSet):
 
         # 3. إضافة صور إضافية جديدة (دون مسح الصور القديمة الباقية)
         images = self.request.FILES.getlist('images')
+        if len(images) > 10:
+            raise serializers.ValidationError({'images': 'لا يمكن رفع أكثر من 10 صور للإعلان الواحد.'})
         if images:
             for img in images:
                 validate_image_file(img)

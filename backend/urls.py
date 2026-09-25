@@ -7,7 +7,7 @@ from django.conf.urls.static import static
 import os
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path('dj-secure-panel/', admin.site.urls),
     path('api/', include('core.urls')), 
     path('api/login/', CustomAuthToken.as_view(), name='api-login'), 
     path('', index, name='index'),
