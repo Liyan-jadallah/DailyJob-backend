@@ -306,6 +306,12 @@ class Referral(models.Model):
         return f"{self.referrer.username} invited {self.referred.username}"
 
 
+def receipt_upload_path(instance, filename):
+    import uuid as _uuid
+    ext = filename.rsplit('.', 1)[-1] if '.' in filename else 'jpg'
+    return f'transactions/receipts/{_uuid.uuid4().hex}.{ext}'
+
+
 class Transaction(models.Model):
     STATUS_CHOICES = (
         ('pending', 'Pending'),
@@ -318,7 +324,7 @@ class Transaction(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='transactions')
     payment_method = models.ForeignKey(PaymentMethod, on_delete=models.SET_NULL, null=True)
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
-    receipt_image = models.ImageField(upload_to='transactions/receipts/', blank=True, null=True)
+    receipt_image = models.ImageField(upload_to=receipt_upload_path, blank=True, null=True)
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
     status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
     submitted_at = models.DateTimeField(auto_now_add=True)

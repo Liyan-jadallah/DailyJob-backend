@@ -114,7 +114,6 @@ class OTPThrottle(AnonRateThrottle):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
-    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
@@ -641,7 +640,6 @@ class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
-    pagination_class = None
 
     def get_queryset(self):
         user = self.request.user
@@ -687,7 +685,6 @@ class AdViewSet(viewsets.ModelViewSet):
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
-    pagination_class = None
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
@@ -878,7 +875,15 @@ class AdViewSet(viewsets.ModelViewSet):
         from django.db import transaction
         from .models import AdImage, Coupon, Transaction
 
-        # 0. Validate all uploaded images
+        # 0. حد أقصى للإعلانات النشطة لكل مستخدم (حماية من الإغراق)
+        MAX_ACTIVE_ADS_PER_USER = 10
+        is_admin_user = (getattr(self.request.user, 'role', '') == 'admin' or self.request.user.is_staff or self.request.user.is_superuser)
+        if not is_admin_user:
+            active_ads_count = Ad.objects.filter(user=self.request.user, is_deleted=False).exclude(status='rejected').count()
+            if active_ads_count >= MAX_ACTIVE_ADS_PER_USER:
+                raise serializers.ValidationError({'limit': f'لقد وصلت للحد الأقصى من الإعلانات النشطة ({MAX_ACTIVE_ADS_PER_USER} إعلانات). يرجى حذف إعلان قديم أولاً.'})
+
+        # 0.1 Validate all uploaded images
         main_image = self.request.FILES.get('image')
         if main_image:
             validate_image_file(main_image)
@@ -1199,6 +1204,7 @@ class AdminAdActionView(APIView):
     - reject  → permanently deletes the ad and all related data
     """
     permission_classes = [IsAuthenticated]
+    throttle_classes = [OTPThrottle]
 
     def post(self, request, ad_id):
         # Only admins can use this endpoint
@@ -1665,7 +1671,10 @@ class AdminGrantCouponsView(APIView):
 
         target = request.data.get('target') # 'all' or 'specific'
         user_id = request.data.get('user_id') # id if specific
-        count = int(request.data.get('count', 1))
+        try:
+            count = int(request.data.get('count', 1))
+        except (ValueError, TypeError):
+            return Response({"error": "Invalid count value"}, status=400)
 
         if count <= 0 or count > 50:
             return Response({"error": "Invalid count (1-50)"}, status=400)

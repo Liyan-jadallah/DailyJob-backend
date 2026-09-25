@@ -23,7 +23,7 @@ urlpatterns += [
 dai_dir = getattr(settings, 'DAI_DIR', os.path.join(settings.BASE_DIR, 'dai') if os.path.exists(os.path.join(settings.BASE_DIR, 'dai')) else os.path.join(settings.BASE_DIR.parent, 'dai'))
 if os.path.exists(dai_dir):
     urlpatterns.append(
-        re_path(r'^(?!api|admin|media)(?P<path>.*)$', serve, {
+        re_path(r'^(?!api|admin|dj-secure-panel|media)(?P<path>.*)$', serve, {
             'document_root': dai_dir,
             'show_indexes': False
         })

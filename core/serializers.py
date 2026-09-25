@@ -237,8 +237,7 @@ class AdSerializer(serializers.ModelSerializer):
         if not request or not request.user.is_authenticated:
             return None
         is_admin = getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser
-        is_owner = obj.user_id == request.user.id
-        if not (is_admin or is_owner):
+        if not is_admin:
             return None
 
         tx = obj.transactions.filter(receipt_image__isnull=False).exclude(receipt_image='').order_by('-submitted_at').first()
@@ -252,6 +251,17 @@ class AdSerializer(serializers.ModelSerializer):
         model = Ad
         fields = ['id', 'user', 'user_details', 'user_email', 'title', 'description', 'category', 'ad_type', 'governorate', 'price', 'contact_phone', 'contact_method', 'ad_duration', 'image', 'extra_images', 'receipt_image', 'status', 'views', 'created_at', 'approved_at', 'is_auto_approved']
         read_only_fields = ['id', 'created_at', 'approved_at', 'user', 'views', 'is_auto_approved']
+
+    def to_representation(self, instance):
+        ret = super().to_representation(instance)
+        request = self.context.get('request')
+        is_admin = False
+        if request and request.user.is_authenticated:
+            is_admin = getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser
+        if not is_admin:
+            ret['ad_duration'] = None
+            ret['receipt_image'] = None
+        return ret
 
     def get_fields(self):
         fields = super().get_fields()

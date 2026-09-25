@@ -78,6 +78,8 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
+    # Content Security Policy: حماية إضافية ضد XSS
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
 
 # Application definition
 
@@ -294,9 +296,9 @@ REST_FRAMEWORK = {
         'anon': '20/min',
         'user': '200/hour',
     },
-    # Pagination: Disabled by default so all ads, users, and transactions are returned completely
-    'DEFAULT_PAGINATION_CLASS': None,
-    'PAGE_SIZE': None,
+    # Pagination: حماية من هجمات DoS وتسريب البيانات - صفحات بـ 20 عنصر
+    'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
+    'PAGE_SIZE': 20,
 }
 
 # Token Expiry: عدد الأيام قبل انتهاء صلاحية التوكن
