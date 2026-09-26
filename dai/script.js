@@ -3010,7 +3010,9 @@
 
 
 
-      // تحديث شارات العدادات
+      // تحديث شارات العدادات بالعدد الفعلي الإجمالي من السيرفر
+      const totalUsersCount = (usersData && typeof usersData.count === 'number') ? usersData.count : allUsers.length;
+      const totalTxCount = (txData && typeof txData.count === 'number') ? txData.count : allTx.length;
 
       const bPending = document.getElementById("adminPendingBadge");
 
@@ -3028,13 +3030,22 @@
 
       if (bPublished) bPublished.textContent = publishedAds.length;
 
-      if (bUsers) bUsers.textContent = allUsers.length;
+      if (bUsers) bUsers.textContent = totalUsersCount;
 
       if (bAuto) bAuto.textContent = autoApprovedAds.length;
 
-      if (bTx) bTx.textContent = allTx.length;
+      if (bTx) bTx.textContent = totalTxCount;
 
 
+
+      // تهيئة حالة مستخدمي الأدمن
+      _adminUsersState = {
+        users: [...allUsers],
+        totalCount: totalUsersCount,
+        nextUrl: usersData?.next || null,
+        loading: false,
+        searchQuery: ''
+      };
 
       // 1. تبويب طلبات النشر
 
@@ -3050,7 +3061,7 @@
 
       // 3. تبويب المستخدمين
 
-      renderAdminUsersTab(allUsers);
+      renderAdminUsersTab();
 
 
 
@@ -3462,66 +3473,127 @@
 
 
 
+  let _adminUsersState = {
+    users: [],
+    totalCount: 0,
+    nextUrl: null,
+    loading: false,
+    searchQuery: ''
+  };
+
   function renderAdminUsersTab(users) {
-
+    if (Array.isArray(users)) {
+      _adminUsersState.users = [...users];
+    }
     const list = document.getElementById("adminUsersList");
-
     const empty = document.getElementById("adminUsersEmpty");
-
+    const paginationContainer = document.getElementById("adminUsersPagination");
+    const searchInput = document.getElementById("adminUsersSearch");
     if (!list) return;
 
+    if (searchInput && !searchInput.dataset.initialized) {
+      searchInput.dataset.initialized = "true";
+      let searchTimeout;
+      searchInput.addEventListener("input", (e) => {
+        clearTimeout(searchTimeout);
+        searchTimeout = setTimeout(async () => {
+          const query = e.target.value.trim();
+          _adminUsersState.searchQuery = query;
+          const token = state.token || localStorage.getItem("token") || (state.user && state.user.token);
+          try {
+            list.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink-400);"><i class="fa-solid fa-spinner fa-spin"></i> جاري البحث...</div>`;
+            const url = query ? `${BASE_URL}/users/?search=${encodeURIComponent(query)}` : `${BASE_URL}/users/`;
+            const res = await fetch(url, {
+              headers: { 'Authorization': 'Token ' + token }
+            });
+            const data = await res.json();
+            _adminUsersState.users = data.results || (Array.isArray(data) ? data : []);
+            _adminUsersState.totalCount = typeof data.count === 'number' ? data.count : _adminUsersState.users.length;
+            _adminUsersState.nextUrl = data.next || null;
+            renderAdminUsersTab();
+          } catch (err) {
+            console.error("Search users failed:", err);
+          }
+        }, 300);
+      });
+    }
 
-
-    if (!users.length) {
-
+    if (!_adminUsersState.users.length) {
       list.innerHTML = "";
-
       if (empty) empty.classList.remove("hidden");
-
+      if (paginationContainer) paginationContainer.innerHTML = "";
       return;
-
     }
 
     if (empty) empty.classList.add("hidden");
 
-
-
-    list.innerHTML = users.map(user => {
-
+    list.innerHTML = _adminUsersState.users.map(user => {
       const isAdmin = user.role === 'admin';
-
       return `
-
         <div class="admin-user-card">
-
           <div class="admin-user-avatar ${isAdmin ? 'admin' : 'user'}">
-
             <i class="fa-solid ${isAdmin ? 'fa-shield-halved' : 'fa-user'}"></i>
-
           </div>
-
           <div class="admin-user-info">
-
             <div class="admin-user-name">${escapeHtml(user.username || 'مستخدم')}</div>
-
             <div class="admin-user-email">${escapeHtml(user.email || '')}</div>
-
             ${user.phone_number ? `<div style="font-size:11px; color:var(--ink-400);"><i class="fa-solid fa-phone"></i> ${escapeHtml(user.phone_number)}</div>` : ''}
-
           </div>
-
           <span class="admin-user-badge ${isAdmin ? 'admin' : 'user'}">
-
             ${isAdmin ? 'أدمن' : 'مستخدم'}
-
           </span>
-
         </div>
-
       `;
-
     }).join("");
 
+    if (paginationContainer) {
+      const loaded = _adminUsersState.users.length;
+      const total = _adminUsersState.totalCount;
+      const hasMore = !!_adminUsersState.nextUrl;
+
+      paginationContainer.innerHTML = `
+        <div style="font-size: 13px; color: var(--ink-500); font-weight: 500; text-align: center;">
+          عرض ${loaded} من أصل ${total} حساب
+        </div>
+        ${hasMore ? `
+          <button id="btnLoadMoreUsers" class="primary-btn" style="width: auto; padding: 9px 22px; font-size: 13px; font-weight: 700; border-radius: 12px; margin-top: 4px; display: inline-flex; align-items: center; gap: 8px;">
+            <i class="fa-solid fa-arrow-down"></i>
+            <span>تحميل المزيد من المستخدمين</span>
+          </button>
+        ` : (loaded >= total && total > 0 ? `
+          <div style="font-size: 12px; color: #10b981; font-weight: 600;">
+            <i class="fa-solid fa-check"></i> تم عرض جميع الحسابات
+          </div>
+        ` : '')}
+      `;
+
+      const loadMoreBtn = document.getElementById("btnLoadMoreUsers");
+      if (loadMoreBtn) {
+        loadMoreBtn.onclick = async () => {
+          if (_adminUsersState.loading || !_adminUsersState.nextUrl) return;
+          _adminUsersState.loading = true;
+          loadMoreBtn.disabled = true;
+          loadMoreBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري التحميل...</span>`;
+
+          const token = state.token || localStorage.getItem("token") || (state.user && state.user.token);
+          try {
+            const res = await fetch(_adminUsersState.nextUrl, {
+              headers: { 'Authorization': 'Token ' + token }
+            });
+            const data = await res.json();
+            const newUsers = data.results || (Array.isArray(data) ? data : []);
+            _adminUsersState.users = [..._adminUsersState.users, ...newUsers];
+            _adminUsersState.totalCount = typeof data.count === 'number' ? data.count : _adminUsersState.totalCount;
+            _adminUsersState.nextUrl = data.next || null;
+          } catch (e) {
+            console.error("Load more users failed:", e);
+          } finally {
+            _adminUsersState.loading = false;
+            renderAdminUsersTab();
+          }
+        };
+      }
+    }
   }
 
 

@@ -97,6 +97,8 @@ from django.db.models import Q
 from django.utils import timezone
 from django.contrib.auth.password_validation import validate_password
 from rest_framework.throttling import AnonRateThrottle
+from rest_framework.pagination import PageNumberPagination
+from rest_framework import filters
 from .permissions import IsUserOwner, IsOwnerOrReadOnly
 from .validators import validate_image_file
 from .models import User, PaymentMethod, Ad, AdCategory, Transaction, Notification, Coupon, Referral, WelcomeCouponRecord, AdView, SystemSetting
@@ -107,6 +109,17 @@ def index(request):
     return render(request, 'index.html')
 
 
+class FlexiblePagination(PageNumberPagination):
+    page_size = 20
+    page_size_query_param = 'page_size'
+    max_page_size = 500
+
+    def paginate_queryset(self, queryset, request, view=None):
+        if request.query_params.get('all') in ['true', '1'] or request.query_params.get('admin_all') == 'true':
+            return None
+        return super().paginate_queryset(queryset, request, view)
+
+
 class OTPThrottle(AnonRateThrottle):
     rate = '5/min'
 
@@ -114,6 +127,9 @@ class OTPThrottle(AnonRateThrottle):
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
     serializer_class = UserSerializer
+    pagination_class = FlexiblePagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['username', 'email', 'phone_number']
 
     def get_queryset(self):
         user = self.request.user
@@ -640,6 +656,9 @@ class TransactionViewSet(mixins.CreateModelMixin, mixins.ListModelMixin, mixins.
     queryset = Transaction.objects.all()
     serializer_class = TransactionSerializer
     permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    pagination_class = FlexiblePagination
+    filter_backends = [filters.SearchFilter]
+    search_fields = ['user__username', 'user__email', 'ad_title', 'ad__title']
 
     def get_queryset(self):
         user = self.request.user
@@ -685,6 +704,7 @@ class AdViewSet(viewsets.ModelViewSet):
     queryset = Ad.objects.all()
     serializer_class = AdSerializer
     permission_classes = [IsAuthenticatedOrReadOnly, IsOwnerOrReadOnly]
+    pagination_class = FlexiblePagination
 
     def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
