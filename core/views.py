@@ -895,13 +895,7 @@ class AdViewSet(viewsets.ModelViewSet):
         from django.db import transaction
         from .models import AdImage, Coupon, Transaction
 
-        # 0. حد أقصى للإعلانات النشطة لكل مستخدم (حماية من الإغراق)
-        MAX_ACTIVE_ADS_PER_USER = 10
-        is_admin_user = (getattr(self.request.user, 'role', '') == 'admin' or self.request.user.is_staff or self.request.user.is_superuser)
-        if not is_admin_user:
-            active_ads_count = Ad.objects.filter(user=self.request.user, is_deleted=False).exclude(status='rejected').count()
-            if active_ads_count >= MAX_ACTIVE_ADS_PER_USER:
-                raise serializers.ValidationError({'limit': f'لقد وصلت للحد الأقصى من الإعلانات النشطة ({MAX_ACTIVE_ADS_PER_USER} إعلانات). يرجى حذف إعلان قديم أولاً.'})
+        # 0. تم إلغاء شرط الحد الأقصى للإعلانات النشطة بناءً على طلب العميل
 
         # 0.1 Validate all uploaded images
         main_image = self.request.FILES.get('image')
