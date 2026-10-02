@@ -290,6 +290,20 @@ class VerifyEmailView(APIView):
         trans_table = str.maketrans(arabic_digits, english_digits)
         entered_otp = raw_otp.translate(trans_table)
 
+        user = User.objects.filter(email__iexact=email).first()
+        if user and user.is_active:
+            # الحساب مفعّل مسبقاً — نُرجع token مباشرة ونسجل دخوله
+            token, _ = Token.objects.get_or_create(user=user)
+            return Response({
+                'message': 'حسابك مفعّل بالفعل. تم تسجيل دخولك.',
+                'token': token.key,
+                'user_id': str(user.pk),
+                'email': user.email,
+                'username': user.username,
+                'role': user.role,
+                'referral_code': user.referral_code,
+            }, status=status.HTTP_200_OK)
+
         # جلب الرمز المخزن لهذا الإيميل
         cached_otp = cache.get(f'verify_{email}')
 
@@ -301,21 +315,7 @@ class VerifyEmailView(APIView):
             )
 
         if str(cached_otp) == str(entered_otp):
-            user = User.objects.filter(email__iexact=email).first()
             if user:
-                if user.is_active:
-                    # الحساب مفعّل مسبقاً — لا نعيد التفعيل ونُرجع token مباشرة
-                    token, _ = Token.objects.get_or_create(user=user)
-                    return Response({
-                        'message': 'حسابك مفعّل بالفعل. تم تسجيل دخولك.',
-                        'token': token.key,
-                        'user_id': str(user.pk),
-                        'email': user.email,
-                        'username': user.username,
-                        'role': user.role,
-                        'referral_code': user.referral_code,
-                    })
-
                 user.is_active = True  # تفعيل الحساب
                 user.save()
                 
