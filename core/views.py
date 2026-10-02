@@ -222,19 +222,6 @@ class UserViewSet(viewsets.ModelViewSet):
                     },
                     status=status.HTTP_200_OK
                 )
-
-        incoming_username = re.sub(r'\s+', ' ', request.data.get('username', '')).strip()
-        if incoming_username:
-            existing_username = User.objects.filter(username__iexact=incoming_username, is_active=True).first()
-            if existing_username:
-                return Response(
-                    {
-                        'error': 'اسم المستخدم مسجل مسبقاً، يرجى اختيار اسم مستخدم آخر.',
-                        'code': 'username_taken',
-                    },
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
@@ -504,7 +491,7 @@ class PasswordResetRequestView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+        user = User.objects.filter(email__iexact=email).first()
         if not user:
             return Response(
                 {'message': 'إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رمز التحقق إليه.'},
@@ -574,7 +561,7 @@ class PasswordResetConfirmView(APIView):
             )
 
         if str(cached_otp) == str(entered_otp):
-            user = User.objects.filter(Q(email__iexact=email) | Q(username__iexact=email)).first()
+            user = User.objects.filter(email__iexact=email).first()
             if user:
                 if not new_password or len(new_password) < 6:
                     return Response(
