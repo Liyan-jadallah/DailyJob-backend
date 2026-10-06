@@ -23,3 +23,16 @@ class IsOwnerOrReadOnly(permissions.BasePermission):
             if getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser:
                 return True
         return hasattr(obj, 'user') and obj.user == request.user
+
+class IsAdmin(permissions.BasePermission):
+    """
+    صلاحية الأدمن: تسمح فقط لمستخدمي الأدمن بالوصول.
+    """
+    def has_permission(self, request, view):
+        if not request.user or not request.user.is_authenticated:
+            return False
+        return (
+            getattr(request.user, 'role', '') == 'admin'
+            or request.user.is_staff
+            or request.user.is_superuser
+        )

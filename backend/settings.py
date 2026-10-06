@@ -304,6 +304,9 @@ REST_FRAMEWORK = {
 # Token Expiry: عدد الأيام قبل انتهاء صلاحية التوكن
 TOKEN_EXPIRY_DAYS = 30
 
+# Google OAuth Client ID (for Google Sign-In on Web and Mobile token verification)
+GOOGLE_CLIENT_ID = os.getenv('GOOGLE_CLIENT_ID', '').strip()
+
 # Celery Configuration
 CELERY_BROKER_URL = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
 CELERY_RESULT_BACKEND = os.getenv('REDIS_URL', 'redis://localhost:6379/0')
@@ -328,5 +331,7 @@ CELERY_BEAT_SCHEDULE = {
 }
 
 # Silence auth.W004 warning since custom backend (EmailOrUsernameModelBackend) handles non-unique usernames
+# auth.W004: username ليس فريداً لأن email هو المعرّف الأساسي في هذا النظام
+# (يتم التحقق في EmailOnlyBackend وفي التسجيل عبر UserViewSet)
 SILENCED_SYSTEM_CHECKS = ['auth.W004']
 

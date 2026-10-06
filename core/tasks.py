@@ -3,6 +3,8 @@ from celery import shared_task
 from django.utils import timezone
 from datetime import timedelta
 from .models import User, Notification
+import logging
+logger = logging.getLogger(__name__)
 
 @shared_task
 def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', ad_governorate=''):
@@ -30,7 +32,10 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
         eligible_users = User.objects.filter(
             notifications_enabled=True,
             is_active=True
-        ).exclude(id=ad_owner_id)
+        ).exclude(id=ad_owner_id).only(
+            'id', 'fcm_token', 'notify_all_ads', 'preferred_governorates',
+            'preferred_categories', 'username', 'notifications_enabled'
+        ).iterator(chunk_size=2000)  # تحميل المستخدمين على دفعات لمنع استهلاك الذاكرة
 
         custom_matching_tokens = set()
         in_app_notifs = []
@@ -79,12 +84,12 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
 
         # 4. حفظ إشعارات داخل التطبيق لجميع المستخدمين المطابقين
         if in_app_notifs:
-            Notification.objects.bulk_create(in_app_notifs, ignore_conflicts=True)
+            Notification.objects.bulk_create(in_app_notifs, batch_size=500, ignore_conflicts=True)
             results.append(f"Created {len(in_app_notifs)} in-app notifications")
 
         return f"Notifications sent for Ad {ad_id}: {'; '.join(results)}"
     except Exception as e:
-        print(f"Error sending global push: {e}")
+        logger.error(f"Error sending global push: {e}", exc_info=True)
         return f"Failed to send global push for Ad {ad_id}: {e}"
 
 @shared_task
@@ -154,9 +159,9 @@ def delete_expired_content():
 def send_contact_email_task(name, email, subject, message):
     from django.core.mail import send_mail
     from django.conf import settings
-    admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+    admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''''))
     if not admin_email:
-        admin_email = 'dailyjob2026@gmail.com'
+        admin_email = ''''
     full_subject = f"رسالة دعم جديدة: {subject or 'بدون عنوان'}"
     body = f"رسالة جديدة من التطبيق:\n\nالاسم: {name}\nالبريد: {email}\nالموضوع: {subject or 'لا يوجد'}\n\nالرسالة:\n{message}\n"
     try:
@@ -164,3 +169,15 @@ def send_contact_email_task(name, email, subject, message):
         return "Contact email sent successfully."
     except Exception as e:
         return f"Failed to send email: {e}"
+
+@shared_task
+def send_otp_email_task(to_email, username, otp_code, subject='رمز تأكيد حسابك - Daily Job', purpose='تأكيد حسابك'):
+    """إرسال رمز OTP عبر البريد الإلكتروني — مهمة خلفية"""
+    try:
+        from core.views import send_otp_email
+        send_otp_email(to_email, username, otp_code, subject, purpose)
+        return f"OTP email sent to {to_email}"
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning(f"[OTP_TASK] Failed to send OTP to {to_email}: {e}")
+        return f"Failed: {e}"

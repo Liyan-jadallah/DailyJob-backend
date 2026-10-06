@@ -150,6 +150,76 @@
 
     },
 
+    getGoogleConfig: async () => {
+
+      try {
+
+        const res = await fetch(`${BASE_URL}/auth/google/config/`);
+
+        if (res.ok) {
+
+          const data = await res.json();
+
+          return data.client_id;
+
+        }
+
+      } catch (_) {}
+
+      return null;
+
+    },
+
+    googleLogin: async (idToken, referralCode = '') => {
+
+      const payload = { id_token: idToken };
+
+      if (referralCode) payload.referral_code = referralCode.trim();
+
+      const res = await fetch(`${BASE_URL}/auth/google/`, {
+
+        method: 'POST',
+
+        headers: { 'Content-Type': 'application/json' },
+
+        body: JSON.stringify(payload)
+
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+
+        throw new Error(data.error || "فشل تسجيل الدخول عبر Google. يرجى إعادة المحاولة.");
+
+      }
+
+      return {
+
+        token: data.token,
+
+        is_new_user: data.is_new_user,
+
+        message: data.message,
+
+        user: {
+
+          id: data.user_id,
+
+          email: data.email,
+
+          username: data.username,
+
+          role: data.role || 'user',
+
+          referral_code: data.referral_code || ''
+
+        }
+
+      };
+
+    },
+
     register: async (email, username, password, referralCode = '') => {
 
       // Trim and normalize multiple spaces
@@ -1858,11 +1928,109 @@
 
 
 
+  window.handleGoogleCredentialResponse = async (response) => {
+    if (!response || !response.credential) return;
+
+    try {
+      showToast("جاري تسجيل الدخول عبر Google...", "info");
+      const regReferralInput = document.getElementById("regReferral");
+      const referralCode = regReferralInput ? regReferralInput.value : '';
+
+      const result = await Api.googleLogin(response.credential, referralCode);
+
+      state.isAuthenticated = true;
+      state.user = result.user;
+
+      localStorage.setItem("dj_user", JSON.stringify(state.user));
+      localStorage.setItem("dj_token", result.token);
+
+      closeAuth();
+      updateDrawerUser();
+
+      const successMsg = result.is_new_user 
+        ? "أهلاً بك في Daily Job! تم إنشاء حسابك بنجاح عبر Google" 
+        : (state.lang === 'en' ? "Logged in successfully!" : "تم تسجيل الدخول بنجاح!");
+      showToast(successMsg, "success");
+
+      loadAdsFromAPI();
+      fetchNotifications();
+
+      if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
+        renderDetails(state.currentAdId);
+      }
+
+      if (typeof state.pendingAction === "function") {
+        const fn = state.pendingAction;
+        state.pendingAction = null;
+        fn();
+      }
+    } catch (err) {
+      showToast(err.message || "فشل تسجيل الدخول عبر Google", "error");
+    }
+  };
+
+  let _googleSignInInitialized = false;
+  async function initGoogleSignIn() {
+    if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
+      setTimeout(initGoogleSignIn, 600);
+      return;
+    }
+
+    try {
+      let clientId = window.GOOGLE_CLIENT_ID || "588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com";
+      if (!clientId) {
+        clientId = await Api.getGoogleConfig();
+      }
+      if (!clientId) {
+        return;
+      }
+
+      google.accounts.id.initialize({
+        client_id: clientId,
+        callback: window.handleGoogleCredentialResponse,
+        auto_select: false,
+        cancel_on_tap_outside: true
+      });
+
+      const btnLogin = document.getElementById("googleBtnLogin");
+      if (btnLogin) {
+        google.accounts.id.renderButton(btnLogin, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          text: "signin_with",
+          shape: "rectangular",
+          logo_alignment: "center",
+          width: 280
+        });
+      }
+
+      const btnRegister = document.getElementById("googleBtnRegister");
+      if (btnRegister) {
+        google.accounts.id.renderButton(btnRegister, {
+          theme: "outline",
+          size: "large",
+          type: "standard",
+          text: "signup_with",
+          shape: "rectangular",
+          logo_alignment: "center",
+          width: 280
+        });
+      }
+
+      _googleSignInInitialized = true;
+    } catch (e) {
+      console.warn("[GoogleAuth] init error:", e);
+    }
+  }
+
   function openAuth(mode) {
 
     if (mode === "register") showRegisterStep();
 
     else showLoginStep();
+
+    initGoogleSignIn();
 
     
 
@@ -8255,6 +8423,10 @@
       document.getElementById('authStepVerify').classList.remove('hidden');
 
     }
+
+    try {
+      initGoogleSignIn();
+    } catch (_) {}
 
   }
 

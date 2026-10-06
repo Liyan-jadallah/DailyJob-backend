@@ -99,7 +99,7 @@ from django.contrib.auth.password_validation import validate_password
 from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import filters
-from .permissions import IsUserOwner, IsOwnerOrReadOnly
+from .permissions import IsUserOwner, IsOwnerOrReadOnly, IsAdmin
 from .validators import validate_image_file
 from .models import User, PaymentMethod, Ad, AdCategory, Transaction, Notification, Coupon, Referral, WelcomeCouponRecord, AdView, SystemSetting
 from .serializers import UserSerializer, PaymentMethodSerializer, AdSerializer, TransactionSerializer, AdCategorySerializer, CouponSerializer, ContactMessageSerializer
@@ -112,16 +112,26 @@ def index(request):
 class FlexiblePagination(PageNumberPagination):
     page_size = 20
     page_size_query_param = 'page_size'
-    max_page_size = 500
+    max_page_size = 100  # تقليل الحد الأقصى من 500 إلى 100
 
     def paginate_queryset(self, queryset, request, view=None):
+        # تجاوز الـ Pagination مسموح فقط للأدمن — لمنع هجمات DoS
         if request.query_params.get('all') in ['true', '1'] or request.query_params.get('admin_all') == 'true':
-            return None
+            user = request.user
+            if user.is_authenticated and (
+                getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser
+            ):
+                return None
         return super().paginate_queryset(queryset, request, view)
 
 
 class OTPThrottle(AnonRateThrottle):
     rate = '5/min'
+
+
+class AdminThrottle(AnonRateThrottle):
+    """Throttle مخصص للعمليات الإدارية — أسرع من OTPThrottle"""
+    rate = '30/min'
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -161,7 +171,7 @@ class UserViewSet(viewsets.ModelViewSet):
 
         # إشعار بريدي بالحذف (اقتراح #3)
         try:
-            email_sender = getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com')
+            email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
             send_mail(
                 'تم حذف حسابك في Daily Job',
                 f'مرحباً {user.username}،\n\nتم حذف حسابك في Daily Job بنجاح.\n'
@@ -171,8 +181,8 @@ class UserViewSet(viewsets.ModelViewSet):
                 [user.email],
                 fail_silently=True,  # لا نوقف الحذف إذا فشل الإيميل
             )
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[USER] Account deletion email failed for {user.email}: {e}")
 
         return super().destroy(request, *args, **kwargs)
 
@@ -492,30 +502,28 @@ class PasswordResetRequestView(APIView):
             )
 
         user = User.objects.filter(email__iexact=email).first()
-        if not user:
-            return Response(
-                {'message': 'إذا كان هذا البريد مسجلاً لدينا، فقد تم إرسال رمز التحقق إليه.'},
-                status=status.HTTP_200_OK
-            )
         
-        # توليد رمز آمن للاستعادة
-        otp_code = generate_secure_otp()
-        cache.set(f'reset_{email}', otp_code, timeout=600)
-        if user.email and user.email.lower() != email:
-            cache.set(f'reset_{user.email.lower()}', otp_code, timeout=600)
+        # رسالة موحدة لمنع User Enumeration — لا نكشف إن كان البريد مسجلاً أم لا
+        safe_msg = 'إذا كان هذا البريد مسجلاً لدينا، فسيتم إرسال رمز التحقق إليه.'
+        
+        if user:
+            otp_code = generate_secure_otp()
+            cache.set(f'reset_{email}', otp_code, timeout=600)
+            if user.email and user.email.lower() != email:
+                cache.set(f'reset_{user.email.lower()}', otp_code, timeout=600)
+                
+            try:
+                send_otp_email(
+                    to_email=user.email,
+                    username=user.username,
+                    otp_code=otp_code,
+                    subject='إعادة تعيين كلمة المرور - Daily Job',
+                    purpose='إعادة تعيين كلمة المرور'
+                )
+            except Exception as e:
+                logger.warning(f"[RESET] Password reset email failed: {e}")
             
-        try:
-            send_otp_email(
-                to_email=user.email,
-                username=user.username,
-                otp_code=otp_code,
-                subject='إعادة تعيين كلمة المرور - Daily Job',
-                purpose='إعادة تعيين كلمة المرور'
-            )
-        except Exception as e:
-            logger.warning(f"[RESET] Password reset email failed: {e}")
-            
-        return Response({'message': 'تم إرسال رمز التحقق إلى بريدك الإلكتروني.'})
+        return Response({'message': safe_msg})
 
 
 class PasswordResetConfirmView(APIView):
@@ -777,9 +785,8 @@ class AdViewSet(viewsets.ModelViewSet):
             logger.warning(f"[CLEANUP] Ad cleanup error: {e}")
 
     def get_queryset(self):
-        # تشغيل الفحص التلقائي لقبول الإعلانات بعد 10 دقائق وحذف المنتهية
-        self._auto_approve_pending_ads()
-        self._cleanup_expired_ads()
+        # تمت إزالة الاستدعاء المباشر لـ auto_approve و cleanup من الـ Views
+        # هذه المهام تعمل الآن حصراً عبر Celery Beat (settings.py) و Render Cron (render.yaml)
 
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
@@ -1179,7 +1186,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 from django.core.mail import send_mail
                 admin_emails = list(User.objects.filter(role='admin').values_list('email', flat=True))
                 if admin_emails:
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'dailyjob2026@gmail.com')
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
                     send_mail(
                         report_msg.subject,
                         report_msg.message,
@@ -1204,13 +1211,10 @@ class AdminAdActionView(APIView):
     - approve → sets status to 'approved' (triggers notification signals)
     - reject  → permanently deletes the ad and all related data
     """
-    permission_classes = [IsAuthenticated]
-    throttle_classes = [OTPThrottle]
+    permission_classes = [IsAuthenticated, IsAdmin]
+    throttle_classes = [AdminThrottle]
 
     def post(self, request, ad_id):
-        # Only admins can use this endpoint
-        if getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': 'ليس لديك صلاحية الوصول'}, status=status.HTTP_403_FORBIDDEN)
 
         action = request.data.get('action')
         if action not in ('approve', 'reject', 'delete'):
@@ -1300,6 +1304,254 @@ class CustomAuthToken(ObtainAuthToken):
             })
         else:
             return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)
+
+
+def _verify_google_token_payload(id_token_str):
+    """
+    التحقق من صحة Google ID Token بعدة طرق متدرجة:
+    1. مكتبة google.oauth2.id_token الرسمية
+    2. استعلام مباشر لنقطة النهاية الرسمية لـ Google tokeninfo
+    3. Firebase Admin Auth في حال كان التوكن صادراً من Firebase
+    """
+    if not id_token_str:
+        return None
+
+    # 1. مكتبة google-auth الرسمية
+    try:
+        from google.oauth2 import id_token as google_id_token
+        from google.auth.transport import requests as google_requests
+        configured_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '').strip() or None
+
+        # نجرب أولاً مع المعرف المحدد إن وُجد
+        try:
+            payload = google_id_token.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                audience=configured_client_id
+            )
+            if payload:
+                return payload
+        except Exception:
+            # إذا فشل التحقق بسبب اختلاف الـ audience (مثلاً بين الويب والأندرويد)، نتحقق من التوقيع العام
+            payload = google_id_token.verify_oauth2_token(
+                id_token_str,
+                google_requests.Request(),
+                audience=None
+            )
+            if payload:
+                return payload
+    except Exception as e:
+        logger.debug(f"[GoogleAuth] verify_oauth2_token failed: {e}")
+
+    # 2. HTTP Tokeninfo من جوجل مباشرة كخيار بديل موثوق
+    try:
+        import requests
+        resp = requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'id_token': id_token_str},
+            timeout=8
+        )
+        if resp.status_code == 200:
+            payload = resp.json()
+            issuer = payload.get('iss', '')
+            if 'accounts.google.com' in issuer:
+                return payload
+    except Exception as e:
+        logger.debug(f"[GoogleAuth] tokeninfo endpoint check failed: {e}")
+
+    # 3. Firebase Admin Auth
+    try:
+        import firebase_admin.auth
+        decoded = firebase_admin.auth.verify_id_token(id_token_str)
+        if decoded:
+            return decoded
+    except Exception as e:
+        logger.debug(f"[GoogleAuth] firebase verify_id_token failed: {e}")
+
+    return None
+
+
+class GoogleAuthConfigView(APIView):
+    """
+    GET /api/auth/google/config/
+    يرجع المعرف العام (GOOGLE_CLIENT_ID) للموقع أو التطبيق لتهيئة الزر
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        return Response({
+            'client_id': getattr(settings, 'GOOGLE_CLIENT_ID', '')
+        })
+
+
+class GoogleAuthView(APIView):
+    """
+    POST /api/auth/google/
+    تسجيل الدخول أو إنشاء حساب جديد فوراً عبر حساب Google
+    """
+    permission_classes = [AllowAny]
+    throttle_classes = [OTPThrottle]
+
+    def post(self, request):
+        id_token_str = (
+            request.data.get('id_token')
+            or request.data.get('credential')
+            or request.data.get('token')
+            or ''
+        ).strip()
+
+        if not id_token_str:
+            return Response(
+                {'error': 'رمز الدخول (id_token) من Google مطلوب.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        payload = _verify_google_token_payload(id_token_str)
+        if not payload:
+            return Response(
+                {'error': 'فشل التحقق من صحة حساب Google. يرجى إعادة المحاولة.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        email = str(payload.get('email', '')).strip().lower()
+        if not email or '@' not in email:
+            return Response(
+                {'error': 'تعذر استخراج البريد الإلكتروني من حساب Google.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        # التحقق من أن البريد موثق
+        email_verified = payload.get('email_verified')
+        if isinstance(email_verified, str):
+            email_verified = email_verified.lower() in ('true', '1')
+        elif email_verified is None:
+            email_verified = True  # معظم مزودي جوجل يفعلونه افتراضياً
+
+        if not email_verified:
+            return Response(
+                {'error': 'البريد الإلكتروني المرتبط بحساب Google غير موثق.'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        fcm_token = request.data.get('fcm_token', '').strip()
+        device_id = request.data.get('device_id', '').strip()
+        referral_code = (request.data.get('referral_code') or request.data.get('referred_by_code') or '').strip().upper()
+
+        user = User.objects.filter(email__iexact=email).first()
+        is_new_user = False
+
+        if user:
+            # تفعيل الحساب فوراً إذا كان غير مفعّل لأن جوجل وثّق البريد
+            if not user.is_active:
+                user.is_active = True
+                user.save(update_fields=['is_active'])
+                cache.delete(f'verify_{user.email}')
+        else:
+            # إنشاء حساب جديد مباشرة وتفعيله تلقائياً
+            is_new_user = True
+            raw_name = payload.get('name') or payload.get('given_name') or email.split('@')[0]
+            clean_name = re.sub(r'[^\w\s.@+-]', '', str(raw_name)).strip()
+            clean_name = re.sub(r'\s+', ' ', clean_name)
+
+            if len(clean_name) < 3:
+                clean_name = f"user_{secrets.randbelow(8999) + 1000}"
+            elif len(clean_name) > 130:
+                clean_name = clean_name[:130]
+
+            # التأكد من فريدة اسم المستخدم
+            base_name = clean_name
+            username_candidate = base_name
+            suffix_counter = 1
+            while User.objects.filter(username=username_candidate).exists():
+                username_candidate = f"{base_name[:120]}_{secrets.randbelow(8999) + 1000}"
+                suffix_counter += 1
+                if suffix_counter > 10:
+                    username_candidate = f"user_{secrets.randbelow(899999) + 100000}"
+                    break
+
+            user = User(
+                username=username_candidate,
+                email=email,
+                is_active=True,
+                device_id=device_id or None
+            )
+            user.set_unusable_password()
+            user.save()
+
+            # ربط كود الإحالة إن وُجد
+            if referral_code:
+                referrer = User.objects.filter(referral_code=referral_code).first()
+                if referrer and referrer != user:
+                    Referral.objects.get_or_create(referrer=referrer, referred=user)
+
+            # منح القسائم الترحيبية التلقائية إن كانت مفعلة
+            email_already_welcomed = WelcomeCouponRecord.objects.filter(email=email).exists()
+            device_already_welcomed = False
+            if device_id:
+                device_already_welcomed = WelcomeCouponRecord.objects.filter(device_id=device_id).exists()
+
+            if not email_already_welcomed and not device_already_welcomed:
+                welcome_enabled = SystemSetting.get_bool('welcome_free_ads_enabled', default=True)
+                welcome_count = SystemSetting.get_int('welcome_free_ads_count', default=1)
+                welcome_days = SystemSetting.get_int('welcome_free_ads_days', default=30)
+
+                if welcome_enabled and welcome_count > 0:
+                    now = timezone.now()
+                    expires_at = now + timedelta(days=welcome_days)
+                    coupons = []
+                    safe_uname = re.sub(r'[^A-Za-z0-9]', '', user.username)[:5].upper() or 'USER'
+                    for _ in range(welcome_count):
+                        welcome_code = f"WELCOME-{safe_uname}-{str(uuid_lib.uuid4())[:4].upper()}"
+                        coupons.append(Coupon(
+                            user=user,
+                            code=welcome_code,
+                            coupon_type='free_ad',
+                            expires_at=expires_at
+                        ))
+                    Coupon.objects.bulk_create(coupons)
+                    WelcomeCouponRecord.objects.create(email=email, device_id=user.device_id or None)
+
+                    if welcome_count == 1:
+                        ad_msg = "قسيمة إعلان مجاني كهدية ترحيبية"
+                    elif welcome_count == 2:
+                        ad_msg = "قسيمتي إعلانات مجانية كهدية ترحيبية"
+                    elif 3 <= welcome_count <= 10:
+                        ad_msg = f"{welcome_count} قسائم إعلانات مجانية كهدية ترحيبية"
+                    else:
+                        ad_msg = f"{welcome_count} قسيمة إعلانات مجانية كهدية ترحيبية"
+
+                    try:
+                        Notification.objects.create(
+                            user=user,
+                            title="🎉 مرحباً بك في Daily Job!",
+                            message=f"أهلاً {user.username}، تم تفعيل حسابك بنجاح عبر Google ومنحك {ad_msg}!",
+                        )
+                    except Exception as e:
+                        logger.warning(f"[GoogleAuth] Notification creation failed: {e}")
+
+        # تحديث رمز FCM للمستخدم
+        if fcm_token:
+            user.fcm_token = fcm_token
+            user.save(update_fields=['fcm_token'])
+
+        # توليد أو جلب DRF Token
+        token, _ = Token.objects.get_or_create(user=user)
+
+        return Response({
+            'token': token.key,
+            'user_id': str(user.pk),
+            'email': user.email,
+            'username': user.username,
+            'role': getattr(user, 'role', 'user'),
+            'referral_code': user.referral_code,
+            'notifications_enabled': getattr(user, 'notifications_enabled', True),
+            'notify_all_ads': getattr(user, 'notify_all_ads', True),
+            'preferred_governorates': getattr(user, 'preferred_governorates', []) or [],
+            'preferred_categories': getattr(user, 'preferred_categories', []) or [],
+            'is_new_user': is_new_user,
+            'message': 'تم تسجيل الدخول بنجاح عبر حساب Google'
+        }, status=status.HTTP_200_OK)
+
 
 class UpdateFCMTokenView(APIView):
     """
@@ -1542,21 +1794,22 @@ class TestPushNotificationView(APIView):
     POST /api/test-push/
     نقطة فحص وتشخيص واختبار إشعارات Firebase الفورية
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
-        if getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': 'Admin access required.'}, status=status.HTTP_403_FORBIDDEN)
         from .firebase_utils import _ensure_firebase_app
         import firebase_admin
 
         is_init = _ensure_firebase_app()
         total_users = User.objects.count()
         users_with_tokens = User.objects.exclude(fcm_token__isnull=True).exclude(fcm_token='').count()
-        has_env_json = bool(os.getenv('FIREBASE_CREDENTIALS_JSON'))
-        has_cred_path = bool(os.getenv('FIREBASE_CRED_PATH'))
-        has_render_secret = os.path.exists('/etc/secrets/firebase-adminsdk.json')
-        has_local_file = os.path.exists(os.path.join(settings.BASE_DIR, 'firebase-adminsdk.json'))
+        # حذف تفاصيل مسارات credentials لمنع تسريب معلومات حساسة
+        has_credentials = bool(
+            os.getenv('FIREBASE_CREDENTIALS_JSON')
+            or os.getenv('FIREBASE_CRED_PATH')
+            or os.path.exists('/etc/secrets/firebase-adminsdk.json')
+            or os.path.exists(os.path.join(settings.BASE_DIR, 'firebase-adminsdk.json'))
+        )
 
         user_info = None
         if request.user and request.user.is_authenticated:
@@ -1576,12 +1829,7 @@ class TestPushNotificationView(APIView):
             'status': 'ok',
             'firebase_initialized': is_init,
             'firebase_apps': [a.name for a in firebase_admin._apps.values()] if firebase_admin._apps else [],
-            'credentials_source': {
-                'env_FIREBASE_CREDENTIALS_JSON': has_env_json,
-                'env_FIREBASE_CRED_PATH': has_cred_path,
-                'render_secret_file': has_render_secret,
-                'local_file': has_local_file,
-            },
+            'credentials_available': has_credentials,
             'database_stats': {
                 'total_users': total_users,
                 'users_with_fcm_token': users_with_tokens,
@@ -1590,8 +1838,6 @@ class TestPushNotificationView(APIView):
         })
 
     def post(self, request):
-        if not (getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser):
-            return Response({'error': 'صلاحية الأدمن مطلوبة لتنفيذ هذا الإجراء.'}, status=status.HTTP_403_FORBIDDEN)
 
         from .firebase_utils import send_push_notification, send_topic_notification, send_multicast_push_notification, _ensure_firebase_app
 
@@ -1663,12 +1909,10 @@ class TestPushNotificationView(APIView):
 
 
 class AdminGrantCouponsView(APIView):
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def post(self, request):
         user = request.user
-        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
-            return Response({"error": "Unauthorized"}, status=403)
 
         target = request.data.get('target') # 'all' or 'specific'
         user_id = request.data.get('user_id') # id if specific
@@ -1788,12 +2032,10 @@ class AdminWelcomeSettingsView(APIView):
     GET: استرجاع الإعدادات الحالية
     POST: تحديث الإعدادات (تفعيل/تعطيل، عدد الإعلانات، مدة الصلاحية بالأيام)
     """
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, IsAdmin]
 
     def get(self, request):
         user = request.user
-        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
-            return Response({"error": "Unauthorized"}, status=403)
 
         enabled = SystemSetting.get_bool('welcome_free_ads_enabled', default=True)
         count = SystemSetting.get_int('welcome_free_ads_count', default=1)
@@ -1807,8 +2049,6 @@ class AdminWelcomeSettingsView(APIView):
 
     def post(self, request):
         user = request.user
-        if not (getattr(user, 'role', '') == 'admin' or user.is_staff or user.is_superuser):
-            return Response({"error": "Unauthorized"}, status=403)
 
         enabled = request.data.get('enabled')
         count = request.data.get('count')
@@ -1876,7 +2116,7 @@ class AccountDeletionRequestView(APIView):
         )
         
         try:
-            admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', 'dailyjob2026@gmail.com')
+            admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
             send_mail(
                 subject=f'طلب حذف حساب - {email}',
                 message=f'تم استلام طلب حذف حساب:\n\nالبريد: {email}\nالهاتف: {phone}\nالسبب: {reason}',

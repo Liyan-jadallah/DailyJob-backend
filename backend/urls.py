@@ -9,7 +9,9 @@ import os
 urlpatterns = [
     path('dj-secure-panel/', admin.site.urls),
     path('api/', include('core.urls')), 
+    path('api/v1/', include('core.urls')),  # API Versioning — تدعم الإصدار v1 بالتوازي مع المسار الأصلي
     path('api/login/', CustomAuthToken.as_view(), name='api-login'), 
+    path('api/v1/login/', CustomAuthToken.as_view(), name='api-v1-login'),
     path('', index, name='index'),
 ]
 

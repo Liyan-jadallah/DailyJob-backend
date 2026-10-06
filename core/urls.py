@@ -24,6 +24,8 @@ from .views import (
     AccountDeletionRequestView,
     HealthCheckView,
     LogoutView,
+    GoogleAuthView,
+    GoogleAuthConfigView,
 )
 
 router = DefaultRouter()
@@ -37,7 +39,9 @@ router.register(r'coupons', CouponViewSet, basename='coupon')
 urlpatterns = [
     path('', include(router.urls)),
 
-    # Auth / Email verification / Password reset / Logout
+    # Auth / Email verification / Password reset / Logout / Google Sign-In
+    path('auth/google/', GoogleAuthView.as_view(), name='google-auth'),
+    path('auth/google/config/', GoogleAuthConfigView.as_view(), name='google-auth-config'),
     path('logout/', LogoutView.as_view(), name='logout'),
     path('verify-email/', VerifyEmailView.as_view(), name='verify-email'),
     path('resend-otp/', ResendOTPView.as_view(), name='resend-otp'),
@@ -53,7 +57,7 @@ urlpatterns = [
     path('test-push/', TestPushNotificationView.as_view(), name='test-push'),
 
     # Admin actions (approve / reject & delete)
-    path('ads/<str:ad_id>/action/', AdminAdActionView.as_view(), name='admin-ad-action'),
+    path('ads/<uuid:ad_id>/action/', AdminAdActionView.as_view(), name='admin-ad-action'),
     path('admin/grant-coupons/', AdminGrantCouponsView.as_view(), name='admin-grant-coupons'),
     path('admin/welcome-settings/', AdminWelcomeSettingsView.as_view(), name='admin-welcome-settings'),
 

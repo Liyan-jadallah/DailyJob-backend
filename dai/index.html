@@ -24,7 +24,8 @@
     href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;700;800;900&family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-  <link rel="stylesheet" href="style.css?v=63">
+  <link rel="stylesheet" href="style.css?v=64">
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <style>
     .image-source-sheet {
       max-width: 380px !important;
@@ -924,6 +925,11 @@
           <i class="fa-solid fa-sign-in-alt"></i>
           <span data-i18n="login">Login</span>
         </button>
+
+        <div class="auth-divider">
+          <span data-i18n="or">أو</span>
+        </div>
+        <div id="googleBtnLogin" class="google-auth-btn-wrapper"></div>
       </div>
 
       <!-- 1. شاشة تأكيد البريد (بعد التسجيل) -->
@@ -1031,6 +1037,11 @@
           <i class="fa-solid fa-user-plus"></i>
           <span data-i18n="createAccount">Create Account</span>
         </button>
+
+        <div class="auth-divider">
+          <span data-i18n="or">أو</span>
+        </div>
+        <div id="googleBtnRegister" class="google-auth-btn-wrapper"></div>
       </div>
     </div>
   </div>

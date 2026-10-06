@@ -19,7 +19,7 @@ services:
       - key: CORS_ALLOW_ALL_ORIGINS
         value: "False"
       - key: CELERY_EAGER
-        value: "True"
+        value: "False"
       - key: BREVO_API_KEY
         sync: false
       - key: RESEND_API_KEY
@@ -28,6 +28,8 @@ services:
         sync: false
       - key: DEFAULT_FROM_EMAIL
         value: "dailyjob2026@gmail.com"
+      - key: GOOGLE_CLIENT_ID
+        sync: false
 
   - type: cron
     name: dailyjob-cron

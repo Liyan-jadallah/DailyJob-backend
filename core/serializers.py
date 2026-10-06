@@ -5,6 +5,7 @@ from .models import User, PaymentMethod, Ad, AdCategory, AdImage, Transaction, N
 from .minimal_user_serializer import MinimalUserSerializer
 
 def _resolve_media_url(file_field, request=None):
+    """تحويل حقل الملف إلى URL كامل — بدون فحص File System لتحسين الأداء"""
     if not file_field:
         return None
     name = getattr(file_field, 'name', str(file_field))
@@ -13,24 +14,19 @@ def _resolve_media_url(file_field, request=None):
     if name.startswith('http://') or name.startswith('https://'):
         return name
 
-    # Check if local file exists on disk (seed image committed in git)
-    normalized = name.replace('\\', '/').lstrip('/')
-    if normalized.startswith('media/'):
-        normalized = normalized[6:]
-
-    local_path = os.path.join(settings.MEDIA_ROOT, *normalized.split('/'))
-    if os.path.exists(local_path):
-        url = f"{settings.MEDIA_URL.rstrip('/')}/{normalized}"
-        return request.build_absolute_uri(url) if request else url
-
-    # Otherwise, use storage URL (Cloudinary for newly uploaded images)
+    # استخدام Storage URL مباشرة (Cloudinary أو FileSystem) بدون فحص os.path.exists
     try:
         url = file_field.url
         if request and not url.startswith('http'):
             return request.build_absolute_uri(url)
         return url
     except Exception:
-        return None
+        # Fallback: بناء URL يدوياً من اسم الملف
+        normalized = name.replace('\\', '/').lstrip('/')
+        if normalized.startswith('media/'):
+            normalized = normalized[6:]
+        url = f"{settings.MEDIA_URL.rstrip('/')}/{normalized}"
+        return request.build_absolute_uri(url) if request else url
 
 class AdCategorySerializer(serializers.ModelSerializer):
     class Meta:
@@ -240,9 +236,17 @@ class AdSerializer(serializers.ModelSerializer):
         if not is_admin:
             return None
 
-        tx = obj.transactions.filter(receipt_image__isnull=False).exclude(receipt_image='').order_by('-submitted_at').first()
-        if not tx:
-            tx = obj.transactions.order_by('-submitted_at').first()
+        # استخدام prefetch cache بدلاً من استعلام DB منفصل لكل إعلان (N+1 fix)
+        all_txs = list(obj.transactions.all())  # يستخدم الـ prefetch_related cache
+        tx_with_receipt = None
+        tx_latest = None
+        for tx in sorted(all_txs, key=lambda t: t.submitted_at, reverse=True):
+            if not tx_latest:
+                tx_latest = tx
+            if tx.receipt_image and str(tx.receipt_image):
+                tx_with_receipt = tx
+                break
+        tx = tx_with_receipt or tx_latest
         if tx and tx.receipt_image:
             return _resolve_media_url(tx.receipt_image, request)
         return None

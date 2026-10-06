@@ -2203,6 +2203,39 @@ html[dir="rtl"] .modal-close {
 }
 
 /* ============================================
+   GOOGLE AUTH DIVIDER & BUTTON WRAPPER
+   ============================================ */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  text-align: center;
+  margin: 18px 0 14px 0;
+  color: var(--ink-400, #94a3b8);
+  font-size: 13px;
+  font-weight: 700;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  border-bottom: 1px solid var(--border-color, #e2e8f0);
+}
+.auth-divider span {
+  padding: 0 12px;
+}
+.google-auth-btn-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 44px;
+  margin-bottom: 6px;
+  width: 100%;
+}
+.google-auth-btn-wrapper iframe {
+  margin: 0 auto !important;
+}
+
+/* ============================================
    NOTIFICATIONS LIST
    ============================================ */
 

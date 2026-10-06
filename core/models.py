@@ -23,7 +23,7 @@ class WelcomeCouponRecord(models.Model):
     سجل دائم يحفظ كل إيميل وجهاز حصل على قسيمة ترحيبية.
     يبقى حتى لو حُذف الحساب، لمنع الاستغلال المتكرر.
     """
-    email = models.EmailField(unique=True, db_index=True)
+    email = models.EmailField(unique=True)  # unique=True يُنشئ فهرساً تلقائياً — لا حاجة لـ db_index
     device_id = models.CharField(max_length=255, blank=True, null=True, db_index=True)
     granted_at = models.DateTimeField(auto_now_add=True)
 
@@ -187,8 +187,8 @@ class Ad(models.Model):
                     message=f"تمت الموافقة على إعلانك '{self.title}' وهو الآن متاح للجميع.",
                     ad_id=self.id
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[AD] Approval notification failed for ad '{self.title}': {e}")
 
             # 2. إرسال إشعار عام للجميع (عبر Celery مع دعم التشغيل الفوري كـ Thread)
             def _dispatch_global_notification():
@@ -245,8 +245,8 @@ class Ad(models.Model):
                     message=f"للأسف تم رفض إعلانك '{self.title}'. يمكنك التواصل معنا لمعرفة السبب.",
                     ad_id=self.id
                 )
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"[AD] Rejection notification failed for ad '{self.title}': {e}")
 
     def __str__(self):
         return self.title
@@ -272,13 +272,16 @@ class Coupon(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='coupons')
     code = models.CharField(max_length=50, unique=True)
     coupon_type = models.CharField(max_length=20, choices=COUPON_TYPE_CHOICES, default='free_ad')
-    is_used = models.BooleanField(default=False)
+    is_used = models.BooleanField(default=False, db_index=True)
     used_at = models.DateTimeField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     expires_at = models.DateTimeField(null=True, blank=True)
 
     class Meta:
         db_table = 'coupons'
+        indexes = [
+            models.Index(fields=['user', 'is_used'], name='idx_coupon_user_used'),
+        ]
 
     def save(self, *args, **kwargs):
         if not self.expires_at:
@@ -326,11 +329,14 @@ class Transaction(models.Model):
     amount = models.DecimalField(max_digits=10, decimal_places=2, default=1.00)
     receipt_image = models.ImageField(upload_to=receipt_upload_path, blank=True, null=True)
     coupon = models.ForeignKey(Coupon, on_delete=models.SET_NULL, null=True, blank=True, related_name='transactions')
-    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending')
-    submitted_at = models.DateTimeField(auto_now_add=True)
+    status = models.CharField(max_length=50, choices=STATUS_CHOICES, default='pending', db_index=True)
+    submitted_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         db_table = 'transactions'
+        indexes = [
+            models.Index(fields=['user', '-submitted_at'], name='idx_tx_user_date'),
+        ]
 
     def save(self, *args, **kwargs):
         if self.ad and not self.ad_title:
@@ -343,15 +349,19 @@ class Transaction(models.Model):
 
 
 class Notification(models.Model):
-    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications')
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='notifications', db_index=True)
     title = models.CharField(max_length=255)
     message = models.TextField()
     ad_id = models.UUIDField(null=True, blank=True)
-    is_read = models.BooleanField(default=False)
-    created_at = models.DateTimeField(auto_now_add=True)
+    is_read = models.BooleanField(default=False, db_index=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
 
     class Meta:
         db_table = 'notifications'
+        indexes = [
+            models.Index(fields=['user', 'is_read'], name='idx_notif_user_read'),
+            models.Index(fields=['user', '-created_at'], name='idx_notif_user_date'),
+        ]
 
     def __str__(self):
         return f"{self.user.username} - {self.title}"
@@ -388,31 +398,30 @@ def notify_admins_of_transaction(sender, instance, created, **kwargs):
         # 3. Send email alert asynchronously in daemon thread (non-blocking)
         admin_emails = [admin.email for admin in admin_users if admin.email]
         if admin_emails:
-            receipt_name = instance.receipt_image.name if instance.receipt_image else None
-            receipt_content = None
+            # إرسال إيميل بدون تحميل ملف الإيصال في الذاكرة — فقط رابط الإيصال
+            receipt_url_str = ''
             if instance.receipt_image:
                 try:
-                    receipt_content = instance.receipt_image.read()
+                    receipt_url_str = instance.receipt_image.url
                 except Exception:
                     pass
 
             def _send_receipt_email_async():
                 try:
-                    from django.core.mail import EmailMessage
-                    email = EmailMessage(
+                    from django.core.mail import send_mail
+                    body = f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}."
+                    if receipt_url_str:
+                        body += f"\nرابط الإيصال: {receipt_url_str}"
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+                    send_mail(
                         subject="إيصال دفع جديد للمراجعة",
-                        body=f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}.\nتجد الإيصال مرفقاً بهذه الرسالة.",
-                        from_email=settings.EMAIL_HOST_USER,
-                        to=admin_emails,
+                        message=body,
+                        from_email=from_email,
+                        recipient_list=admin_emails,
+                        fail_silently=True,
                     )
-                    if receipt_name and receipt_content:
-                        try:
-                            email.attach(receipt_name, receipt_content, 'image/jpeg')
-                        except Exception:
-                            pass
-                    email.send(fail_silently=True)
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning(f"[SIGNAL] Receipt email failed: {e}")
                 finally:
                     from django.db import connection
                     connection.close()

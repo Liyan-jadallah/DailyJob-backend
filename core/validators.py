@@ -59,3 +59,66 @@ def validate_image_file(file_obj):
         raise serializers.ValidationError("الملف المرفوع تالف أو ليس صورة صالحة.")
 
     return file_obj
+
+
+def optimize_image(file_obj, max_dimension=1920, quality=85):
+    """
+    ضغط وتحسين الصورة المرفوعة لتقليل حجمها:
+    - تصغير الأبعاد إذا تجاوزت max_dimension
+    - ضغط الجودة إلى quality%
+    - تحويل PNG الكبيرة إلى JPEG إذا لم تحتوي على شفافية
+    """
+    if not file_obj:
+        return file_obj
+    
+    try:
+        import io
+        curr_pos = file_obj.tell() if hasattr(file_obj, 'tell') else 0
+        img = Image.open(file_obj)
+        
+        # لا نعالج الصور الصغيرة (أقل من 200KB)
+        file_obj.seek(0, 2)
+        file_size = file_obj.tell()
+        file_obj.seek(curr_pos)
+        if file_size < 200 * 1024:
+            return file_obj
+        
+        # تصغير الأبعاد إذا كانت كبيرة
+        if img.width > max_dimension or img.height > max_dimension:
+            img.thumbnail((max_dimension, max_dimension), Image.Resampling.LANCZOS)
+        
+        # تحديد صيغة الإخراج
+        output_format = img.format or 'JPEG'
+        if output_format == 'PNG' and img.mode != 'RGBA':
+            output_format = 'JPEG'
+        
+        if output_format == 'JPEG' and img.mode in ('RGBA', 'P'):
+            img = img.convert('RGB')
+        
+        # حفظ الصورة المضغوطة
+        buffer = io.BytesIO()
+        save_kwargs = {'optimize': True}
+        if output_format in ('JPEG', 'WEBP'):
+            save_kwargs['quality'] = quality
+        img.save(buffer, format=output_format, **save_kwargs)
+        buffer.seek(0)
+        
+        # تحديث ملف الرفع
+        from django.core.files.uploadedfile import InMemoryUploadedFile
+        ext_map = {'JPEG': '.jpg', 'PNG': '.png', 'WEBP': '.webp'}
+        ext = ext_map.get(output_format, '.jpg')
+        
+        optimized = InMemoryUploadedFile(
+            file=buffer,
+            field_name=getattr(file_obj, 'field_name', 'image'),
+            name=os.path.splitext(file_obj.name)[0] + ext,
+            content_type=f'image/{output_format.lower()}',
+            size=buffer.getbuffer().nbytes,
+            charset=None,
+        )
+        return optimized
+    except Exception:
+        # إذا فشل الضغط، نعيد الملف الأصلي
+        if hasattr(file_obj, 'seek'):
+            file_obj.seek(0)
+        return file_obj
