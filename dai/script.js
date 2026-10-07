@@ -2918,7 +2918,7 @@
 
           <span><i class="fa-regular fa-clock"></i>${formatRelative(ad.createdAt)}</span>
 
-          <span><i class="fa-solid fa-location-dot"></i>${govName} - ${escapeHtml(ad.area[state.lang])}</span>
+          <span><i class="fa-solid fa-location-dot"></i>${escapeHtml(govName || '')} - ${escapeHtml(ad.area[state.lang])}</span>
 
           <span><i class="fa-regular fa-eye"></i>${ad.views || 0}</span>
 
@@ -9954,7 +9954,15 @@
 
           users.forEach(u => {
 
-            select.innerHTML += `<option value="${u.id}" title="${u.email}">${u.username} (${u.email})</option>`;
+            const opt = document.createElement('option');
+
+            opt.value = u.id;
+
+            opt.title = u.email || '';
+
+            opt.textContent = `${u.username || 'مستخدم'} (${u.email || ''})`;
+
+            select.appendChild(opt);
 
           });
 

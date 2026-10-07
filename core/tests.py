@@ -1,5 +1,5 @@
 """
-اختبارات أساسية لتطبيق Daily Job — تغطي النقاط الأمنية والوظيفية الأساسية
+اختبارات شاملة لتطبيق Daily Job — تغطي النقاط الأمنية والوظيفية الأساسية
 """
 from django.test import TestCase, override_settings
 from django.urls import reverse
@@ -34,6 +34,7 @@ class UtilsTestCase(TestCase):
         self.assertEqual(normalize_otp(' 123456 '), '123456')
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class AuthTestCase(TestCase):
     """اختبارات المصادقة"""
 
@@ -69,6 +70,7 @@ class AuthTestCase(TestCase):
         self.assertEqual(res.status_code, 400)
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class PaginationSecurityTestCase(TestCase):
     """اختبار حماية الـ Pagination من تجاوز المستخدمين العاديين"""
 
@@ -106,6 +108,7 @@ class PaginationSecurityTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class PasswordResetSecurityTestCase(TestCase):
     """اختبار حماية استعادة كلمة المرور من User Enumeration"""
 
@@ -129,6 +132,7 @@ class PasswordResetSecurityTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class AdminPermissionTestCase(TestCase):
     """اختبار صلاحيات الأدمن"""
 
@@ -152,6 +156,7 @@ class AdminPermissionTestCase(TestCase):
         self.assertIn(res.status_code, [403, 401])
 
 
+@override_settings(SECURE_SSL_REDIRECT=False)
 class HealthCheckTestCase(TestCase):
     """اختبار نقطة فحص الصحة"""
 

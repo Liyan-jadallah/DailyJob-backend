@@ -301,18 +301,21 @@ class VerifyEmailView(APIView):
         entered_otp = raw_otp.translate(trans_table)
 
         user = User.objects.filter(email__iexact=email).first()
-        if user and user.is_active:
-            # الحساب مفعّل مسبقاً — نُرجع token مباشرة ونسجل دخوله
-            token, _ = Token.objects.get_or_create(user=user)
-            return Response({
-                'message': 'حسابك مفعّل بالفعل. تم تسجيل دخولك.',
-                'token': token.key,
-                'user_id': str(user.pk),
-                'email': user.email,
-                'username': user.username,
-                'role': user.role,
-                'referral_code': user.referral_code,
-            }, status=status.HTTP_200_OK)
+        if not user:
+            return Response(
+                {'error': 'البريد الإلكتروني غير مسجل لدينا.', 'code': 'not_found'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        if user.is_active:
+            # الحساب مفعّل مسبقاً — يُحظر إصدار التوكن بدون تسجيل دخول نظامي بكلمة المرور
+            return Response(
+                {
+                    'error': 'حسابك مفعّل بالفعل! يمكنك تسجيل الدخول مباشرة بكلمة المرور.',
+                    'code': 'already_active'
+                },
+                status=status.HTTP_400_BAD_REQUEST
+            )
 
         # جلب الرمز المخزن لهذا الإيميل
         cached_otp = cache.get(f'verify_{email}')
@@ -1313,44 +1316,73 @@ class CustomAuthToken(ObtainAuthToken):
             return Response({'error': 'بيانات الدخول غير صحيحة'}, status=status.HTTP_400_BAD_REQUEST)
 
 
+def _get_allowed_google_audiences():
+    """قائمة معرفات العميل (Client IDs) المعتمدة رسمياً لتطبيق Daily Job"""
+    audiences = set()
+    configured_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '').strip()
+    if configured_client_id:
+        for cid in configured_client_id.split(','):
+            if cid.strip():
+                audiences.add(cid.strip())
+    add_cids = os.getenv('GOOGLE_CLIENT_IDS', '').strip()
+    if add_cids:
+        for cid in add_cids.split(','):
+            if cid.strip():
+                audiences.add(cid.strip())
+    # المعرف الأساسي المعتمد للمشروع (الموقع وتطبيق الموبايل)
+    audiences.add('588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com')
+    return audiences
+
+
 def _verify_google_token_payload(id_token_str):
     """
-    التحقق من صحة Google ID Token بعدة طرق متدرجة:
-    1. مكتبة google.oauth2.id_token الرسمية
-    2. استعلام مباشر لنقطة النهاية الرسمية لـ Google tokeninfo
+    التحقق الصارم من صحة Google ID Token ومن الـ Audience المعتمدة للمنصة حصراً:
+    1. مكتبة google.oauth2.id_token الرسمية مع فحص التوقيع والـ audience
+    2. استعلام مباشر لنقطة النهاية الرسمية لـ Google tokeninfo مع فحص التوقيع والـ aud
     3. Firebase Admin Auth في حال كان التوكن صادراً من Firebase
+    4. Google Userinfo مع التحقق المسبق من الـ tokeninfo لمنع استغلال Access Tokens خارجية
     """
     if not id_token_str:
         return None
+
+    allowed_audiences = _get_allowed_google_audiences()
 
     # 1. مكتبة google-auth الرسمية
     try:
         from google.oauth2 import id_token as google_id_token
         from google.auth.transport import requests as google_requests
-        configured_client_id = getattr(settings, 'GOOGLE_CLIENT_ID', '').strip() or None
 
-        # نجرب أولاً مع المعرف المحدد إن وُجد
+        # التحقق مقابل كل Client ID مسموح
+        for aud in allowed_audiences:
+            try:
+                payload = google_id_token.verify_oauth2_token(
+                    id_token_str,
+                    google_requests.Request(),
+                    audience=aud
+                )
+                if payload:
+                    return payload
+            except Exception:
+                continue
+
+        # فحص إضافي: التحقق من صحة التوقيع عبر Google ثم مطابقة الـ aud يدوياً
         try:
-            payload = google_id_token.verify_oauth2_token(
-                id_token_str,
-                google_requests.Request(),
-                audience=configured_client_id
-            )
-            if payload:
-                return payload
-        except Exception:
-            # إذا فشل التحقق بسبب اختلاف الـ audience (مثلاً بين الويب والأندرويد)، نتحقق من التوقيع العام
             payload = google_id_token.verify_oauth2_token(
                 id_token_str,
                 google_requests.Request(),
                 audience=None
             )
-            if payload:
+            if payload and payload.get('aud') in allowed_audiences:
                 return payload
+            elif payload:
+                logger.warning(f"[GoogleAuth] Token rejected: audience '{payload.get('aud')}' not in allowed list.")
+                return None
+        except Exception as e:
+            logger.debug(f"[GoogleAuth] verify_oauth2_token general verification failed: {e}")
     except Exception as e:
         logger.debug(f"[GoogleAuth] verify_oauth2_token failed: {e}")
 
-    # 2. HTTP Tokeninfo من جوجل مباشرة كخيار بديل موثوق
+    # 2. HTTP Tokeninfo من جوجل مباشرة مع التحقق الصارم من الـ aud
     try:
         import requests
         resp = requests.get(
@@ -1361,12 +1393,16 @@ def _verify_google_token_payload(id_token_str):
         if resp.status_code == 200:
             payload = resp.json()
             issuer = payload.get('iss', '')
-            if 'accounts.google.com' in issuer:
+            token_aud = payload.get('aud', '')
+            if 'accounts.google.com' in issuer and token_aud in allowed_audiences:
                 return payload
+            elif token_aud not in allowed_audiences:
+                logger.warning(f"[GoogleAuth] Tokeninfo rejected: audience '{token_aud}' not allowed.")
+                return None
     except Exception as e:
         logger.debug(f"[GoogleAuth] tokeninfo endpoint check failed: {e}")
 
-    # 3. Firebase Admin Auth
+    # 3. Firebase Admin Auth (يتحقق تلقائياً من صحة المشروع)
     try:
         import firebase_admin.auth
         decoded = firebase_admin.auth.verify_id_token(id_token_str)
@@ -1375,20 +1411,29 @@ def _verify_google_token_payload(id_token_str):
     except Exception as e:
         logger.debug(f"[GoogleAuth] firebase verify_id_token failed: {e}")
 
-    # 4. Userinfo endpoint (دعم Google Access Token الصادر من OAuth2)
+    # 4. Userinfo endpoint (مع التحقق الصارم من أن التوكن صادر لهذا التطبيق عبر tokeninfo)
     try:
         import requests
-        resp = requests.get(
-            'https://www.googleapis.com/oauth2/v3/userinfo',
-            headers={'Authorization': f'Bearer {id_token_str}'},
+        token_info_resp = requests.get(
+            'https://oauth2.googleapis.com/tokeninfo',
+            params={'access_token': id_token_str},
             timeout=8
         )
-        if resp.status_code == 200:
-            payload = resp.json()
-            if payload.get('email'):
-                return payload
+        if token_info_resp.status_code == 200:
+            info = token_info_resp.json()
+            token_aud = info.get('aud') or info.get('azp') or ''
+            if token_aud in allowed_audiences:
+                resp = requests.get(
+                    'https://www.googleapis.com/oauth2/v3/userinfo',
+                    headers={'Authorization': f'Bearer {id_token_str}'},
+                    timeout=8
+                )
+                if resp.status_code == 200:
+                    payload = resp.json()
+                    if payload.get('email'):
+                        return payload
     except Exception as e:
-        logger.debug(f"[GoogleAuth] userinfo endpoint check failed: {e}")
+        logger.debug(f"[GoogleAuth] verified userinfo check failed: {e}")
 
     return None
 

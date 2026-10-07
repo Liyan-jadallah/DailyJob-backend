@@ -3,6 +3,23 @@
 from django.db import migrations
 
 
+def fix_cascade(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute("""
+            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_core_user_id;
+            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_users_id;
+            ALTER TABLE authtoken_token ADD CONSTRAINT authtoken_token_user_id_35299eff_fk_users_id 
+                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
+        """)
+
+
+def reverse_fix_cascade(apps, schema_editor):
+    if schema_editor.connection.vendor == 'postgresql':
+        schema_editor.execute("""
+            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_users_id;
+        """)
+
+
 class Migration(migrations.Migration):
 
     dependencies = [
@@ -10,15 +27,5 @@ class Migration(migrations.Migration):
     ]
 
     operations = [
-        migrations.RunSQL(
-            sql="""
-            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_core_user_id;
-            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_users_id;
-            ALTER TABLE authtoken_token ADD CONSTRAINT authtoken_token_user_id_35299eff_fk_users_id 
-                FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE;
-            """,
-            reverse_sql="""
-            ALTER TABLE authtoken_token DROP CONSTRAINT IF EXISTS authtoken_token_user_id_35299eff_fk_users_id;
-            """
-        )
+        migrations.RunPython(fix_cascade, reverse_fix_cascade),
     ]
