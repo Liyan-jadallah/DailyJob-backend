@@ -162,12 +162,6 @@ class UserViewSet(viewsets.ModelViewSet):
         if user != request.user:
             return Response({'error': 'لا تملك صلاحية حذف هذا الحساب'}, status=status.HTTP_403_FORBIDDEN)
 
-        # التحقق من كلمة المرور قبل الحذف (إذا كان للحساب كلمة مرور محددة)
-        if user.has_usable_password():
-            password = request.data.get('password')
-            if not password or not user.check_password(password):
-                return Response({'error': 'كلمة المرور غير صحيحة. يرجى إدخال كلمة المرور لتأكيد حذف الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
-
         # حذف الـ Token لإنهاء كل الجلسات النشطة
         Token.objects.filter(user=user).delete()
 

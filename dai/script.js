@@ -336,7 +336,7 @@
 
     },
 
-    deleteAccount: async (userId, token, password) => {
+    deleteAccount: async (userId, token, password = '') => {
 
       if (!userId || userId === 'undefined' || userId === 'null') {
 
@@ -350,7 +350,7 @@
 
         headers: { 'Content-Type': 'application/json', 'Authorization': `Token ${token}` },
 
-        body: JSON.stringify({ password: password })
+        body: JSON.stringify(password ? { password } : {})
 
       });
 
@@ -9545,11 +9545,7 @@
 
       const errEl = document.getElementById("deleteAccError");
 
-      const passInput = document.getElementById("deleteAccPass");
-
       if (errEl) errEl.classList.add("hidden");
-
-      if (passInput) passInput.value = '';
 
       if (overlay) overlay.classList.add("open");
 
@@ -9583,19 +9579,9 @@
 
     deleteAccConfirmBtn.addEventListener("click", async () => {
 
-      const passInput = document.getElementById("deleteAccPass");
-
       const errEl = document.getElementById("deleteAccError");
 
-      const password = passInput?.value?.trim();
-
-      if (!password) {
-
-        if (errEl) { errEl.textContent = state.lang === 'ar' ? 'يرجى إدخال كلمة المرور للتأكيد' : 'Please enter your password to confirm'; errEl.classList.remove('hidden'); }
-
-        return;
-
-      }
+      if (errEl) errEl.classList.add("hidden");
 
       const userId = state.user?.id;
 
@@ -9609,7 +9595,7 @@
 
         deleteAccConfirmBtn.disabled = true;
 
-        await Api.deleteAccount(userId, token, password);
+        await Api.deleteAccount(userId, token);
 
         document.getElementById("deleteAccOverlay")?.classList.remove("open");
 
@@ -9635,7 +9621,7 @@
 
       } catch (err) {
 
-        if (errEl) { errEl.textContent = err.message; errEl.classList.remove('hidden'); }
+        if (errEl) { errEl.textContent = err.message || "حدث خطأ أثناء حذف الحساب."; errEl.classList.remove('hidden'); }
 
       } finally {
 
