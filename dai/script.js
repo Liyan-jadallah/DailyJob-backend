@@ -18,10 +18,8 @@
 
 
 
-  const BASE_URL = (window.location.protocol === 'file:') 
-
+  const BASE_URL = (window.location.protocol === 'file:' || ((window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') && window.location.port !== '8000' && window.location.port !== '')) 
     ? "http://127.0.0.1:8000/api" 
-
     : "/api";
 
 
@@ -896,6 +894,10 @@
 
       createAccount: "Create Account",
 
+      continueWithGoogle: "Continue with Google",
+
+      or: "or",
+
       registerSub: "Create your account in seconds - we only need these fields",
 
       confirmPassword: "Confirm Password",
@@ -1262,6 +1264,10 @@
       password: "كلمة المرور",
 
       createAccount: "إنشاء حساب جديد",
+
+      continueWithGoogle: "المتابعة باستخدام Google",
+
+      or: "أو",
 
       registerSub: "أنشئ حسابك خلال ثوانٍ - نحتاج هذه الحقول فقط",
 
@@ -1969,21 +1975,72 @@
     }
   };
 
-  let _googleSignInInitialized = false;
-  async function initGoogleSignIn() {
+  let _tokenClient = null;
+
+  async function triggerGoogleSignIn() {
+    const clientId = window.GOOGLE_CLIENT_ID || "588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com";
+
+    // 1. استخدام Google OAuth2 Token Client (Popup رسمي مباشر)
+    if (window.google?.accounts?.oauth2) {
+      try {
+        if (!_tokenClient) {
+          _tokenClient = google.accounts.oauth2.initTokenClient({
+            client_id: clientId,
+            scope: 'email profile openid',
+            callback: async (tokenResp) => {
+              if (tokenResp && (tokenResp.access_token || tokenResp.id_token)) {
+                showToast("جاري التحقق من حساب Google...", "info");
+                const regReferralInput = document.getElementById("regReferral");
+                const referralCode = regReferralInput ? regReferralInput.value : '';
+                const credential = tokenResp.id_token || tokenResp.access_token;
+                try {
+                  const result = await Api.googleLogin(credential, referralCode);
+
+                  state.isAuthenticated = true;
+                  state.user = result.user;
+                  localStorage.setItem("dj_user", JSON.stringify(state.user));
+                  localStorage.setItem("dj_token", result.token);
+
+                  closeAuth();
+                  updateDrawerUser();
+                  showToast(result.is_new_user ? "أهلاً بك! تم إنشاء حسابك بنجاح" : "تم تسجيل الدخول بنجاح!", "success");
+
+                  loadAdsFromAPI();
+                  fetchNotifications();
+                } catch (apiErr) {
+                  showToast(apiErr.message || "فشل تسجيل الدخول", "error");
+                }
+              }
+            }
+          });
+        }
+        _tokenClient.requestAccessToken({ prompt: 'select_account' });
+        return;
+      } catch (err) {
+        console.warn("[GoogleAuth] Token client failed:", err);
+      }
+    }
+
+    // 3. تجربة Google One Tap Prompt
+    if (window.google?.accounts?.id) {
+      try {
+        google.accounts.id.prompt();
+        return;
+      } catch (_) {}
+    }
+
+    showToast("جاري تحميل خدمة Google... يرجى إعادة المحاولة", "warning");
+  }
+  window.triggerGoogleSignIn = triggerGoogleSignIn;
+
+  function initGoogleSignIn() {
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
       setTimeout(initGoogleSignIn, 600);
       return;
     }
 
     try {
-      let clientId = window.GOOGLE_CLIENT_ID || "588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com";
-      if (!clientId) {
-        clientId = await Api.getGoogleConfig();
-      }
-      if (!clientId) {
-        return;
-      }
+      const clientId = window.GOOGLE_CLIENT_ID || "588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com";
 
       google.accounts.id.initialize({
         client_id: clientId,
@@ -1992,33 +2049,12 @@
         cancel_on_tap_outside: true
       });
 
-      const btnLogin = document.getElementById("googleBtnLogin");
-      if (btnLogin) {
-        google.accounts.id.renderButton(btnLogin, {
-          theme: "outline",
-          size: "large",
-          type: "standard",
-          text: "signin_with",
-          shape: "rectangular",
-          logo_alignment: "center",
-          width: 280
-        });
-      }
-
-      const btnRegister = document.getElementById("googleBtnRegister");
-      if (btnRegister) {
-        google.accounts.id.renderButton(btnRegister, {
-          theme: "outline",
-          size: "large",
-          type: "standard",
-          text: "signup_with",
-          shape: "rectangular",
-          logo_alignment: "center",
-          width: 280
-        });
-      }
-
-      _googleSignInInitialized = true;
+      document.querySelectorAll(".btn-google-auth").forEach(btn => {
+        btn.onclick = (e) => {
+          e.preventDefault();
+          triggerGoogleSignIn();
+        };
+      });
     } catch (e) {
       console.warn("[GoogleAuth] init error:", e);
     }
@@ -2483,6 +2519,16 @@
 
 
   function goToScreen(name, pushState = true) {
+    if (name === "admin") {
+      const currentUser = (typeof state !== 'undefined' && state.user) 
+        ? state.user 
+        : JSON.parse(localStorage.getItem("dj_user") || "null");
+      if (!currentUser || currentUser.role !== "admin") {
+        console.warn("[Security] Unauthorized attempt to access admin screen blocked.");
+        goToScreen("home", pushState);
+        return;
+      }
+    }
 
     document.querySelectorAll(".screen").forEach((s) => s.classList.remove("active"));
 

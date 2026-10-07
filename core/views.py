@@ -100,7 +100,7 @@ from rest_framework.throttling import AnonRateThrottle
 from rest_framework.pagination import PageNumberPagination
 from rest_framework import filters
 from .permissions import IsUserOwner, IsOwnerOrReadOnly, IsAdmin
-from .validators import validate_image_file
+from .validators import validate_image_file, optimize_image
 from .models import User, PaymentMethod, Ad, AdCategory, Transaction, Notification, Coupon, Referral, WelcomeCouponRecord, AdView, SystemSetting
 from .serializers import UserSerializer, PaymentMethodSerializer, AdSerializer, TransactionSerializer, AdCategorySerializer, CouponSerializer, ContactMessageSerializer
 
@@ -891,20 +891,24 @@ class AdViewSet(viewsets.ModelViewSet):
 
         # 0. تم إلغاء شرط الحد الأقصى للإعلانات النشطة بناءً على طلب العميل
 
-        # 0.1 Validate all uploaded images
+        # 0.1 Validate and optimize all uploaded images
         main_image = self.request.FILES.get('image')
         if main_image:
             validate_image_file(main_image)
+            main_image = optimize_image(main_image)
 
         images = self.request.FILES.getlist('images')
         if len(images) > 10:
             raise serializers.ValidationError({'images': 'لا يمكن رفع أكثر من 10 صور للإعلان الواحد.'})
+        optimized_images = []
         for img in images:
             validate_image_file(img)
+            optimized_images.append(optimize_image(img))
 
         receipt_image = self.request.FILES.get('receipt_image') or self.request.data.get('receipt_image')
         if receipt_image and hasattr(receipt_image, 'read'):
             validate_image_file(receipt_image)
+            receipt_image = optimize_image(receipt_image)
         
         # 1. إنشاء وحفظ الإعلان والمعاملة ذرياً لضمان عدم وجود إعلانات معلقة بدون وصل (Atomic)
         coupon_id = self.request.data.get('coupon_id')
@@ -932,7 +936,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 ad.save(update_fields=['ad_type'])
             
             # 2. حفظ الصور الإضافية
-            for img in images:
+            for img in optimized_images:
                 AdImage.objects.create(ad=ad, image=img)
             
             # 3. إنشاء المعاملة المالية (إما كوبون أو وصل دفع بنكي)
@@ -995,7 +999,7 @@ class AdViewSet(viewsets.ModelViewSet):
                 from django.db import connection
                 if admin_emails_list:
                     payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
                     send_mail(
                         subject='إعلان جديد بانتظار المراجعة',
                         message=f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
@@ -1053,6 +1057,7 @@ class AdViewSet(viewsets.ModelViewSet):
         main_image = self.request.FILES.get('image')
         if main_image:
             validate_image_file(main_image)
+            main_image = optimize_image(main_image)
             ad.image = main_image
             ad.save(update_fields=['image'])
         elif should_delete_main:
@@ -1104,6 +1109,7 @@ class AdViewSet(viewsets.ModelViewSet):
         if images:
             for img in images:
                 validate_image_file(img)
+                img = optimize_image(img)
                 AdImage.objects.create(ad=ad, image=img)
                 
         # تحديث وصل الدفع إن وجد
@@ -1111,6 +1117,7 @@ class AdViewSet(viewsets.ModelViewSet):
         if receipt_image:
             if hasattr(receipt_image, 'read'):
                 validate_image_file(receipt_image)
+                receipt_image = optimize_image(receipt_image)
             from .models import Transaction
             Transaction.objects.create(
                 ad=ad,
@@ -1264,7 +1271,7 @@ class CustomAuthToken(ObtainAuthToken):
             if not cached_otp:
                 otp_code = generate_secure_otp()
                 cache.set(f'verify_{user.email}', otp_code, timeout=600)
-                email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
+                email_sender = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
                 try:
                     send_mail(
                         'رمز تأكيد حسابك - Daily Job',
@@ -1367,6 +1374,21 @@ def _verify_google_token_payload(id_token_str):
             return decoded
     except Exception as e:
         logger.debug(f"[GoogleAuth] firebase verify_id_token failed: {e}")
+
+    # 4. Userinfo endpoint (دعم Google Access Token الصادر من OAuth2)
+    try:
+        import requests
+        resp = requests.get(
+            'https://www.googleapis.com/oauth2/v3/userinfo',
+            headers={'Authorization': f'Bearer {id_token_str}'},
+            timeout=8
+        )
+        if resp.status_code == 200:
+            payload = resp.json()
+            if payload.get('email'):
+                return payload
+    except Exception as e:
+        logger.debug(f"[GoogleAuth] userinfo endpoint check failed: {e}")
 
     return None
 

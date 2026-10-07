@@ -2105,8 +2105,8 @@ html[dir="ltr"] .drawer-list a {
   max-height: 92vh; /*[cite: 1] */
   overflow-y: auto;
   background: #fff; /*[cite: 1] */
-  border-radius: 24px; /* تم التغيير لتصبح دائرية من كل الاتجاهات[cite: 1] */
-  padding: 24px 22px; /*[cite: 1] */
+  border-radius: 24px;
+  padding: 24px 22px 30px 22px;
   position: relative;
   transform: translateY(-30px); /* تم التغيير لتنزل النافذة من الأعلى بشكل أنيق */
   transition: transform .3s cubic-bezier(.2, .9, .3, 1);
@@ -2223,6 +2223,51 @@ html[dir="rtl"] .modal-close {
 .auth-divider span {
   padding: 0 12px;
 }
+
+.google-auth-container {
+  width: 100%;
+  margin: 6px 0 14px 0;
+  display: flex;
+  justify-content: center;
+}
+
+.btn-google-auth {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  width: 100%;
+  height: 50px;
+  background: #ffffff;
+  border: 1.5px solid #dadce0;
+  border-radius: 12px;
+  color: #3c4043;
+  font-family: inherit;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .08);
+  box-sizing: border-box;
+}
+
+.btn-google-auth:hover {
+  background: #f8fafd;
+  border-color: #c2c7d0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, .12);
+}
+
+.btn-google-auth:active {
+  background: #f1f3f4;
+  transform: scale(0.99);
+}
+
+.btn-google-auth svg {
+  flex-shrink: 0;
+  width: 22px;
+  height: 22px;
+}
+
 .google-auth-btn-wrapper {
   display: flex;
   justify-content: center;
@@ -2230,9 +2275,6 @@ html[dir="rtl"] .modal-close {
   min-height: 44px;
   margin-bottom: 6px;
   width: 100%;
-}
-.google-auth-btn-wrapper iframe {
-  margin: 0 auto !important;
 }
 
 /* ============================================
