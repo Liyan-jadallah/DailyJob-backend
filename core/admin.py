@@ -69,9 +69,12 @@ class AdAdmin(admin.ModelAdmin):
         )
         count_day, _ = day_ads.delete()
 
-        # 1-week ads or any ad older than ad_retention_days
+        # 1-week ads
         week_ads = Ad.objects.filter(
-            Q(status='approved') & (Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff)))
+            status='approved',
+            ad_duration='1_week'
+        ).filter(
+            Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
         )
         count_week, _ = week_ads.delete()
         total = count_day + count_week

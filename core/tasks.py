@@ -148,11 +148,12 @@ def delete_expired_content():
         Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
     ).delete()
 
-    # 2. إعلانات الأسبوع (أو أي إعلان مر عليه أسبوع كامل)
+    # 2. إعلانات الأسبوع (فقط المنتهية بعد 7 أيام)
     deleted_week_ads, _ = Ad.objects.filter(
-        status='approved'
+        status='approved',
+        ad_duration='1_week'
     ).filter(
-        Q(ad_duration='1_week') | Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+        Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
     ).delete()
 
     # 3. حذف الإشعارات حسب مدة النظام
