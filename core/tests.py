@@ -69,6 +69,26 @@ class AuthTestCase(TestCase):
         })
         self.assertEqual(res.status_code, 400)
 
+    def test_active_user_cannot_bypass_otp_via_verify_email(self):
+        """التحقق من إغلاق ثغرة تجاوز OTP: المستخدم المفعّل لا يحصل على Token عبر verify-email"""
+        res = self.client.post('/api/verify-email/', {
+            'email': 'test@example.com',
+            'otp': '000000'
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data.get('code'), 'already_active')
+        self.assertNotIn('token', res.data)
+
+    def test_nonexistent_user_verify_email_rejected(self):
+        """البريد غير المسجل لا يستطيع طلب التفعيل"""
+        res = self.client.post('/api/verify-email/', {
+            'email': 'unknown@example.com',
+            'otp': '123456'
+        })
+        self.assertEqual(res.status_code, 400)
+        self.assertEqual(res.data.get('code'), 'not_found')
+        self.assertNotIn('token', res.data)
+
 
 @override_settings(SECURE_SSL_REDIRECT=False)
 class PaginationSecurityTestCase(TestCase):

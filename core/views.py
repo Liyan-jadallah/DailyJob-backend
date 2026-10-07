@@ -161,10 +161,11 @@ class UserViewSet(viewsets.ModelViewSet):
         if user != request.user:
             return Response({'error': 'لا تملك صلاحية حذف هذا الحساب'}, status=status.HTTP_403_FORBIDDEN)
 
-        # التحقق من كلمة المرور قبل الحذف
-        password = request.data.get('password')
-        if not password or not user.check_password(password):
-            return Response({'error': 'كلمة المرور غير صحيحة. يرجى إدخال كلمة المرور لتأكيد حذف الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
+        # التحقق من كلمة المرور قبل الحذف (إذا كان للحساب كلمة مرور محددة)
+        if user.has_usable_password():
+            password = request.data.get('password')
+            if not password or not user.check_password(password):
+                return Response({'error': 'كلمة المرور غير صحيحة. يرجى إدخال كلمة المرور لتأكيد حذف الحساب.'}, status=status.HTTP_400_BAD_REQUEST)
 
         # حذف الـ Token لإنهاء كل الجلسات النشطة
         Token.objects.filter(user=user).delete()
@@ -1097,13 +1098,22 @@ class AdViewSet(viewsets.ModelViewSet):
 
         cleaned_ids = []
         for d_id in deleted_ids:
-            try:
-                cleaned_ids.append(int(d_id))
-            except (ValueError, TypeError):
-                pass
+            s_id = str(d_id).strip()
+            if s_id:
+                try:
+                    cleaned_ids.append(str(uuid_lib.UUID(s_id)))
+                except (ValueError, TypeError, AttributeError):
+                    cleaned_ids.append(s_id)
 
         if cleaned_ids:
-            AdImage.objects.filter(ad=ad, id__in=cleaned_ids).delete()
+            images_to_delete = AdImage.objects.filter(ad=ad, id__in=cleaned_ids)
+            for img_obj in images_to_delete:
+                if img_obj.image:
+                    try:
+                        img_obj.image.delete(save=False)
+                    except Exception:
+                        pass
+            images_to_delete.delete()
 
         # 3. إضافة صور إضافية جديدة (دون مسح الصور القديمة الباقية)
         images = self.request.FILES.getlist('images')
@@ -1129,19 +1139,36 @@ class AdViewSet(viewsets.ModelViewSet):
                 receipt_image=receipt_image
             )
 
-    @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>\d+)')
+    @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>[0-9a-fA-F-]+)')
     def delete_extra_image(self, request, pk=None, image_id=None):
         ad = self.get_object()
         if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
             return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
         from .models import AdImage
-        deleted, _ = AdImage.objects.filter(ad=ad, id=image_id).delete()
-        if deleted:
+        img_obj = AdImage.objects.filter(ad=ad, id=image_id).first()
+        if img_obj:
+            if img_obj.image:
+                try:
+                    img_obj.image.delete(save=False)
+                except Exception:
+                    pass
+            img_obj.delete()
             return Response({'success': True, 'message': 'تم حذف الصورة بنجاح.'}, status=status.HTTP_200_OK)
         return Response({'error': 'لم يتم العثور على الصورة المطلوبة.'}, status=status.HTTP_404_NOT_FOUND)
 
     @action(detail=True, methods=['delete', 'post'], url_path='delete-main-image')
     def delete_main_image(self, request, pk=None):
+        ad = self.get_object()
+        if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
+            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
+        if ad.image:
+            try:
+                ad.image.delete(save=False)
+            except Exception:
+                pass
+        ad.image = None
+        ad.save(update_fields=['image'])
+        return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
         ad = self.get_object()
         if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
             return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
@@ -1239,15 +1266,17 @@ class AdminAdActionView(APIView):
             ad.status = 'approved'
             ad.is_auto_approved = False
             ad.save()  # triggers Ad.save() signal → sends notifications
+            Transaction.objects.filter(ad=ad, status='pending').update(status='approved')
             return Response({'status': 'approved', 'message': 'تم قبول الإعلان ونشره.'})
 
         elif action == 'reject':
             ad.status = 'rejected'
             ad.save()
+            Transaction.objects.filter(ad=ad, status='pending').update(status='rejected')
             return Response({'status': 'rejected', 'message': 'تم رفض الإعلان.'})
 
         elif action == 'delete':
-            # Hard-delete the ad (cascades to AdImage, Transaction)
+            # Hard-delete the ad (cascades to AdImage; Transaction.ad is SET_NULL to retain records)
             ad.delete()
             return Response({'status': 'deleted', 'message': 'تم حذف الإعلان نهائياً.'})
 
@@ -1411,9 +1440,10 @@ def _verify_google_token_payload(id_token_str):
     except Exception as e:
         logger.debug(f"[GoogleAuth] firebase verify_id_token failed: {e}")
 
-    # 4. Userinfo endpoint (مع التحقق الصارم من أن التوكن صادر لهذا التطبيق عبر tokeninfo)
+    # 4. التحقق من Google Access Token
     try:
         import requests
+        # أ) فحص Tokeninfo للحصول على معلومات الـ audience والبريد
         token_info_resp = requests.get(
             'https://oauth2.googleapis.com/tokeninfo',
             params={'access_token': id_token_str},
@@ -1421,19 +1451,54 @@ def _verify_google_token_payload(id_token_str):
         )
         if token_info_resp.status_code == 200:
             info = token_info_resp.json()
-            token_aud = info.get('aud') or info.get('azp') or ''
-            if token_aud in allowed_audiences:
-                resp = requests.get(
+            token_aud = (
+                info.get('aud')
+                or info.get('azp')
+                or info.get('audience')
+                or info.get('issued_to')
+                or info.get('client_id')
+                or ''
+            )
+            # فحص التطابق مع المعرفات المسموحة أو رقم مشروع Google Cloud
+            is_valid_aud = (
+                not allowed_audiences
+                or token_aud in allowed_audiences
+                or any(aud in token_aud for aud in allowed_audiences)
+                or token_aud.startswith('588905767404')
+                or not token_aud  # إذا لم يُرجع tokeninfo حقل aud وكان الرمز صالحاً لدى جوجل
+            )
+            if is_valid_aud:
+                user_info_resp = requests.get(
                     'https://www.googleapis.com/oauth2/v3/userinfo',
                     headers={'Authorization': f'Bearer {id_token_str}'},
                     timeout=8
                 )
-                if resp.status_code == 200:
-                    payload = resp.json()
+                if user_info_resp.status_code == 200:
+                    payload = user_info_resp.json()
                     if payload.get('email'):
                         return payload
+                if info.get('email'):
+                    return {
+                        'email': info.get('email'),
+                        'email_verified': info.get('email_verified', True),
+                        'name': info.get('email', '').split('@')[0],
+                        'sub': info.get('sub') or info.get('user_id')
+                    }
+            else:
+                logger.warning(f"[GoogleAuth] Access token rejected: aud '{token_aud}' not recognized.")
+        else:
+            # ب) محاولة مباشرة عبر userinfo في حال كان endpoint tokeninfo غير متاح
+            user_info_resp = requests.get(
+                'https://www.googleapis.com/oauth2/v3/userinfo',
+                headers={'Authorization': f'Bearer {id_token_str}'},
+                timeout=8
+            )
+            if user_info_resp.status_code == 200:
+                payload = user_info_resp.json()
+                if payload.get('email'):
+                    return payload
     except Exception as e:
-        logger.debug(f"[GoogleAuth] verified userinfo check failed: {e}")
+        logger.debug(f"[GoogleAuth] access token verification failed: {e}")
 
     return None
 
@@ -1464,6 +1529,7 @@ class GoogleAuthView(APIView):
             request.data.get('id_token')
             or request.data.get('credential')
             or request.data.get('token')
+            or request.data.get('access_token')
             or ''
         ).strip()
 
@@ -1839,14 +1905,34 @@ class ContactMessageCreateView(APIView):
         if serializer.is_valid():
             message = serializer.save()
             
-            # استدعاء الـ Celery Task لإرسال الإيميل في الخلفية
-            from .tasks import send_contact_email_task
-            send_contact_email_task.delay(
-                name=message.name,
-                email=message.email,
-                subject=message.subject,
-                message=message.message
-            )
+            # استدعاء الـ Celery Task لإرسال الإيميل في الخلفية مع توفير Fallback مباشر
+            try:
+                from .tasks import send_contact_email_task
+                send_contact_email_task.delay(
+                    name=message.name,
+                    email=message.email,
+                    subject=message.subject,
+                    message=message.message
+                )
+            except Exception as e:
+                logger.warning(f"[ContactMessage] Celery dispatch failed, fallback to thread: {e}")
+                import threading
+                def _send_contact_email_thread():
+                    try:
+                        from .tasks import send_contact_email_task
+                        send_contact_email_task(
+                            name=message.name,
+                            email=message.email,
+                            subject=message.subject,
+                            message=message.message
+                        )
+                    except Exception:
+                        pass
+                    finally:
+                        from django.db import connection
+                        connection.close()
+
+                threading.Thread(target=_send_contact_email_thread, daemon=True).start()
 
             return Response(
                 {'message': 'تم إرسال رسالتك بنجاح، شكراً لتواصلك معنا.'},

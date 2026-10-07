@@ -1988,11 +1988,18 @@
             client_id: clientId,
             scope: 'email profile openid',
             callback: async (tokenResp) => {
+              if (tokenResp.error) {
+                console.error("[GoogleAuth] OAuth error:", tokenResp);
+                if (tokenResp.error !== 'popup_closed_by_user') {
+                  showToast("حدث خطأ أثناء الاتصال بحساب Google: " + (tokenResp.error_description || tokenResp.error), "error");
+                }
+                return;
+              }
               if (tokenResp && (tokenResp.access_token || tokenResp.id_token)) {
                 showToast("جاري التحقق من حساب Google...", "info");
                 const regReferralInput = document.getElementById("regReferral");
                 const referralCode = regReferralInput ? regReferralInput.value : '';
-                const credential = tokenResp.id_token || tokenResp.access_token;
+                const credential = tokenResp.access_token || tokenResp.id_token;
                 try {
                   const result = await Api.googleLogin(credential, referralCode);
 
@@ -2003,12 +2010,34 @@
 
                   closeAuth();
                   updateDrawerUser();
-                  showToast(result.is_new_user ? "أهلاً بك! تم إنشاء حسابك بنجاح" : "تم تسجيل الدخول بنجاح!", "success");
+                  const userName = result.user?.username || '';
+                  const successMsg = result.is_new_user 
+                    ? `أهلاً بك يا ${userName}! تم إنشاء حسابك بنجاح عبر Google` 
+                    : `تم تسجيل الدخول بنجاح! مرحباً ${userName}`;
+                  showToast(successMsg, "success");
 
                   loadAdsFromAPI();
                   fetchNotifications();
+
+                  if (typeof state.pendingAction === "function") {
+                    const fn = state.pendingAction;
+                    state.pendingAction = null;
+                    fn();
+                  }
                 } catch (apiErr) {
-                  showToast(apiErr.message || "فشل تسجيل الدخول", "error");
+                  console.error("[GoogleAuth] API error:", apiErr);
+                  const errMsg = apiErr.message || "فشل تسجيل الدخول عبر Google";
+                  showToast(errMsg, "error");
+                  const lErr = document.getElementById("loginError");
+                  if (lErr) {
+                    lErr.textContent = errMsg;
+                    lErr.classList.remove("hidden");
+                  }
+                  const rErr = document.getElementById("registerError");
+                  if (rErr) {
+                    rErr.textContent = errMsg;
+                    rErr.classList.remove("hidden");
+                  }
                 }
               }
             }
