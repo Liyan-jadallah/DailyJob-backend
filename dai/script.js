@@ -1927,6 +1927,36 @@
 
 
 
+  function handleSuccessfulAuth(result) {
+    state.isAuthenticated = true;
+    state.user = result.user;
+
+    localStorage.setItem("dj_user", JSON.stringify(state.user));
+    localStorage.setItem("dj_token", result.token);
+
+    closeAuth();
+    updateDrawerUser();
+
+    const userName = result.user?.username || '';
+    const successMsg = result.is_new_user 
+      ? `أهلاً بك يا ${userName}! تم إنشاء حسابك بنجاح عبر Google` 
+      : `تم تسجيل الدخول بنجاح! مرحباً ${userName}`;
+    showToast(successMsg, "success");
+
+    loadAdsFromAPI();
+    fetchNotifications();
+
+    if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
+      renderDetails(state.currentAdId);
+    }
+
+    if (typeof state.pendingAction === "function") {
+      const fn = state.pendingAction;
+      state.pendingAction = null;
+      fn();
+    }
+  }
+
   let _currentGoogleMode = 'login';
 
   window.handleGoogleCredentialResponse = async (response) => {
@@ -1938,34 +1968,7 @@
       const referralCode = regReferralInput ? regReferralInput.value : '';
 
       const result = await Api.googleLogin(response.credential, referralCode, _currentGoogleMode || 'login');
-
-      state.isAuthenticated = true;
-      state.user = result.user;
-
-      localStorage.setItem("dj_user", JSON.stringify(state.user));
-      localStorage.setItem("dj_token", result.token);
-
-      closeAuth();
-      updateDrawerUser();
-
-      const userName = result.user?.username || '';
-      const successMsg = result.is_new_user 
-        ? `أهلاً بك يا ${userName}! تم إنشاء حسابك بنجاح عبر Google` 
-        : `تم تسجيل الدخول بنجاح! مرحباً ${userName}`;
-      showToast(successMsg, "success");
-
-      loadAdsFromAPI();
-      fetchNotifications();
-
-      if (state.currentAdId && document.getElementById("screen-details")?.classList.contains("active")) {
-        renderDetails(state.currentAdId);
-      }
-
-      if (typeof state.pendingAction === "function") {
-        const fn = state.pendingAction;
-        state.pendingAction = null;
-        fn();
-      }
+      handleSuccessfulAuth(result);
     } catch (err) {
       const errMsg = err.message || "فشل تسجيل الدخول عبر Google";
       showToast(errMsg, "error");
@@ -2019,28 +2022,7 @@
                 const credential = tokenResp.access_token || tokenResp.id_token;
                 try {
                   const result = await Api.googleLogin(credential, referralCode, _currentGoogleMode || 'login');
-
-                  state.isAuthenticated = true;
-                  state.user = result.user;
-                  localStorage.setItem("dj_user", JSON.stringify(state.user));
-                  localStorage.setItem("dj_token", result.token);
-
-                  closeAuth();
-                  updateDrawerUser();
-                  const userName = result.user?.username || '';
-                  const successMsg = result.is_new_user 
-                    ? `أهلاً بك يا ${userName}! تم إنشاء حسابك بنجاح عبر Google` 
-                    : `تم تسجيل الدخول بنجاح! مرحباً ${userName}`;
-                  showToast(successMsg, "success");
-
-                  loadAdsFromAPI();
-                  fetchNotifications();
-
-                  if (typeof state.pendingAction === "function") {
-                    const fn = state.pendingAction;
-                    state.pendingAction = null;
-                    fn();
-                  }
+                  handleSuccessfulAuth(result);
                 } catch (apiErr) {
                   console.error("[GoogleAuth] API error:", apiErr);
                   const errMsg = apiErr.message || "فشل تسجيل الدخول عبر Google";
@@ -8465,6 +8447,22 @@
 
 
 
+    // Deep Linking support: check URL query param (?ad=xxx), hash (#ad-xxx), or path (/ad/xxx)
+    const urlParams = new URLSearchParams(window.location.search);
+    let deepAdId = urlParams.get('ad');
+    if (!deepAdId && window.location.hash.startsWith('#ad-')) {
+      deepAdId = window.location.hash.replace('#ad-', '');
+    }
+    if (!deepAdId) {
+      const match = window.location.pathname.match(/\/ad\/([a-zA-Z0-9-]+)/);
+      if (match) deepAdId = match[1];
+    }
+    if (deepAdId) {
+      lastScreen = "details";
+      sessionStorage.setItem("dj_lastAdId", deepAdId);
+      sessionStorage.setItem("dj_lastScreen", "details");
+    }
+
     loadAdsFromAPI().then(() => {
 
       if (lastScreen === "details") {
@@ -8661,37 +8659,45 @@
 
         
 
-        await Api.verifyEmail(state.tempEmail, otp);
-
+        const verifyRes = await Api.verifyEmail(state.tempEmail, otp);
         
+        let token = verifyRes.token;
+        let userData = {
+          id: verifyRes.user_id,
+          email: verifyRes.email || state.tempEmail,
+          username: verifyRes.username,
+          role: verifyRes.role || 'user',
+          referral_code: verifyRes.referral_code || ''
+        };
 
-        const result = await Api.login(state.tempEmail, state.tempPassword);
+        if (!token && state.tempPassword) {
+          try {
+            const loginRes = await Api.login(state.tempEmail, state.tempPassword);
+            token = loginRes.token;
+            userData = loginRes.user;
+          } catch (_) {}
+        }
 
-        state.isAuthenticated = true;
+        if (token) {
+          state.isAuthenticated = true;
+          state.user = userData;
+          localStorage.setItem("dj_user", JSON.stringify(state.user));
+          localStorage.setItem("dj_token", token);
 
-        state.user = result.user;
+          sessionStorage.removeItem('dj_tempEmail');
+          sessionStorage.removeItem('dj_tempPassword');
+          state.tempEmail = null;
+          state.tempPassword = null;
 
-        localStorage.setItem("dj_user", JSON.stringify(state.user));
-
-        localStorage.setItem("dj_token", result.token);
-
-        
-
-        sessionStorage.removeItem('dj_tempEmail');
-
-        sessionStorage.removeItem('dj_tempPassword');
-
-        state.tempEmail = null;
-
-        state.tempPassword = null;
-
-        
-
-        closeAuth();
-
-        updateDrawerUser();
-
-        showToast("تم تفعيل حسابك بنجاح!", "success");
+          closeAuth();
+          updateDrawerUser();
+          showToast(verifyRes.message || "تم تفعيل حسابك بنجاح! مرحباً بك 🎉", "success");
+          fetchNotifications();
+          loadAdsFromAPI();
+        } else {
+          showToast("تم تفعيل حسابك بنجاح! يرجى تسجيل الدخول بكلمة المرور.", "success");
+          showLoginStep();
+        }
 
         fetchNotifications();
 

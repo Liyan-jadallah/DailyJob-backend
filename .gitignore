@@ -42,5 +42,6 @@ user_info.txt
 all_similar_users.txt
 email_test_result.txt
 
-# Media & Uploads (User financial receipts)
-media/transactions/
+# Media & Uploads (Uploaded ads & receipts)
+media/
+media/*

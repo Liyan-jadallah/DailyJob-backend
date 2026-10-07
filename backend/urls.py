@@ -13,6 +13,7 @@ urlpatterns = [
     path('api/login/', CustomAuthToken.as_view(), name='api-login'), 
     path('api/v1/login/', CustomAuthToken.as_view(), name='api-v1-login'),
     path('', index, name='index'),
+    re_path(r'^ad/.*$', index, name='ad-deep-link'),
 ]
 
 # Serve media files (works in both dev and production for simple deployments)

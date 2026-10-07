@@ -78,8 +78,9 @@ if not DEBUG:
     SECURE_HSTS_SECONDS = 31536000
     SECURE_HSTS_INCLUDE_SUBDOMAINS = True
     SECURE_HSTS_PRELOAD = True
-    # Content Security Policy: حماية إضافية ضد XSS
-    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin'
+    # Content Security Policy & Cross-Origin Opener Policy:
+    # same-origin-allow-popups مطلوب رسمياً لتمكين نافذة Google Sign-In المنبثقة من إعادة رمز التوكن
+    SECURE_CROSS_ORIGIN_OPENER_POLICY = 'same-origin-allow-popups'
 
 # Application definition
 
@@ -266,6 +267,9 @@ CORS_ALLOW_ALL_ORIGINS = DEBUG and os.getenv('CORS_ALLOW_ALL_ORIGINS', 'False').
 _cors_origins = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:3000,http://127.0.0.1:8000,http://localhost:8000')
 if _cors_origins:
     CORS_ALLOWED_ORIGINS = [origin.strip() for origin in _cors_origins.split(',') if origin.strip()]
+CORS_ALLOWED_ORIGIN_REGEXES = [
+    r"^https://.*\.onrender\.com$",
+]
 CORS_ALLOW_CREDENTIALS = True
 CORS_ALLOW_HEADERS = [
     'accept',

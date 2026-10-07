@@ -1587,15 +1587,7 @@ class GoogleAuthView(APIView):
         is_new_user = False
 
         if user:
-            # إذا ضغط المستخدم على زر إنشاء حساب جديد والبريد مسجل مسبقاً في النظام
-            if mode == 'register':
-                return Response({
-                    'error': 'البريد الإلكتروني مسجل مسبقاً في النظام! يمكنك تسجيل الدخول مباشرة إلى حسابك.',
-                    'code': 'already_registered',
-                    'email': user.email
-                }, status=status.HTTP_400_BAD_REQUEST)
-
-            # تفعيل الحساب فوراً إذا كان غير مفعّل لأن جوجل وثّق البريد
+            # تفعيل الحساب فوراً إذا كان غير مفعّل لأن جوجل وثّق البريد رسمياً
             if not user.is_active:
                 user.is_active = True
                 user.save(update_fields=['is_active'])
@@ -2155,8 +2147,8 @@ class AdminGrantCouponsView(APIView):
                 message=notif_message
             ))
 
-        Coupon.objects.bulk_create(coupons_to_create)
-        Notification.objects.bulk_create(notifications_to_create)
+        Coupon.objects.bulk_create(coupons_to_create, batch_size=500)
+        Notification.objects.bulk_create(notifications_to_create, batch_size=500)
 
         # إرسال إشعار خارجي (Push Notification) عبر Firebase في الخلفية
         def _send_coupon_push_async(users_list, title, body):
