@@ -168,40 +168,33 @@
 
     },
 
-    googleLogin: async (idToken, referralCode = '') => {
-
-      const payload = { id_token: idToken };
-
+    googleLogin: async (idToken, referralCode = '', mode = 'login') => {
+      const payload = { 
+        id_token: idToken,
+        mode: mode
+      };
       if (referralCode) payload.referral_code = referralCode.trim();
 
       const res = await fetch(`${BASE_URL}/auth/google/`, {
-
         method: 'POST',
-
         headers: { 'Content-Type': 'application/json' },
-
         body: JSON.stringify(payload)
-
       });
 
-      const data = await res.json();
+      const data = await res.json().catch(() => ({ error: 'فشل الاتصال بالخادم. يرجى إعادة المحاولة.' }));
 
       if (!res.ok) {
-
-        throw new Error(data.error || "فشل تسجيل الدخول عبر Google. يرجى إعادة المحاولة.");
-
+        const err = new Error(data.error || "فشل تسجيل الدخول عبر Google. يرجى إعادة المحاولة.");
+        err.code = data.code;
+        err.data = data;
+        throw err;
       }
 
       return {
-
         token: data.token,
-
         is_new_user: data.is_new_user,
-
         message: data.message,
-
         user: {
-
           id: data.user_id,
 
           email: data.email,
@@ -1934,15 +1927,17 @@
 
 
 
+  let _currentGoogleMode = 'login';
+
   window.handleGoogleCredentialResponse = async (response) => {
     if (!response || !response.credential) return;
 
     try {
-      showToast("جاري تسجيل الدخول عبر Google...", "info");
+      showToast("جاري التحقق من حساب Google...", "info");
       const regReferralInput = document.getElementById("regReferral");
       const referralCode = regReferralInput ? regReferralInput.value : '';
 
-      const result = await Api.googleLogin(response.credential, referralCode);
+      const result = await Api.googleLogin(response.credential, referralCode, _currentGoogleMode || 'login');
 
       state.isAuthenticated = true;
       state.user = result.user;
@@ -1953,9 +1948,10 @@
       closeAuth();
       updateDrawerUser();
 
+      const userName = result.user?.username || '';
       const successMsg = result.is_new_user 
-        ? "أهلاً بك في Daily Job! تم إنشاء حسابك بنجاح عبر Google" 
-        : (state.lang === 'en' ? "Logged in successfully!" : "تم تسجيل الدخول بنجاح!");
+        ? `أهلاً بك يا ${userName}! تم إنشاء حسابك بنجاح عبر Google` 
+        : `تم تسجيل الدخول بنجاح! مرحباً ${userName}`;
       showToast(successMsg, "success");
 
       loadAdsFromAPI();
@@ -1971,14 +1967,35 @@
         fn();
       }
     } catch (err) {
-      showToast(err.message || "فشل تسجيل الدخول عبر Google", "error");
+      const errMsg = err.message || "فشل تسجيل الدخول عبر Google";
+      showToast(errMsg, "error");
+      if (_currentGoogleMode === 'register') {
+        const rErr = document.getElementById("registerError");
+        if (rErr) {
+          rErr.textContent = errMsg;
+          rErr.classList.remove("hidden");
+        }
+      } else {
+        const lErr = document.getElementById("loginError");
+        if (lErr) {
+          lErr.textContent = errMsg;
+          lErr.classList.remove("hidden");
+        }
+      }
     }
   };
 
   let _tokenClient = null;
 
-  async function triggerGoogleSignIn() {
+  async function triggerGoogleSignIn(mode = 'login') {
+    _currentGoogleMode = mode;
     const clientId = window.GOOGLE_CLIENT_ID || "588905767404-alo6jkjq9k5oqubjfdilkem48m7grcaj.apps.googleusercontent.com";
+
+    // إخفاء رسائل الأخطاء السابقة
+    const lErr = document.getElementById("loginError");
+    if (lErr) lErr.classList.add("hidden");
+    const rErr = document.getElementById("registerError");
+    if (rErr) rErr.classList.add("hidden");
 
     // 1. استخدام Google OAuth2 Token Client (Popup رسمي مباشر)
     if (window.google?.accounts?.oauth2) {
@@ -2001,7 +2018,7 @@
                 const referralCode = regReferralInput ? regReferralInput.value : '';
                 const credential = tokenResp.access_token || tokenResp.id_token;
                 try {
-                  const result = await Api.googleLogin(credential, referralCode);
+                  const result = await Api.googleLogin(credential, referralCode, _currentGoogleMode || 'login');
 
                   state.isAuthenticated = true;
                   state.user = result.user;
@@ -2028,15 +2045,18 @@
                   console.error("[GoogleAuth] API error:", apiErr);
                   const errMsg = apiErr.message || "فشل تسجيل الدخول عبر Google";
                   showToast(errMsg, "error");
-                  const lErr = document.getElementById("loginError");
-                  if (lErr) {
-                    lErr.textContent = errMsg;
-                    lErr.classList.remove("hidden");
-                  }
-                  const rErr = document.getElementById("registerError");
-                  if (rErr) {
-                    rErr.textContent = errMsg;
-                    rErr.classList.remove("hidden");
+                  if (_currentGoogleMode === 'register') {
+                    const rErr = document.getElementById("registerError");
+                    if (rErr) {
+                      rErr.textContent = errMsg;
+                      rErr.classList.remove("hidden");
+                    }
+                  } else {
+                    const lErr = document.getElementById("loginError");
+                    if (lErr) {
+                      lErr.textContent = errMsg;
+                      lErr.classList.remove("hidden");
+                    }
                   }
                 }
               }
@@ -2050,7 +2070,7 @@
       }
     }
 
-    // 3. تجربة Google One Tap Prompt
+    // 2. تجربة Google One Tap Prompt
     if (window.google?.accounts?.id) {
       try {
         google.accounts.id.prompt();
@@ -2081,7 +2101,8 @@
       document.querySelectorAll(".btn-google-auth").forEach(btn => {
         btn.onclick = (e) => {
           e.preventDefault();
-          triggerGoogleSignIn();
+          const mode = btn.id === 'customGoogleBtnRegister' ? 'register' : 'login';
+          triggerGoogleSignIn(mode);
         };
       });
     } catch (e) {

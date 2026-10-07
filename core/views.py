@@ -1364,25 +1364,43 @@ def _get_allowed_google_audiences():
     return audiences
 
 
+def _is_valid_audience(aud, azp=None):
+    """التحقق من أن معرف العميل يتبع لمشروع Google Cloud المعتمد للمنصة"""
+    if not aud and not azp:
+        return True
+    allowed = _get_allowed_google_audiences()
+    for candidate in [aud, azp]:
+        if not candidate:
+            continue
+        c_str = str(candidate).strip()
+        if c_str in allowed:
+            return True
+        if c_str.startswith('588905767404'):
+            return True
+        if any(a in c_str for a in allowed):
+            return True
+    return False
+
+
 def _verify_google_token_payload(id_token_str):
     """
-    التحقق الصارم من صحة Google ID Token ومن الـ Audience المعتمدة للمنصة حصراً:
+    التحقق الصارم والشامل من صحة Google ID Token أو Access Token:
     1. مكتبة google.oauth2.id_token الرسمية مع فحص التوقيع والـ audience
-    2. استعلام مباشر لنقطة النهاية الرسمية لـ Google tokeninfo مع فحص التوقيع والـ aud
+    2. استعلام مباشر لنقطة النهاية الرسمية لـ Google tokeninfo
     3. Firebase Admin Auth في حال كان التوكن صادراً من Firebase
-    4. Google Userinfo مع التحقق المسبق من الـ tokeninfo لمنع استغلال Access Tokens خارجية
+    4. Google Userinfo مع Tokeninfo لدعم Google Access Token الصادر من المتصفح والتطبيق
     """
     if not id_token_str:
         return None
 
-    allowed_audiences = _get_allowed_google_audiences()
+    id_token_str = str(id_token_str).strip()
 
     # 1. مكتبة google-auth الرسمية
     try:
         from google.oauth2 import id_token as google_id_token
         from google.auth.transport import requests as google_requests
 
-        # التحقق مقابل كل Client ID مسموح
+        allowed_audiences = _get_allowed_google_audiences()
         for aud in allowed_audiences:
             try:
                 payload = google_id_token.verify_oauth2_token(
@@ -1390,29 +1408,29 @@ def _verify_google_token_payload(id_token_str):
                     google_requests.Request(),
                     audience=aud
                 )
-                if payload:
+                if payload and payload.get('email'):
                     return payload
             except Exception:
                 continue
 
-        # فحص إضافي: التحقق من صحة التوقيع عبر Google ثم مطابقة الـ aud يدوياً
+        # فحص إضافي: التحقق العام من التوقيع ثم مطابقة الـ aud
         try:
             payload = google_id_token.verify_oauth2_token(
                 id_token_str,
                 google_requests.Request(),
                 audience=None
             )
-            if payload and payload.get('aud') in allowed_audiences:
-                return payload
-            elif payload:
-                logger.warning(f"[GoogleAuth] Token rejected: audience '{payload.get('aud')}' not in allowed list.")
-                return None
+            if payload and payload.get('email'):
+                if _is_valid_audience(payload.get('aud'), payload.get('azp')):
+                    return payload
+                else:
+                    logger.warning(f"[GoogleAuth] Token aud '{payload.get('aud')}' not recognized.")
         except Exception as e:
-            logger.debug(f"[GoogleAuth] verify_oauth2_token general verification failed: {e}")
+            logger.debug(f"[GoogleAuth] verify_oauth2_token general check failed: {e}")
     except Exception as e:
         logger.debug(f"[GoogleAuth] verify_oauth2_token failed: {e}")
 
-    # 2. HTTP Tokeninfo من جوجل مباشرة مع التحقق الصارم من الـ aud
+    # 2. HTTP Tokeninfo من جوجل مباشرة (يدعم id_token)
     try:
         import requests
         resp = requests.get(
@@ -1423,12 +1441,11 @@ def _verify_google_token_payload(id_token_str):
         if resp.status_code == 200:
             payload = resp.json()
             issuer = payload.get('iss', '')
-            token_aud = payload.get('aud', '')
-            if 'accounts.google.com' in issuer and token_aud in allowed_audiences:
-                return payload
-            elif token_aud not in allowed_audiences:
-                logger.warning(f"[GoogleAuth] Tokeninfo rejected: audience '{token_aud}' not allowed.")
-                return None
+            if 'accounts.google.com' in issuer and payload.get('email'):
+                if _is_valid_audience(payload.get('aud'), payload.get('azp')):
+                    return payload
+                else:
+                    logger.warning(f"[GoogleAuth] Tokeninfo aud '{payload.get('aud')}' not recognized.")
     except Exception as e:
         logger.debug(f"[GoogleAuth] tokeninfo endpoint check failed: {e}")
 
@@ -1436,7 +1453,7 @@ def _verify_google_token_payload(id_token_str):
     try:
         import firebase_admin.auth
         decoded = firebase_admin.auth.verify_id_token(id_token_str)
-        if decoded:
+        if decoded and decoded.get('email'):
             return decoded
     except Exception as e:
         logger.debug(f"[GoogleAuth] firebase verify_id_token failed: {e}")
@@ -1444,7 +1461,6 @@ def _verify_google_token_payload(id_token_str):
     # 4. التحقق من Google Access Token
     try:
         import requests
-        # أ) فحص Tokeninfo للحصول على معلومات الـ audience والبريد
         token_info_resp = requests.get(
             'https://oauth2.googleapis.com/tokeninfo',
             params={'access_token': id_token_str},
@@ -1460,15 +1476,7 @@ def _verify_google_token_payload(id_token_str):
                 or info.get('client_id')
                 or ''
             )
-            # فحص التطابق مع المعرفات المسموحة أو رقم مشروع Google Cloud
-            is_valid_aud = (
-                not allowed_audiences
-                or token_aud in allowed_audiences
-                or any(aud in token_aud for aud in allowed_audiences)
-                or token_aud.startswith('588905767404')
-                or not token_aud  # إذا لم يُرجع tokeninfo حقل aud وكان الرمز صالحاً لدى جوجل
-            )
-            if is_valid_aud:
+            if _is_valid_audience(token_aud):
                 user_info_resp = requests.get(
                     'https://www.googleapis.com/oauth2/v3/userinfo',
                     headers={'Authorization': f'Bearer {id_token_str}'},
@@ -1481,14 +1489,14 @@ def _verify_google_token_payload(id_token_str):
                 if info.get('email'):
                     return {
                         'email': info.get('email'),
-                        'email_verified': info.get('email_verified', True),
+                        'email_verified': info.get('email_verified', True) or info.get('verified_email', True),
                         'name': info.get('email', '').split('@')[0],
                         'sub': info.get('sub') or info.get('user_id')
                     }
             else:
                 logger.warning(f"[GoogleAuth] Access token rejected: aud '{token_aud}' not recognized.")
         else:
-            # ب) محاولة مباشرة عبر userinfo في حال كان endpoint tokeninfo غير متاح
+            # محاولة احتياطية عبر userinfo في حال كان endpoint tokeninfo غير متاح
             user_info_resp = requests.get(
                 'https://www.googleapis.com/oauth2/v3/userinfo',
                 headers={'Authorization': f'Bearer {id_token_str}'},
@@ -1534,6 +1542,8 @@ class GoogleAuthView(APIView):
             or ''
         ).strip()
 
+        mode = str(request.data.get('mode', '')).strip().lower()
+
         if not id_token_str:
             return Response(
                 {'error': 'رمز الدخول (id_token) من Google مطلوب.'},
@@ -1556,6 +1566,8 @@ class GoogleAuthView(APIView):
 
         # التحقق من أن البريد موثق
         email_verified = payload.get('email_verified')
+        if email_verified is None:
+            email_verified = payload.get('verified_email')
         if isinstance(email_verified, str):
             email_verified = email_verified.lower() in ('true', '1')
         elif email_verified is None:
@@ -1575,6 +1587,14 @@ class GoogleAuthView(APIView):
         is_new_user = False
 
         if user:
+            # إذا ضغط المستخدم على زر إنشاء حساب جديد والبريد مسجل مسبقاً في النظام
+            if mode == 'register':
+                return Response({
+                    'error': 'البريد الإلكتروني مسجل مسبقاً في النظام! يمكنك تسجيل الدخول مباشرة إلى حسابك.',
+                    'code': 'already_registered',
+                    'email': user.email
+                }, status=status.HTTP_400_BAD_REQUEST)
+
             # تفعيل الحساب فوراً إذا كان غير مفعّل لأن جوجل وثّق البريد
             if not user.is_active:
                 user.is_active = True

@@ -352,3 +352,77 @@ class AccountDeletionTestCase(TestCase):
         res = self.client.delete(f'/api/users/{oauth_user.id}/', {})
         self.assertEqual(res.status_code, 204)
         self.assertFalse(User.objects.filter(id=oauth_user.id).exists())
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class GoogleAuthTestCase(TestCase):
+    """اختبارات مصادقة Google (تسجيل جديد، تسجيل دخول، ومنع التكرار عند اختيار التسجيل)"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.existing_user = User.objects.create_user(
+            username='existing_google_user',
+            email='google_existing@example.com',
+            password='Password123!',
+            is_active=True
+        )
+
+    def test_google_register_fails_if_email_exists(self):
+        """إذا حاول المستخدم التسجيل عبر جوجل والإيميل موجود مسبقاً، يجب إرجاع خطأ already_registered"""
+        from unittest.mock import patch
+        mock_payload = {
+            'email': 'google_existing@example.com',
+            'email_verified': True,
+            'name': 'Existing User',
+            'sub': '123456789'
+        }
+        with patch('core.views._verify_google_token_payload', return_value=mock_payload):
+            res = self.client.post('/api/auth/google/', {
+                'id_token': 'fake_valid_token',
+                'mode': 'register'
+            })
+            self.assertEqual(res.status_code, 400)
+            self.assertEqual(res.data.get('code'), 'already_registered')
+            self.assertIn('البريد الإلكتروني مسجل مسبقاً', res.data.get('error', ''))
+
+    def test_google_login_succeeds_if_email_exists(self):
+        """إذا قام المستخدم بتسجيل الدخول عبر جوجل والإيميل موجود، ينجح ويسجل الدخول فوراً"""
+        from unittest.mock import patch
+        mock_payload = {
+            'email': 'google_existing@example.com',
+            'email_verified': True,
+            'name': 'Existing User',
+            'sub': '123456789'
+        }
+        with patch('core.views._verify_google_token_payload', return_value=mock_payload):
+            res = self.client.post('/api/auth/google/', {
+                'id_token': 'fake_valid_token',
+                'mode': 'login'
+            })
+            self.assertEqual(res.status_code, 200)
+            self.assertIn('token', res.data)
+            self.assertEqual(res.data.get('email'), 'google_existing@example.com')
+            self.assertFalse(res.data.get('is_new_user'))
+
+    def test_google_register_creates_new_user_and_welcomes(self):
+        """تسجيل حساب جديد عبر جوجل ينشئ الحساب تلقائياً وينشط الحساب ويمنح التوكن"""
+        from unittest.mock import patch
+        mock_payload = {
+            'email': 'brand_new_user@example.com',
+            'email_verified': True,
+            'name': 'New Google User',
+            'sub': '987654321'
+        }
+        with patch('core.views._verify_google_token_payload', return_value=mock_payload):
+            res = self.client.post('/api/auth/google/', {
+                'id_token': 'fake_valid_token',
+                'mode': 'register'
+            })
+            self.assertEqual(res.status_code, 200)
+            self.assertIn('token', res.data)
+            self.assertTrue(res.data.get('is_new_user'))
+            self.assertTrue(User.objects.filter(email='brand_new_user@example.com').exists())
+            created_user = User.objects.get(email='brand_new_user@example.com')
+            self.assertTrue(created_user.is_active)
+            self.assertFalse(created_user.has_usable_password())
+
