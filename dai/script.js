@@ -2082,7 +2082,11 @@
   }
   window.triggerGoogleSignIn = triggerGoogleSignIn;
 
+  let _googleInitialized = false;
+
   function initGoogleSignIn() {
+    if (_googleInitialized) return;
+    
     if (typeof google === 'undefined' || !google.accounts || !google.accounts.id) {
       setTimeout(initGoogleSignIn, 600);
       return;
@@ -2097,6 +2101,7 @@
         auto_select: false,
         cancel_on_tap_outside: true
       });
+      _googleInitialized = true;
 
       document.querySelectorAll(".btn-google-auth").forEach(btn => {
         btn.onclick = (e) => {
