@@ -172,7 +172,7 @@ class Ad(models.Model):
         )
 
         # تسجيل وقت القبول عند الموافقة على الإعلان
-        if self.status == 'approved' and self.__original_status != 'approved':
+        if self.status == 'approved' and (self.__original_status != 'approved' or not self.approved_at):
             from django.utils import timezone as tz
             self.approved_at = tz.now()
 

@@ -233,6 +233,88 @@ class TransactionRetentionTestCase(TestCase):
         # التحقق من أن المعاملة التي مر عليها أكثر من 6 أشهر حُذفت
         self.assertFalse(Transaction.objects.filter(id=old_tx.id).exists())
 
+    def test_ad_expiration_lifecycle(self):
+        from core.models import Ad
+        from core.tasks import delete_expired_content
+        from django.utils import timezone
+        from datetime import timedelta
+
+        now = timezone.now()
+
+        # 1. إعلان مدته يوم واحد - نُشر قبل 23 ساعة (صالح، لا يجوز حذفه)
+        ad_1day_active = Ad.objects.create(
+            user=self.user,
+            title='1-Day Active Ad',
+            category='jobs',
+            ad_duration='1_day',
+            status='approved'
+        )
+        Ad.objects.filter(id=ad_1day_active.id).update(
+            approved_at=now - timedelta(hours=23),
+            created_at=now - timedelta(hours=23)
+        )
+
+        # 2. إعلان مدته يوم واحد - نُشر قبل 25 ساعة (منتهي، يجب حذفه بعد 24 ساعة)
+        ad_1day_expired = Ad.objects.create(
+            user=self.user,
+            title='1-Day Expired Ad',
+            category='jobs',
+            ad_duration='1_day',
+            status='approved'
+        )
+        Ad.objects.filter(id=ad_1day_expired.id).update(
+            approved_at=now - timedelta(hours=25),
+            created_at=now - timedelta(hours=25)
+        )
+
+        # 3. إعلان مدته أسبوع - نُشر قبل 6 أيام (صالح، لا يجوز حذفه)
+        ad_1week_active = Ad.objects.create(
+            user=self.user,
+            title='1-Week Active Ad',
+            category='jobs',
+            ad_duration='1_week',
+            status='approved'
+        )
+        Ad.objects.filter(id=ad_1week_active.id).update(
+            approved_at=now - timedelta(days=6),
+            created_at=now - timedelta(days=6)
+        )
+
+        # 4. إعلان مدته أسبوع - نُشر قبل 8 أيام (منتهي، يجب حذفه بعد 7 أيام كاملة)
+        ad_1week_expired = Ad.objects.create(
+            user=self.user,
+            title='1-Week Expired Ad',
+            category='jobs',
+            ad_duration='1_week',
+            status='approved'
+        )
+        Ad.objects.filter(id=ad_1week_expired.id).update(
+            approved_at=now - timedelta(days=8),
+            created_at=now - timedelta(days=8)
+        )
+
+        # 5. إعلان معلق (pending) عمره 10 أيام - لا يجوز حذفه
+        ad_pending = Ad.objects.create(
+            user=self.user,
+            title='Pending Ad',
+            category='jobs',
+            ad_duration='1_week',
+            status='pending'
+        )
+        Ad.objects.filter(id=ad_pending.id).update(
+            created_at=now - timedelta(days=10)
+        )
+
+        # تشغيل مهمة الحذف
+        delete_expired_content()
+
+        # الفحوصات:
+        self.assertTrue(Ad.objects.filter(id=ad_1day_active.id).exists(), "إعلان اليوم المنشور قبل 23 ساعة يجب أن يبقى")
+        self.assertFalse(Ad.objects.filter(id=ad_1day_expired.id).exists(), "إعلان اليوم المنشور قبل 25 ساعة يجب أن يحذف بعد 24 ساعة")
+        self.assertTrue(Ad.objects.filter(id=ad_1week_active.id).exists(), "إعلان الأسبوع المنشور قبل 6 أيام يجب أن يبقى")
+        self.assertFalse(Ad.objects.filter(id=ad_1week_expired.id).exists(), "إعلان الأسبوع المنشور قبل 8 أيام يجب أن يحذف بعد 7 أيام")
+        self.assertTrue(Ad.objects.filter(id=ad_pending.id).exists(), "الإعلانات المعلقة لا يجوز حذفها")
+
 
 @override_settings(SECURE_SSL_REDIRECT=False)
 class AdminAdActionSyncTestCase(TestCase):
