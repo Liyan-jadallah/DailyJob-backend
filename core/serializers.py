@@ -37,6 +37,7 @@ class AdCategorySerializer(serializers.ModelSerializer):
 class UserSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=False)
     referred_by_code = serializers.CharField(write_only=True, required=False, allow_blank=True)
+    has_usable_password = serializers.SerializerMethodField()
 
     class Meta:
         model = User
@@ -46,8 +47,12 @@ class UserSerializer(serializers.ModelSerializer):
             'date_joined', 'device_id', 'fcm_token',
             'notifications_enabled', 'notify_all_ads',
             'preferred_governorates', 'preferred_categories',
+            'has_usable_password',
         ]
-        read_only_fields = ['id', 'date_joined', 'role', 'referral_code']
+        read_only_fields = ['id', 'date_joined', 'role', 'referral_code', 'has_usable_password']
+
+    def get_has_usable_password(self, obj):
+        return obj.has_usable_password()
 
     def validate_username(self, value):
         if not value:

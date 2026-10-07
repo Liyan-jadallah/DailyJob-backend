@@ -185,3 +185,170 @@ class HealthCheckTestCase(TestCase):
         self.assertEqual(res.status_code, 200)
         self.assertEqual(res.data['status'], 'ok')
         self.assertEqual(res.data['database'], 'connected')
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class TransactionRetentionTestCase(TestCase):
+    """اختبار سياسة الاحتفاظ بالمعاملات المالية لمدة 6 أشهر لحفظ الرواتب ومنع الاحتيال"""
+
+    def setUp(self):
+        self.user = User.objects.create_user(
+            username='txuser',
+            email='txuser@example.com',
+            password='TestPass123!',
+            is_active=True
+        )
+
+    def test_transactions_retention_policy(self):
+        from core.models import Transaction
+        from core.tasks import delete_expired_content
+        from django.utils import timezone
+        from datetime import timedelta
+
+        # 1. معاملة حديثة (عمرها 30 يوماً - يجب أن تبقى محفوظة لتدقيق الرواتب)
+        recent_tx = Transaction.objects.create(
+            user=self.user,
+            amount=1.00,
+            status='approved'
+        )
+        Transaction.objects.filter(id=recent_tx.id).update(
+            submitted_at=timezone.now() - timedelta(days=30)
+        )
+
+        # 2. معاملة قديمة جداً (عمرها 190 يوماً - أكثر من 6 أشهر، تحذف تلقائياً)
+        old_tx = Transaction.objects.create(
+            user=self.user,
+            amount=2.00,
+            status='approved'
+        )
+        Transaction.objects.filter(id=old_tx.id).update(
+            submitted_at=timezone.now() - timedelta(days=190)
+        )
+
+        # تشغيل مهمة التنظيف الدوري
+        delete_expired_content()
+
+        # التحقق من أن المعاملة الحديثة (30 يوماً) لا تزال موجودة
+        self.assertTrue(Transaction.objects.filter(id=recent_tx.id).exists())
+        # التحقق من أن المعاملة التي مر عليها أكثر من 6 أشهر حُذفت
+        self.assertFalse(Transaction.objects.filter(id=old_tx.id).exists())
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class AdminAdActionSyncTestCase(TestCase):
+    """اختبار مزامنة حالة المعاملة المالية عند قبول أو رفض الإعلان من الأدمن"""
+
+    def setUp(self):
+        self.client = APIClient()
+        self.admin = User.objects.create_user(
+            username='adminuser',
+            email='admin@example.com',
+            password='AdminPass123!',
+            is_active=True,
+            role='admin'
+        )
+        from rest_framework.authtoken.models import Token
+        self.token = Token.objects.create(user=self.admin)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {self.token.key}')
+
+        self.seller = User.objects.create_user(
+            username='seller',
+            email='seller@example.com',
+            password='SellerPass123!',
+            is_active=True
+        )
+
+    def test_approve_ad_syncs_transaction_status(self):
+        from core.models import Ad, Transaction
+        ad = Ad.objects.create(
+            user=self.seller,
+            title='إعلان تجريبي للقبول',
+            description='وصف الإعلان',
+            status='pending',
+            category='cars',
+            governorate='amman'
+        )
+        tx = Transaction.objects.create(
+            ad=ad,
+            user=self.seller,
+            amount=1.00,
+            status='pending'
+        )
+
+        res = self.client.post(f'/api/ads/{ad.id}/action/', {'action': 'approve'})
+        self.assertEqual(res.status_code, 200)
+
+        tx.refresh_from_db()
+        self.assertEqual(tx.status, 'approved')
+
+    def test_reject_ad_syncs_transaction_status(self):
+        from core.models import Ad, Transaction
+        ad = Ad.objects.create(
+            user=self.seller,
+            title='إعلان تجريبي للرفض',
+            description='وصف الإعلان',
+            status='pending',
+            category='cars',
+            governorate='amman'
+        )
+        tx = Transaction.objects.create(
+            ad=ad,
+            user=self.seller,
+            amount=1.00,
+            status='pending'
+        )
+
+        res = self.client.post(f'/api/ads/{ad.id}/action/', {'action': 'reject'})
+        self.assertEqual(res.status_code, 200)
+
+        tx.refresh_from_db()
+        self.assertEqual(tx.status, 'rejected')
+
+
+@override_settings(SECURE_SSL_REDIRECT=False)
+class AccountDeletionTestCase(TestCase):
+    """اختبار حذف الحساب لمستخدمي كلمة المرور ومستخدمي Google OAuth"""
+
+    def setUp(self):
+        self.client = APIClient()
+
+    def test_password_user_requires_password_for_deletion(self):
+        from rest_framework.authtoken.models import Token
+        user = User.objects.create_user(
+            username='passuser',
+            email='passuser@example.com',
+            password='MyPassword123!',
+            is_active=True
+        )
+        token = Token.objects.create(user=user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+        # بدون كلمة مرور -> يرفض 400
+        res = self.client.delete(f'/api/users/{user.id}/', {})
+        self.assertEqual(res.status_code, 400)
+
+        # بكلمة مرور غير صحيحة -> يرفض 400
+        res = self.client.delete(f'/api/users/{user.id}/', {'password': 'WrongPassword!'})
+        self.assertEqual(res.status_code, 400)
+
+        # بكلمة المرور الصحيحة -> ينجح 204
+        res = self.client.delete(f'/api/users/{user.id}/', {'password': 'MyPassword123!'})
+        self.assertEqual(res.status_code, 204)
+        self.assertFalse(User.objects.filter(id=user.id).exists())
+
+    def test_oauth_user_without_usable_password_can_delete_account(self):
+        from rest_framework.authtoken.models import Token
+        oauth_user = User(
+            username='oauthuser',
+            email='oauthuser@example.com',
+            is_active=True
+        )
+        oauth_user.set_unusable_password()
+        oauth_user.save()
+        token = Token.objects.create(user=oauth_user)
+        self.client.credentials(HTTP_AUTHORIZATION=f'Token {token.key}')
+
+        # مستخدم OAuth لا يملك كلمة مرور -> يستطيع الحذف بدون كلمة مرور
+        res = self.client.delete(f'/api/users/{oauth_user.id}/', {})
+        self.assertEqual(res.status_code, 204)
+        self.assertFalse(User.objects.filter(id=oauth_user.id).exists())

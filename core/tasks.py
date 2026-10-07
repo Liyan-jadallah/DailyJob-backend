@@ -153,15 +153,29 @@ def delete_expired_content():
     notif_cutoff = now - timedelta(days=7)
     deleted_notifs, _ = Notification.objects.filter(created_at__lt=notif_cutoff).delete()
 
-    return f"Deleted {deleted_day_ads} 1-day ads, {deleted_week_ads} 1-week ads, and {deleted_notifs} expired notifications (>7 days)"
+    # حذف المعاملات المالية التي مر عليها أكثر من 6 أشهر (180 يوماً) لحفظ البيانات المالية لتدقيق الرواتب ومنع الاحتيال
+    tx_cutoff = now - timedelta(days=180)
+    old_txs = Transaction.objects.filter(submitted_at__lt=tx_cutoff)
+    deleted_tx_count = 0
+    for tx in old_txs.iterator():
+        if tx.receipt_image:
+            try:
+                if tx.receipt_image.storage.exists(tx.receipt_image.name):
+                    tx.receipt_image.storage.delete(tx.receipt_image.name)
+            except Exception:
+                pass
+        tx.delete()
+        deleted_tx_count += 1
+
+    return f"Deleted {deleted_day_ads} 1-day ads, {deleted_week_ads} 1-week ads, {deleted_notifs} expired notifications (>7 days), and {deleted_tx_count} transactions (>6 months)"
 
 @shared_task
 def send_contact_email_task(name, email, subject, message):
     from django.core.mail import send_mail
     from django.conf import settings
-    admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''''))
+    admin_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
     if not admin_email:
-        admin_email = ''''
+        admin_email = 'dailyjob2026@gmail.com'
     full_subject = f"رسالة دعم جديدة: {subject or 'بدون عنوان'}"
     body = f"رسالة جديدة من التطبيق:\n\nالاسم: {name}\nالبريد: {email}\nالموضوع: {subject or 'لا يوجد'}\n\nالرسالة:\n{message}\n"
     try:

@@ -2,7 +2,7 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q
-from core.models import Ad
+from core.models import Ad, Transaction
 
 class Command(BaseCommand):
     help = 'Deletes expired ads (1-day ads after 24h, 1-week ads after 7 days)'
@@ -34,4 +34,22 @@ class Command(BaseCommand):
         total = count_day + count_week
         self.stdout.write(self.style.SUCCESS(
             f'Successfully deleted {total} expired ads ({count_day} 1-day, {count_week} 1-week).'
+        ))
+
+        # حذف المعاملات المالية التي مر عليها أكثر من 6 أشهر (180 يوماً)
+        tx_cutoff = now - timedelta(days=180)
+        old_txs = Transaction.objects.filter(submitted_at__lt=tx_cutoff)
+        deleted_tx_count = 0
+        for tx in old_txs.iterator():
+            if tx.receipt_image:
+                try:
+                    if tx.receipt_image.storage.exists(tx.receipt_image.name):
+                        tx.receipt_image.storage.delete(tx.receipt_image.name)
+                except Exception:
+                    pass
+            tx.delete()
+            deleted_tx_count += 1
+
+        self.stdout.write(self.style.SUCCESS(
+            f'Successfully deleted {deleted_tx_count} transactions older than 6 months.'
         ))
