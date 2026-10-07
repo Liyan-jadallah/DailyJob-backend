@@ -130,11 +130,16 @@ def auto_approve_pending_ads():
 @shared_task
 def delete_expired_content():
     from django.db.models import Q
+    from .models import SystemSetting
     now = timezone.now()
-    day_cutoff = now - timedelta(hours=24)
-    week_cutoff = now - timedelta(days=7)
 
-    # الحذف التلقائي ينطبق حصراً على الإعلانات المقبولة المنتهية (status='approved')
+    ad_days = SystemSetting.get_int('ad_retention_days', default=7)
+    notif_days = SystemSetting.get_int('notification_retention_days', default=7)
+
+    day_cutoff = now - timedelta(hours=24)
+    week_cutoff = now - timedelta(days=ad_days)
+
+    # 1. إعلانات اليوم الواحد (24 ساعة)
     deleted_day_ads, _ = Ad.objects.filter(
         status='approved'
     ).filter(
@@ -143,14 +148,15 @@ def delete_expired_content():
         Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
     ).delete()
 
+    # 2. إعلانات الأسبوع (أو أي إعلان مر عليه أسبوع كامل)
     deleted_week_ads, _ = Ad.objects.filter(
-        status='approved',
-        ad_duration='1_week'
+        status='approved'
     ).filter(
-        Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+        Q(ad_duration='1_week') | Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
     ).delete()
 
-    notif_cutoff = now - timedelta(days=7)
+    # 3. حذف الإشعارات حسب مدة النظام
+    notif_cutoff = now - timedelta(days=notif_days)
     deleted_notifs, _ = Notification.objects.filter(created_at__lt=notif_cutoff).delete()
 
     # حذف المعاملات المالية التي مر عليها أكثر من 6 أشهر (180 يوماً) لحفظ البيانات المالية لتدقيق الرواتب ومنع الاحتيال

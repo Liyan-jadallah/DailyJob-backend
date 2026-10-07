@@ -2,15 +2,18 @@ from django.core.management.base import BaseCommand
 from django.utils import timezone
 from datetime import timedelta
 from django.db.models import Q
-from core.models import Ad, Transaction
+from core.models import Ad, Transaction, Notification, SystemSetting
 
 class Command(BaseCommand):
-    help = 'Deletes expired ads (1-day ads after 24h, 1-week ads after 7 days)'
+    help = 'Deletes expired ads (older than a week / 1 day) and old notifications based on system settings'
 
     def handle(self, *args, **options):
         now = timezone.now()
+        ad_days = SystemSetting.get_int('ad_retention_days', default=7)
+        notif_days = SystemSetting.get_int('notification_retention_days', default=7)
+
         day_cutoff = now - timedelta(hours=24)
-        week_cutoff = now - timedelta(days=7)
+        week_cutoff = now - timedelta(days=ad_days)
 
         # 1-day ads (or default): expired after 24 hours of approval
         day_expired = Ad.objects.filter(
@@ -22,18 +25,24 @@ class Command(BaseCommand):
         )
         count_day, _ = day_expired.delete()
 
-        # 1-week ads: expired after 7 days of approval
+        # 1-week ads: expired after 7 days of approval or ad_retention_days
         week_expired = Ad.objects.filter(
-            status='approved',
-            ad_duration='1_week'
+            status='approved'
         ).filter(
-            Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+            Q(ad_duration='1_week') | Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
         )
         count_week, _ = week_expired.delete()
 
         total = count_day + count_week
         self.stdout.write(self.style.SUCCESS(
-            f'Successfully deleted {total} expired ads ({count_day} 1-day, {count_week} 1-week).'
+            f'Successfully deleted {total} expired ads ({count_day} 1-day, {count_week} weekly/older than {ad_days} days).'
+        ))
+
+        # حذف الإشعارات القديمة حسب إعدادات النظام
+        notif_cutoff = now - timedelta(days=notif_days)
+        deleted_notifs, _ = Notification.objects.filter(created_at__lt=notif_cutoff).delete()
+        self.stdout.write(self.style.SUCCESS(
+            f'Successfully deleted {deleted_notifs} notifications older than {notif_days} days.'
         ))
 
         # حذف المعاملات المالية التي مر عليها أكثر من 6 أشهر (180 يوماً)

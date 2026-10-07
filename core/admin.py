@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.html import format_html
-from .models import User, PaymentMethod, Ad, AdCategory, AdImage, Transaction, Notification, Coupon, Referral
+from .models import User, PaymentMethod, Ad, AdCategory, AdImage, Transaction, Notification, Coupon, Referral, SystemSetting
 
 # Register custom user model
 admin.site.register(User, UserAdmin)
@@ -34,6 +34,7 @@ class AdAdmin(admin.ModelAdmin):
     search_fields = ('title', 'description', 'user__email', 'user__username')
     readonly_fields = ('image_preview',)
     inlines = [AdImageInline]
+    actions = ['delete_expired_ads_now']
 
     def duration_badge(self, obj):
         if obj.ad_duration == '1_week':
@@ -47,6 +48,34 @@ class AdAdmin(admin.ModelAdmin):
             return format_html('<img src="{}" style="max-height:120px; border-radius:6px;" />', obj.image.url)
         return "لا توجد صورة"
     image_preview.short_description = "الصورة الرئيسية"
+
+    @admin.action(description='تنظيف وحذف الإعلانات المنتهية (التي مر عليها أسبوع كامل / 24 ساعة)')
+    def delete_expired_ads_now(self, request, queryset):
+        from django.utils import timezone
+        from datetime import timedelta
+        from django.db.models import Q
+        now = timezone.now()
+        days = SystemSetting.get_int('ad_retention_days', default=7)
+        week_cutoff = now - timedelta(days=days)
+        day_cutoff = now - timedelta(hours=24)
+
+        # 1-day ads
+        day_ads = Ad.objects.filter(
+            status='approved'
+        ).filter(
+            Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')
+        ).filter(
+            Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff))
+        )
+        count_day, _ = day_ads.delete()
+
+        # 1-week ads or any ad older than ad_retention_days
+        week_ads = Ad.objects.filter(
+            Q(status='approved') & (Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff)))
+        )
+        count_week, _ = week_ads.delete()
+        total = count_day + count_week
+        self.message_user(request, f'تم بنجاح حذف {total} إعلان منتهي الصلاحية ({count_day} يومي، {count_week} أسبوعي).')
 
 
 @admin.register(Transaction)
@@ -76,7 +105,20 @@ class PaymentMethodAdmin(admin.ModelAdmin):
 @admin.register(Notification)
 class NotificationAdmin(admin.ModelAdmin):
     list_display = ('user', 'title', 'is_read', 'created_at')
-    list_filter = ('is_read',)
+    list_filter = ('is_read', 'created_at')
+    search_fields = ('user__email', 'user__username', 'title', 'message')
+    date_hierarchy = 'created_at'
+    actions = ['delete_expired_notifications_now']
+
+    @admin.action(description='تنظيف وحذف الإشعارات القديمة طبقاً لإعدادات النظام')
+    def delete_expired_notifications_now(self, request, queryset):
+        from django.utils import timezone
+        from datetime import timedelta
+        now = timezone.now()
+        days = SystemSetting.get_int('notification_retention_days', default=7)
+        cutoff = now - timedelta(days=days)
+        deleted_count, _ = Notification.objects.filter(created_at__lt=cutoff).delete()
+        self.message_user(request, f'تم بنجاح حذف {deleted_count} إشعار أقدم من {days} أيام.')
 
 @admin.register(Coupon)
 class CouponAdmin(admin.ModelAdmin):
@@ -88,3 +130,14 @@ class CouponAdmin(admin.ModelAdmin):
 class ReferralAdmin(admin.ModelAdmin):
     list_display = ('referrer', 'referred', 'created_at')
     search_fields = ('referrer__email', 'referred__email')
+
+@admin.register(SystemSetting)
+class SystemSettingAdmin(admin.ModelAdmin):
+    list_display = ('key', 'value', 'description', 'updated_at')
+    list_editable = ('value',)
+    search_fields = ('key', 'description')
+    ordering = ('key',)
+
+    def has_delete_permission(self, request, obj=None):
+        return False
+

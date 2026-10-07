@@ -495,13 +495,15 @@ class SystemSetting(models.Model):
     """
     إعدادات النظام العامة القابلة للتحكم من لوحة الأدمن (تطبيق وموقع).
     """
-    key = models.CharField(max_length=100, unique=True, db_index=True)
-    value = models.TextField()
-    description = models.CharField(max_length=255, blank=True, null=True)
-    updated_at = models.DateTimeField(auto_now=True)
+    key = models.CharField(max_length=100, unique=True, db_index=True, verbose_name="مفتاح الإعداد (Key)")
+    value = models.TextField(verbose_name="القيمة (Value)")
+    description = models.CharField(max_length=255, blank=True, null=True, verbose_name="الوصف والتوضيح")
+    updated_at = models.DateTimeField(auto_now=True, verbose_name="آخر تحديث")
 
     class Meta:
         db_table = 'system_settings'
+        verbose_name = 'إعداد النظام'
+        verbose_name_plural = 'إعدادات النظام العامة'
 
     def __str__(self):
         return f"{self.key}: {self.value}"
