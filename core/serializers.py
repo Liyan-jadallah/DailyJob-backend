@@ -167,7 +167,7 @@ class AdSerializer(serializers.ModelSerializer):
 
     def get_user_email(self, obj):
         request = self.context.get('request')
-        if request and request.user.is_authenticated:
+        if request and getattr(request, 'user', None) and request.user.is_authenticated:
             if getattr(request.user, 'role', '') == 'admin' or obj.user_id == request.user.id:
                 return obj.user.email
         return None
@@ -235,7 +235,7 @@ class AdSerializer(serializers.ModelSerializer):
 
     def get_receipt_image(self, obj):
         request = self.context.get('request')
-        if not request or not request.user.is_authenticated:
+        if not request or not getattr(request, 'user', None) or not request.user.is_authenticated:
             return None
         is_admin = getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser
         if not is_admin:
@@ -256,16 +256,30 @@ class AdSerializer(serializers.ModelSerializer):
             return _resolve_media_url(tx.receipt_image, request)
         return None
 
+    is_expired = serializers.SerializerMethodField()
+
+    def get_is_expired(self, obj):
+        if obj.status != 'approved':
+            return False
+        from django.utils import timezone as tz
+        from datetime import timedelta
+        now = tz.now()
+        base_time = obj.approved_at or obj.created_at
+        if not base_time:
+            return False
+        cutoff = now - (timedelta(days=7) if obj.ad_duration == '1_week' else timedelta(hours=24))
+        return base_time < cutoff
+
     class Meta:
         model = Ad
-        fields = ['id', 'user', 'user_details', 'user_email', 'title', 'description', 'category', 'ad_type', 'governorate', 'price', 'contact_phone', 'contact_method', 'ad_duration', 'image', 'extra_images', 'receipt_image', 'status', 'views', 'created_at', 'approved_at', 'is_auto_approved']
+        fields = ['id', 'user', 'user_details', 'user_email', 'title', 'description', 'category', 'ad_type', 'governorate', 'price', 'contact_phone', 'contact_method', 'ad_duration', 'image', 'extra_images', 'receipt_image', 'status', 'views', 'created_at', 'approved_at', 'is_auto_approved', 'is_expired']
         read_only_fields = ['id', 'created_at', 'approved_at', 'user', 'views', 'is_auto_approved']
 
     def to_representation(self, instance):
         ret = super().to_representation(instance)
         request = self.context.get('request')
         is_admin = False
-        if request and request.user.is_authenticated:
+        if request and getattr(request, 'user', None) and request.user.is_authenticated:
             is_admin = getattr(request.user, 'role', '') == 'admin' or request.user.is_staff or request.user.is_superuser
         if not is_admin:
             ret['ad_duration'] = None

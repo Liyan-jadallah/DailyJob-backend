@@ -3255,9 +3255,9 @@
 
       const pendingAds = allAds.filter(a => a.status === 'pending');
 
-      const publishedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved !== true);
+      const publishedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved !== true && a.is_expired !== true);
 
-      const autoApprovedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved === true);
+      const autoApprovedAds = allAds.filter(a => a.status === 'approved' && a.is_auto_approved === true && a.is_expired !== true);
 
 
 

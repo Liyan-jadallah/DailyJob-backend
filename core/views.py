@@ -784,8 +784,29 @@ class AdViewSet(viewsets.ModelViewSet):
             logger.warning(f"[CLEANUP] Ad cleanup error: {e}")
 
     def get_queryset(self):
-        # تمت إزالة الاستدعاء المباشر لـ auto_approve و cleanup من الـ Views
-        # هذه المهام تعمل الآن حصراً عبر Celery Beat (settings.py) و Render Cron (render.yaml)
+        # تنظيف الإعلانات المنتهية في الوقت الفعلي لضمان تطابق الأعداد تماماً بين لوحة الأدمن والصفحة الرئيسية
+        from datetime import timedelta
+        from django.utils import timezone as tz
+        from django.db.models import Q
+        now = tz.now()
+        day_cutoff = now - timedelta(hours=24)
+        week_cutoff = now - timedelta(days=7)
+
+        Ad.objects.filter(
+            status='approved',
+            is_deleted=False
+        ).filter(
+            (Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')) &
+            (Q(approved_at__lt=day_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=day_cutoff)))
+        ).delete()
+
+        Ad.objects.filter(
+            status='approved',
+            ad_duration='1_week',
+            is_deleted=False
+        ).filter(
+            Q(approved_at__lt=week_cutoff) | (Q(approved_at__isnull=True) & Q(created_at__lt=week_cutoff))
+        ).delete()
 
         # Base query — ordered by newest first with prefetching
         queryset = Ad.objects.select_related('user').prefetch_related('extra_images', 'transactions').filter(is_deleted=False).order_by('-created_at')
@@ -793,7 +814,6 @@ class AdViewSet(viewsets.ModelViewSet):
         is_admin = self.request.user.is_authenticated and (getattr(self.request.user, 'role', '') == 'admin' or self.request.user.is_staff or self.request.user.is_superuser)
 
         if self.action in ['retrieve', 'update', 'partial_update', 'destroy']:
-            from django.db.models import Q
             if is_admin:
                 return queryset
             if self.request.user.is_authenticated:
@@ -813,14 +833,6 @@ class AdViewSet(viewsets.ModelViewSet):
             else:
                 # Public feed, other users, or no user_filter: only show approved ads
                 queryset = queryset.filter(status='approved')
-
-            # Exclude expired ads in real time (24h for 1_day, 7 days for 1_week) - strictly for approved ads
-            from datetime import timedelta
-            from django.utils import timezone as tz
-            from django.db.models import Q
-            now = tz.now()
-            day_cutoff = now - timedelta(hours=24)
-            week_cutoff = now - timedelta(days=7)
 
             valid_day = (
                 (Q(ad_duration='1_day') | Q(ad_duration__isnull=True) | Q(ad_duration='')) &
