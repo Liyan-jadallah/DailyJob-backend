@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://dailyjob-backend.onrender.com/sitemap.xml
