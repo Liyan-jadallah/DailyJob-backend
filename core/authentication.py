@@ -8,6 +8,9 @@ class ExpiringTokenAuthentication(TokenAuthentication):
     """
     Token authentication with expiry.
     Tokens expire after TOKEN_EXPIRY_DAYS days (default: 30).
+    NOTE (L2): Expired tokens are deleted lazily upon request. For complete cleanup,
+    a periodic Celery Beat task can purge unauthenticated expired tokens in bulk:
+    Token.objects.filter(created__lt=timezone.now() - timedelta(days=expiry_days)).delete()
     """
     def authenticate_credentials(self, key):
         user, token = super().authenticate_credentials(key)

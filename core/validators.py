@@ -2,6 +2,7 @@ import os
 from django.core.exceptions import ValidationError
 from rest_framework import serializers
 from PIL import Image
+Image.MAX_IMAGE_PIXELS = 10_000_000  # 10 megapixels max - prevent decompression bombs
 
 ALLOWED_IMAGE_EXTENSIONS = {'.jpg', '.jpeg', '.png', '.webp'}
 ALLOWED_MIME_TYPES = {'image/jpeg', 'image/png', 'image/webp'}

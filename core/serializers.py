@@ -201,9 +201,17 @@ class AdSerializer(serializers.ModelSerializer):
             cleaned = str(value).translate(trans_table).strip()
             try:
                 from decimal import Decimal
-                return Decimal(cleaned)
+                price = Decimal(cleaned)
             except Exception:
                 raise serializers.ValidationError("السعر غير صالح.")
+            if price < 0:
+                raise serializers.ValidationError("السعر لا يمكن أن يكون سالباً.")
+            return price
+        return value
+
+    def validate_ad_duration(self, value):
+        if value and value not in ('1_day', '1_week'):
+            raise serializers.ValidationError("مدة الإعلان غير صالحة. الخيارات المتاحة هي يوم واحد أو أسبوع.")
         return value
 
     def validate_contact_phone(self, value):

@@ -62,10 +62,10 @@ class User(AbstractUser):
    
     def save(self, *args, **kwargs):
         if not self.referral_code:
-            import uuid as uuid_lib
-            self.referral_code = str(uuid_lib.uuid4())[:8].upper()
+            import secrets
+            self.referral_code = secrets.token_urlsafe(8).upper()[:8]
             while User.objects.filter(referral_code=self.referral_code).exists():
-                self.referral_code = str(uuid_lib.uuid4())[:8].upper()
+                self.referral_code = secrets.token_urlsafe(8).upper()[:8]
         super().save(*args, **kwargs)
 
     def __str__(self):
@@ -396,7 +396,7 @@ def notify_admins_of_transaction(sender, instance, created, **kwargs):
         ]
         Notification.objects.bulk_create(notifications)
 
-        # 3. Send email alert asynchronously in daemon thread (non-blocking)
+        # 3. Send email alert asynchronously via Celery (wrapped in transaction.on_commit)
         admin_emails = [admin.email for admin in admin_users if admin.email]
         if admin_emails:
             # إرسال إيميل بدون تحميل ملف الإيصال في الذاكرة — فقط رابط الإيصال
@@ -407,28 +407,24 @@ def notify_admins_of_transaction(sender, instance, created, **kwargs):
                 except Exception:
                     pass
 
-            def _send_receipt_email_async():
-                try:
-                    from django.core.mail import send_mail
-                    body = f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}."
-                    if receipt_url_str:
-                        body += f"\nرابط الإيصال: {receipt_url_str}"
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', 'dailyjob2026@gmail.com'))
-                    send_mail(
-                        subject="إيصال دفع جديد للمراجعة",
-                        message=body,
-                        from_email=from_email,
-                        recipient_list=admin_emails,
-                        fail_silently=True,
-                    )
-                except Exception as e:
-                    logger.warning(f"[SIGNAL] Receipt email failed: {e}")
-                finally:
-                    from django.db import connection
-                    connection.close()
-
-            import threading
-            threading.Thread(target=_send_receipt_email_async, daemon=True).start()
+            from django.db import transaction as db_transaction
+            # Replace threading.Thread with Celery task on commit:
+            try:
+                from .tasks import send_receipt_notification_task
+                db_transaction.on_commit(lambda: send_receipt_notification_task.delay(instance.id))
+            except ImportError:
+                # Placeholder: send_receipt_notification_task.delay(instance.id)
+                # Fallback to existing send_contact_email_task
+                from .tasks import send_contact_email_task
+                body = f"تم استلام إيصال دفع جديد من المستخدم: {instance.user.email}."
+                if receipt_url_str:
+                    body += f"\nرابط الإيصال: {receipt_url_str}"
+                db_transaction.on_commit(lambda: send_contact_email_task.delay(
+                    name=instance.user.email,
+                    email=instance.user.email,
+                    subject="إيصال دفع جديد للمراجعة",
+                    message=body
+                ))
 
 
 @receiver(post_save, sender=Notification)

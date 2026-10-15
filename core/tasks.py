@@ -39,6 +39,8 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
 
         custom_matching_tokens = set()
         in_app_notifs = []
+        BATCH_SIZE = 1000
+        total_created = 0
 
         for u in eligible_users:
             if u.notify_all_ads:
@@ -72,6 +74,11 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
                         )
                     )
 
+            if len(in_app_notifs) >= BATCH_SIZE:
+                Notification.objects.bulk_create(in_app_notifs, batch_size=500, ignore_conflicts=True)
+                total_created += len(in_app_notifs)
+                in_app_notifs = []
+
         # 3. إرسال Push Notification مباشر للمستخدمين المخصصين المطابقين (لمنع التكرار لمشتركي topic "all")
         if custom_matching_tokens:
             direct_success = send_multicast_push_notification(
@@ -85,7 +92,9 @@ def send_global_notification_task(ad_id, ad_title, ad_owner_id, ad_category='', 
         # 4. حفظ إشعارات داخل التطبيق لجميع المستخدمين المطابقين
         if in_app_notifs:
             Notification.objects.bulk_create(in_app_notifs, batch_size=500, ignore_conflicts=True)
-            results.append(f"Created {len(in_app_notifs)} in-app notifications")
+            total_created += len(in_app_notifs)
+            in_app_notifs = []
+        results.append(f"Created {total_created} in-app notifications")
 
         return f"Notifications sent for Ad {ad_id}: {'; '.join(results)}"
     except Exception as e:

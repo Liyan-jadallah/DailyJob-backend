@@ -61,7 +61,7 @@ urlpatterns = [
     path('admin/grant-coupons/', AdminGrantCouponsView.as_view(), name='admin-grant-coupons'),
     path('admin/welcome-settings/', AdminWelcomeSettingsView.as_view(), name='admin-welcome-settings'),
 
-    # Health check
+    # Health check (rate-limited via AnonRateThrottle on HealthCheckView to prevent DoS)
     path('health/', HealthCheckView.as_view(), name='health-check'),
 
     # Contact Us

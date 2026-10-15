@@ -7,16 +7,19 @@
   <title>دايلي جوب | Daily Job - منصة الإعلانات والوظائف اليومية في الأردن</title>
   <meta name="description" content="منصة دايلي جوب Daily Job - منصتك الأولى في الأردن لنشر والبحث عن وظائف العمل اليومي، والوظائف بدوام كامل، والخدمات، والسلع المستعملة.">
   <meta name="keywords" content="وظائف يومية, عمل يومي الاردن, دايلي جوب, Daily Job, خدمات, مستعمل, وظائف عمان">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://accounts.google.com https://apis.google.com https://cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com; font-src 'self' https://fonts.gstatic.com https://cdnjs.cloudflare.com; img-src 'self' data: https: blob:; connect-src 'self' https://dailyjob-backend.onrender.com https://accounts.google.com; frame-src https://accounts.google.com;">
   <meta property="og:title" content="دايلي جوب | Daily Job - المنصة الأولى في الأردن">
   <meta property="og:description" content="ابحث عن وظائف يومية أو انشر إعلاناتك بكل سهولة وأمان في الأردن.">
-  <meta property="og:image" content="app_logo.png">
+  <meta property="og:image" content="https://dailyjob-backend.onrender.com/app_logo.png">
   <meta property="og:type" content="website">
-  <meta property="og:url" content="/">
+  <meta property="og:url" content="https://dailyjob-backend.onrender.com/">
   <meta property="og:locale" content="ar_JO">
   <meta name="theme-color" content="#0B0F1E">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="Daily Job - منصة التوظيف والإعلانات في الأردن">
   <meta name="twitter:description" content="منصة أردنية لنشر إعلانات العمل اليومي والوظائف والخدمات">
+  <meta name="twitter:image" content="https://dailyjob-backend.onrender.com/app_logo.png">
+  <link rel="canonical" href="https://dailyjob-backend.onrender.com/">
   <link rel="icon" type="image/x-icon" href="favicon.ico">
   <link rel="icon" type="image/png" href="favicon.png">
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -142,9 +145,40 @@
       transform: translateX(22px);
     }
   </style>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "DailyJob - وظائف يومية",
+    "url": "https://dailyjob-backend.onrender.com",
+    "description": "منصة للإعلانات اليومية عن الوظائف والخدمات في الأردن",
+    "applicationCategory": "BusinessApplication",
+    "operatingSystem": "Android",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "JOD"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "DailyJob",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "https://dailyjob-backend.onrender.com/app_logo.png"
+      }
+    }
+  }
+  </script>
 </head>
 
 <body>
+  <noscript>
+    <div style="text-align:center;padding:2rem;font-family:sans-serif;">
+      <h2>يجب تفعيل JavaScript لاستخدام هذا الموقع</h2>
+      <p>JavaScript is required to use this website.</p>
+    </div>
+  </noscript>
+  <a href="#main-content" class="skip-nav" style="position:absolute;top:-40px;left:0;background:#4361ee;color:#fff;padding:8px 16px;z-index:10000;transition:top 0.3s;" onfocus="this.style.top='0'" onblur="this.style.top='-40px'">تخطي إلى المحتوى</a>
 
   <div class="app-shell" id="appShell">
 
@@ -160,12 +194,13 @@
           <i class="fa-regular fa-bell"></i>
           <span class="notif-dot hidden" id="headerNotifDot"></span>
         </button>
-        <button class="icon-btn" id="menuBtn"><i class="fa-solid fa-bars"></i></button>
+        <button class="icon-btn" id="menuBtn" aria-label="القائمة الرئيسية"><i class="fa-solid fa-bars"></i></button>
       </div>
     </header>
 
     <!-- ============ SCREEN: HOME ============ -->
     <main class="screen active" id="screen-home">
+      <div id="main-content" tabindex="-1"></div>
 
       <!-- PROMINENT POST AD BUTTON ON HOME PAGE -->
       <div class="post-ad-banner">
@@ -177,8 +212,8 @@
 
       <div class="search-wrap">
         <i class="fa-solid fa-magnifying-glass search-ic"></i>
-        <input type="text" class="search-input" id="searchInput" placeholder="ابحث عن وظائف أو أغراض مستعملة..." data-i18n-placeholder="searchPlaceholder">
-        <button class="filter-btn" id="filterBtn"><i class="fa-solid fa-sliders"></i></button>
+        <input type="text" class="search-input" id="searchInput" placeholder="ابحث عن وظائف أو أغراض مستعملة..." data-i18n-placeholder="searchPlaceholder" aria-label="البحث عن إعلانات">
+        <button class="filter-btn" id="filterBtn" aria-label="تصفية الإعلانات"><i class="fa-solid fa-sliders"></i></button>
       </div>
 
       <!-- EXACT CATEGORY CHIPS -->
@@ -865,13 +900,13 @@
           </button>
         </li>
         <li>
-          <a href="privacy.html" target="_blank">
+          <a href="privacy.html" target="_blank" rel="noopener noreferrer">
             <i class="fa-solid fa-shield-halved"></i>
             <span data-i18n="privacyPolicy">سياسة الخصوصية</span>
           </a>
         </li>
         <li>
-          <a href="delete-account.html" target="_blank">
+          <a href="delete-account.html" target="_blank" rel="noopener noreferrer">
             <i class="fa-solid fa-file-contract"></i>
             <span data-i18n="deleteAccountPage">طلب حذف الحساب</span>
           </a>

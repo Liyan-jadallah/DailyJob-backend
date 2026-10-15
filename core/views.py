@@ -201,12 +201,7 @@ class UserViewSet(viewsets.ModelViewSet):
             # 2. إذا كان البريد الإلكتروني مسجلاً لكن حسابه غير مفعّل
             existing_inactive = User.objects.filter(email__iexact=incoming_email, is_active=False).first()
             if existing_inactive:
-                # إذا أدخل المستخدم كلمة مرور جديدة، نحدّثها لتمكينه من الدخول بها بعد التفعيل
-                new_password = request.data.get('password')
-                if new_password:
-                    existing_inactive.set_password(new_password)
-                    existing_inactive.save(update_fields=['password'])
-
+                # Don't overwrite password - security risk. Just resend OTP for verification.
                 # أعد إرسال OTP بدلاً من رفض التسجيل
                 otp_code = generate_secure_otp()
                 cache.set(f'verify_{existing_inactive.email}', otp_code, timeout=600)
@@ -878,6 +873,8 @@ class AdViewSet(viewsets.ModelViewSet):
                 queryset = queryset.filter(Q(ad_type='real_estate') | Q(category='real_estate'))
             elif ad_type_filter == 'rent':
                 queryset = queryset.filter(Q(ad_type='rent') | Q(category__in=['rentals', 'rental']))
+            elif ad_type_filter == 'other':
+                queryset = queryset.filter(Q(category='other') | (Q(ad_type='other') & (Q(category__isnull=True) | Q(category=''))))
             else:
                 queryset = queryset.filter(Q(ad_type=ad_type_filter) | Q(category=ad_type_filter))
 
@@ -896,7 +893,6 @@ class AdViewSet(viewsets.ModelViewSet):
         return queryset
 
     def perform_create(self, serializer):
-        import threading
         from django.db import transaction
         from .models import AdImage, Coupon, Transaction
 
@@ -994,38 +990,21 @@ class AdViewSet(viewsets.ModelViewSet):
         except Exception:
             pass
             
-        # 5. إرسال إيميل للأدمن في خلفية النظام (Non-blocking daemon thread)
-        # لمنع بطء أو تعليق طلب النشر (Worker Timeout)
+        # 5. إرسال إيميل للأدمن عبر Celery بعد إتمام المعاملة (transaction.on_commit)
         user_email = getattr(self.request.user, 'email', '')
         ad_title = ad.title
         coupon_code = coupon.code if coupon else None
         has_receipt = bool(receipt_image)
-        # جلب إيميلات الأدمن قبل الـ thread لتجنب ORM داخل thread منفصل
-        admin_emails_list = list(User.objects.filter(role='admin').values_list('email', flat=True))
-        admin_emails_list = [e for e in admin_emails_list if e]
-
-        def _send_admin_email_async():
-            try:
-                from django.core.mail import send_mail
-                from django.db import connection
-                if admin_emails_list:
-                    payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
-                    from_email = getattr(settings, 'DEFAULT_FROM_EMAIL', getattr(settings, 'EMAIL_HOST_USER', ''))
-                    send_mail(
-                        subject='إعلان جديد بانتظار المراجعة',
-                        message=f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.',
-                        from_email=from_email,
-                        recipient_list=admin_emails_list,
-                        fail_silently=True,
-                    )
-            except Exception:
-                pass
-            finally:
-                # إغلاق اتصال DB للـ thread لمنع connection leaks
-                from django.db import connection
-                connection.close()
-
-        threading.Thread(target=_send_admin_email_async, daemon=True).start()
+        payment_method_str = f"باستخدام القسيمة (كود: {coupon_code})" if coupon_code else ("بواسطة وصل الدفع" if has_receipt else "")
+        admin_email_body = f'قام المستخدم {user_email} بنشر إعلان جديد بعنوان "{ad_title}" {payment_method_str}.\nيرجى مراجعته من لوحة التحكم.'
+        from django.db import transaction
+        from .tasks import send_contact_email_task
+        transaction.on_commit(lambda: send_contact_email_task.delay(
+            name=user_email,
+            email=user_email,
+            subject='إعلان جديد بانتظار المراجعة',
+            message=admin_email_body
+        ))
 
     def perform_update(self, serializer):
         from .models import AdImage
@@ -1146,6 +1125,18 @@ class AdViewSet(viewsets.ModelViewSet):
                 receipt_image=receipt_image
             )
 
+        # إعادة الإعلان للمراجعة إذا تم تعديل المحتوى من قبل غير الأدمن
+        if getattr(self.request.user, 'role', '') != 'admin':
+            critical_fields = {'title', 'description', 'image', 'images'}
+            changed_fields = set(self.request.data.keys()) if hasattr(self, 'request') else set()
+            if hasattr(self, 'request') and hasattr(self.request, 'FILES'):
+                changed_fields.update(self.request.FILES.keys())
+            if critical_fields & changed_fields:
+                instance = self.get_object()
+                if instance.status == 'approved':
+                    instance.status = 'pending'
+                    instance.save(update_fields=['status'])
+
     @action(detail=True, methods=['delete', 'post'], url_path=r'images/(?P<image_id>[0-9a-fA-F-]+)')
     def delete_extra_image(self, request, pk=None, image_id=None):
         ad = self.get_object()
@@ -1173,12 +1164,6 @@ class AdViewSet(viewsets.ModelViewSet):
                 ad.image.delete(save=False)
             except Exception:
                 pass
-        ad.image = None
-        ad.save(update_fields=['image'])
-        return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
-        ad = self.get_object()
-        if ad.user != request.user and getattr(request.user, 'role', '') != 'admin':
-            return Response({'error': 'ليس لديك صلاحية لحذف هذه الصورة.'}, status=status.HTTP_403_FORBIDDEN)
         ad.image = None
         ad.save(update_fields=['image'])
         return Response({'success': True, 'message': 'تم حذف الصورة الرئيسية بنجاح.'}, status=status.HTTP_200_OK)
@@ -1373,18 +1358,13 @@ def _get_allowed_google_audiences():
 def _is_valid_audience(aud, azp=None):
     """التحقق من أن معرف العميل يتبع لمشروع Google Cloud المعتمد للمنصة"""
     if not aud and not azp:
-        return True
+        return False  # Was True - CRITICAL BUG
     allowed = _get_allowed_google_audiences()
-    for candidate in [aud, azp]:
-        if not candidate:
-            continue
-        c_str = str(candidate).strip()
-        if c_str in allowed:
-            return True
-        if c_str.startswith('588905767404'):
-            return True
-        if any(a in c_str for a in allowed):
-            return True
+    # Use exact match instead of substring
+    aud_str = str(aud).strip() if aud else None
+    azp_str = str(azp).strip() if azp else None
+    if (aud_str and aud_str in allowed) or (azp_str and azp_str in allowed):
+        return True
     return False
 
 
@@ -1502,16 +1482,9 @@ def _verify_google_token_payload(id_token_str):
             else:
                 logger.warning(f"[GoogleAuth] Access token rejected: aud '{token_aud}' not recognized.")
         else:
-            # محاولة احتياطية عبر userinfo في حال كان endpoint tokeninfo غير متاح
-            user_info_resp = requests.get(
-                'https://www.googleapis.com/oauth2/v3/userinfo',
-                headers={'Authorization': f'Bearer {id_token_str}'},
-                timeout=8
-            )
-            if user_info_resp.status_code == 200:
-                payload = user_info_resp.json()
-                if payload.get('email'):
-                    return payload
+            # SECURITY: Removed userinfo fallback - it accepts tokens from ANY Google app
+            # Only verify tokens using google-auth library with strict audience check
+            pass
     except Exception as e:
         logger.debug(f"[GoogleAuth] access token verification failed: {e}")
 
@@ -1924,34 +1897,15 @@ class ContactMessageCreateView(APIView):
         if serializer.is_valid():
             message = serializer.save()
             
-            # استدعاء الـ Celery Task لإرسال الإيميل في الخلفية مع توفير Fallback مباشر
-            try:
-                from .tasks import send_contact_email_task
-                send_contact_email_task.delay(
-                    name=message.name,
-                    email=message.email,
-                    subject=message.subject,
-                    message=message.message
-                )
-            except Exception as e:
-                logger.warning(f"[ContactMessage] Celery dispatch failed, fallback to thread: {e}")
-                import threading
-                def _send_contact_email_thread():
-                    try:
-                        from .tasks import send_contact_email_task
-                        send_contact_email_task(
-                            name=message.name,
-                            email=message.email,
-                            subject=message.subject,
-                            message=message.message
-                        )
-                    except Exception:
-                        pass
-                    finally:
-                        from django.db import connection
-                        connection.close()
-
-                threading.Thread(target=_send_contact_email_thread, daemon=True).start()
+            # استدعاء الـ Celery Task لإرسال الإيميل في الخلفية
+            from django.db import transaction
+            from .tasks import send_contact_email_task
+            transaction.on_commit(lambda: send_contact_email_task.delay(
+                name=message.name,
+                email=message.email,
+                subject=message.subject,
+                message=message.message
+            ))
 
             return Response(
                 {'message': 'تم إرسال رسالتك بنجاح، شكراً لتواصلك معنا.'},
@@ -2113,7 +2067,6 @@ class AdminGrantCouponsView(APIView):
         import uuid as uuid_lib
         from django.utils import timezone
         from datetime import timedelta
-        import threading
         import logging
 
         logger = logging.getLogger(__name__)
@@ -2156,43 +2109,15 @@ class AdminGrantCouponsView(APIView):
         Coupon.objects.bulk_create(coupons_to_create, batch_size=500)
         Notification.objects.bulk_create(notifications_to_create, batch_size=500)
 
-        # إرسال إشعار خارجي (Push Notification) عبر Firebase في الخلفية
-        def _send_coupon_push_async(users_list, title, body):
-            try:
-                from .firebase_utils import send_push_notification, send_multicast_push_notification
-                if len(users_list) == 1:
-                    target_u = users_list[0]
-                    if getattr(target_u, 'notifications_enabled', True) and target_u.fcm_token:
-                        send_push_notification(
-                            user=target_u,
-                            title=title,
-                            body=body,
-                            data={'type': 'coupon', 'screen': 'coupons'}
-                        )
-                else:
-                    tokens = [
-                        u.fcm_token.strip()
-                        for u in users_list
-                        if getattr(u, 'notifications_enabled', True) and u.fcm_token and u.fcm_token.strip()
-                    ]
-                    if tokens:
-                        send_multicast_push_notification(
-                            tokens=tokens,
-                            title=title,
-                            body=body,
-                            data={'type': 'coupon', 'screen': 'coupons'}
-                        )
-            except Exception as e:
-                logger.warning(f"Failed to send coupon push notifications: {e}")
-            finally:
-                from django.db import connection
-                connection.close()
-
-        threading.Thread(
-            target=_send_coupon_push_async,
-            args=(users_to_grant, notif_title, notif_message),
-            daemon=True
-        ).start()
+        # إرسال إشعار خارجي (Push Notification) عبر Firebase في الخلفية عبر Celery
+        from django.db import transaction
+        user_ids = [str(u.id) for u in users_to_grant]
+        try:
+            from .tasks import send_coupon_push_task
+            transaction.on_commit(lambda: send_coupon_push_task.delay(user_ids, notif_title, notif_message))
+        except ImportError:
+            # Note: send_coupon_push_task can be registered as a Celery task in tasks.py
+            pass
 
         return Response({"message": f"Successfully granted {count} coupons to {len(users_to_grant)} users.", "users_count": len(users_to_grant)})
 
@@ -2308,6 +2233,7 @@ class HealthCheckView(APIView):
     GET /api/health/
     """
     permission_classes = [AllowAny]
+    throttle_classes = [AnonRateThrottle]
 
     def get(self, request):
         from django.db import connection

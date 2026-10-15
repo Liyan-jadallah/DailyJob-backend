@@ -4,7 +4,20 @@ services:
     runtime: python
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn backend.wsgi:application --workers 2 --threads 4 --worker-class gthread"
+    startCommand: "gunicorn backend.wsgi:application --workers 4 --threads 4 --worker-class gthread"
+    headers:
+      - path: /*
+        name: X-Content-Type-Options
+        value: nosniff
+      - path: /*
+        name: X-Frame-Options
+        value: DENY
+      - path: /*
+        name: Referrer-Policy
+        value: strict-origin-when-cross-origin
+      - path: /*
+        name: Strict-Transport-Security
+        value: max-age=31536000; includeSubDomains; preload
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.10
@@ -15,7 +28,7 @@ services:
       - key: DATABASE_URL
         sync: false
       - key: ALLOWED_HOSTS
-        value: ".onrender.com,localhost,127.0.0.1"
+        value: "dailyjob-backend.onrender.com,localhost,127.0.0.1"
       - key: CORS_ALLOW_ALL_ORIGINS
         value: "False"
       - key: CELERY_EAGER

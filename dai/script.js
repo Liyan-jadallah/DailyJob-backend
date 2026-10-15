@@ -1508,8 +1508,8 @@
         const modalTransferMsg = document.getElementById("cliqModalTransferMsg");
         if (modalTransferMsg) {
           modalTransferMsg.innerHTML = (state.lang === 'en')
-            ? `Please transfer 1 JOD to ${name} (Alias: <strong>${alias}</strong>) and upload the receipt below:`
-            : `يرجى تحويل 1 دينار إلى ${name} (اسم مستعار: <strong>${alias}</strong>) وتحميل صورة الإيصال أدناه:`;
+            ? `Please transfer 1 JOD to ${escapeHtml(name)} (Alias: <strong>${escapeHtml(alias)}</strong>) and upload the receipt below:`
+            : `يرجى تحويل 1 دينار إلى ${escapeHtml(name)} (اسم مستعار: <strong>${escapeHtml(alias)}</strong>) وتحميل صورة الإيصال أدناه:`;
         }
       }
     } catch (err) {
@@ -2789,7 +2789,7 @@
 
             ad.type === f.type ||
 
-            (ad.ad_type && ad.ad_type === f.type) ||
+            (f.type !== 'other' && ad.ad_type && ad.ad_type === f.type) ||
 
             (f.type === 'rentals' && (ad.category === 'rent' || ad.category === 'rental' || ad.category === 'rentals' || ad.ad_type === 'rent')) ||
 
@@ -2817,7 +2817,7 @@
 
             adMainCat === f.category ||
 
-            (ad.ad_type && ad.ad_type === f.category) ||
+            (f.category !== 'other' && ad.ad_type && ad.ad_type === f.category) ||
 
             (f.category === 'rentals' && (ad.category === 'rent' || ad.category === 'rental' || ad.category === 'rentals' || ad.ad_type === 'rent')) ||
 
@@ -2939,7 +2939,7 @@
 
         <div class="ad-card-top">
 
-          <span class="ad-badge ${badgeClass}">${catName}</span>
+          <span class="ad-badge ${badgeClass}">${escapeHtml(catName)}</span>
 
           <h3 class="ad-title">${escapeHtml(ad.title[state.lang])}</h3>
 
@@ -3180,10 +3180,13 @@
 
 
     const token = localStorage.getItem("dj_token");
+    if (!token) {
+      showToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً كمسؤول", "warning");
+      openAuth("login");
+      return;
+    }
 
     const loadingHtml = '<div style="text-align:center; padding:40px;"><i class="fa-solid fa-spinner fa-spin fa-2x" style="color:var(--orange-500);"></i></div>';
-
-
 
     const pendingList = document.getElementById("adminPendingList");
 
@@ -3195,8 +3198,6 @@
 
     const txList = document.getElementById("adminTransactionsList");
 
-
-
     if (pendingList) pendingList.innerHTML = loadingHtml;
 
     if (publishedList) publishedList.innerHTML = loadingHtml;
@@ -3207,37 +3208,31 @@
 
     if (txList) txList.innerHTML = loadingHtml;
 
-
-
     try {
+      const fetchAdmin = async (url) => {
+        const r = await fetch(url, {
+          headers: { 'Authorization': 'Token ' + token }
+        });
+        if (r.status === 401 || r.status === 403) {
+          throw new Error('AUTH_EXPIRED');
+        }
+        if (!r.ok) {
+          throw new Error('SERVER_ERROR');
+        }
+        return await r.json();
+      };
 
       // 1. جلب كل الإعلانات للأدمن (مع admin_all=true لتجاوز فلترة الإعلانات المقبولة فقط)
-
-      const adsPromise = fetch(`${BASE_URL}/ads/?admin_all=true`, {
-
-        headers: { 'Authorization': 'Token ' + token }
-
-      }).then(r => r.json());
-
-
+      const adsPromise = fetchAdmin(`${BASE_URL}/ads/?admin_all=true`);
 
       // 2. جلب كل المستخدمين
-
-      const usersPromise = fetch(`${BASE_URL}/users/`, {
-
-        headers: { 'Authorization': 'Token ' + token }
-
-      }).then(r => r.json());
-
-
+      const usersPromise = fetchAdmin(`${BASE_URL}/users/`);
 
       // 3. جلب كل المعاملات والإيصالات
-
-      const txPromise = fetch(`${BASE_URL}/transactions/`, {
-
-        headers: { 'Authorization': 'Token ' + token }
-
-      }).then(r => r.json()).catch(() => []);
+      const txPromise = fetchAdmin(`${BASE_URL}/transactions/`).catch(err => {
+        if (err.message === 'AUTH_EXPIRED') throw err;
+        return [];
+      });
 
 
 
@@ -3329,9 +3324,31 @@
 
 
     } catch (err) {
+      const isAuthExpired = err.message === 'AUTH_EXPIRED';
+      const msg = isAuthExpired
+        ? 'انتهت صلاحية الجلسة أو ليس لديك صلاحية المشرف. يرجى إعادة تسجيل الدخول.'
+        : (err.message || 'حدث خطأ أثناء تحميل البيانات');
 
-      if (pendingList) pendingList.innerHTML = `<div style="text-align:center; color:red; padding:20px;">${err.message || 'حدث خطأ أثناء تحميل البيانات'}</div>`;
-
+      const errContent = `
+        <div style="text-align:center; padding:40px 20px; background:#fff; border-radius:12px; margin:20px 0; border:1px solid ${isAuthExpired ? '#fee2e2' : '#fecaca'};">
+          <i class="fa-solid ${isAuthExpired ? 'fa-lock' : 'fa-triangle-exclamation'}" style="font-size:36px; color:#ef4444; margin-bottom:12px;"></i>
+          <h4 style="margin-bottom:8px; color:#1f2937; font-size:16px;">${escapeHtml(msg)}</h4>
+          ${isAuthExpired ? `
+            <p style="color:#6b7280; margin-bottom:16px; font-size:13px;">انقر أدناه لتسجيل الدخول بحساب المشرف</p>
+            <button onclick="openAuth('login')" class="btn btn-primary" style="padding:8px 20px; font-size:14px; border-radius:8px;">
+              <i class="fa-solid fa-right-to-bracket"></i> تسجيل الدخول
+            </button>
+          ` : ''}
+        </div>
+      `;
+      if (pendingList) pendingList.innerHTML = errContent;
+      if (publishedList) publishedList.innerHTML = errContent;
+      if (usersList) usersList.innerHTML = errContent;
+      if (autoList) autoList.innerHTML = errContent;
+      if (txList) txList.innerHTML = errContent;
+      if (isAuthExpired) {
+        showToast("انتهت صلاحية الجلسة، يرجى تسجيل الدخول مجدداً كمسؤول", "warning");
+      }
     }
 
   }
@@ -3750,7 +3767,7 @@
         searchTimeout = setTimeout(async () => {
           const query = e.target.value.trim();
           _adminUsersState.searchQuery = query;
-          const token = state.token || localStorage.getItem("token") || (state.user && state.user.token);
+          const token = state.token || localStorage.getItem("dj_token") || (state.user && state.user.token);
           try {
             list.innerHTML = `<div style="text-align:center; padding:20px; color:var(--ink-400);"><i class="fa-solid fa-spinner fa-spin"></i> جاري البحث...</div>`;
             const url = query ? `${BASE_URL}/users/?search=${encodeURIComponent(query)}` : `${BASE_URL}/users/`;
@@ -3826,7 +3843,7 @@
           loadMoreBtn.disabled = true;
           loadMoreBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> <span>جاري التحميل...</span>`;
 
-          const token = state.token || localStorage.getItem("token") || (state.user && state.user.token);
+          const token = state.token || localStorage.getItem("dj_token") || (state.user && state.user.token);
           try {
             const res = await fetch(_adminUsersState.nextUrl, {
               headers: { 'Authorization': 'Token ' + token }
@@ -4732,9 +4749,9 @@
 
       tagsContainer.innerHTML = `
 
-        <span class="pill pill-orange">${catName}</span>
+        <span class="pill pill-orange">${escapeHtml(catName)}</span>
 
-        <span class="pill pill-outline">${govName}</span>
+        <span class="pill pill-outline">${escapeHtml(govName)}</span>
 
         ${statusPill}
 
@@ -7517,7 +7534,7 @@
 
                        getCategoryName(state.filters.type, state.lang);
 
-      tags.push(`<span class="filter-tag">${typeName}<i class="fa-solid fa-xmark" data-clear-filter="type"></i></span>`);
+      tags.push(`<span class="filter-tag">${escapeHtml(typeName)}<i class="fa-solid fa-xmark" data-clear-filter="type"></i></span>`);
 
     }
 
@@ -7527,7 +7544,7 @@
 
       const catName = getCategoryName(state.filters.category, state.lang);
 
-      tags.push(`<span class="filter-tag">${catName}<i class="fa-solid fa-xmark" data-clear-filter="category"></i></span>`);
+      tags.push(`<span class="filter-tag">${escapeHtml(catName)}<i class="fa-solid fa-xmark" data-clear-filter="category"></i></span>`);
 
     }
 
@@ -7543,7 +7560,7 @@
 
           <i class="fa-solid fa-location-dot"></i>
 
-          ${govName}
+          ${escapeHtml(govName)}
 
           <i class="fa-solid fa-xmark" data-clear-filter="governorate"></i>
 
